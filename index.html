@@ -141,6 +141,14 @@
   .klabel{font-size:11px;color:var(--suave);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
   .kval{font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
   .ksub{font-size:12px;color:var(--suave);margin-top:4px;}
+  .franja{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);padding:10px 14px;margin-bottom:14px;}
+  .franja-t{font-size:12px;font-weight:700;color:var(--suave);margin-right:4px;}
+  .tocas{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .toca{border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;text-align:left;line-height:1.25;}
+  button.toca{cursor:pointer;}
+  .toca small{display:block;font-size:10.5px;font-weight:600;opacity:.85;}
+  .pcard2{display:flex;gap:14px;align-items:flex-start;cursor:default;}
+  .ccard.pcard2:hover{transform:none;box-shadow:var(--sombra);}
   .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:16px;}
   .ccard{background:var(--card-bg);border-radius:var(--r);padding:16px;box-shadow:var(--sombra);border:none;text-align:left;width:100%;transition:transform .2s,box-shadow .2s;display:flex;gap:14px;align-items:flex-start;}
   .ccard:hover{transform:translateY(-3px);box-shadow:var(--sombra-hover);}
@@ -527,6 +535,16 @@ function evento(c,ds){
   var e=estadoCamp(c), hechos=c.tareas.filter(function(t){return t.fecha===ds&&t.estado;}).length;
   return '<button class="ev '+ESTC[e]+'" data-abrir="'+esc(c.id)+'" data-sub="calendario">'+esc(MATRIZ[c.proyecto].corto)+'<small>'+(hechos?hechos+' registros':e)+'</small></button>';
 }
+function slotBtn(pid,s,anio,corto){
+  var nom=esc(corto?MATRIZ[pid].corto+' · ':'')+esc(s.per)+' '+anio;
+  if(s.k==='camp') return '<button class="toca '+ESTC[s.e]+'" data-abrir="'+esc(s.c.id)+'" data-sub="calendario">'+nom+'<small>'+esc(s.e)+' · '+prog(s.c).pm+'%</small></button>';
+  if(s.k==='previo') return '<span class="toca e-prev">'+nom+'<small>Antes del seguimiento</small></span>';
+  return '<button class="toca '+(s.k==='sinr'?'e-sinr':'e-porp')+'" data-prog="'+pid+'|'+esc(s.per)+'|'+anio+'">'+nom+'<small>'+(s.k==='sinr'?'Sin registro · programar':'＋ Programar')+'</small></button>';
+}
+function franjaMes(y,m1){
+  var it=[]; planAnual(y).forEach(function(r){ r.slots.forEach(function(s){ if(s.meses.indexOf(m1)>=0) it.push(slotBtn(r.pid,s,y,true)); }); });
+  return '<div class="franja"><span class="franja-t">Según la matriz, en '+MESES[m1-1].toLowerCase()+' corresponde:</span>'+(it.length?it.join(''):'<span class="sub">ningún proyecto</span>')+'</div>';
+}
 function renderMes(){
   var y=S.ym[0], m=S.ym[1], first=new Date(y,m,1), start=new Date(first); start.setDate(1-((first.getDay()+6)%7));
   var celdas='', agenda='';
@@ -537,7 +555,7 @@ function renderMes(){
     celdas+='<div class="dia'+(fuera?' fuera':'')+(ds===HOY_S?' hoy':'')+'"><span class="dnum">'+d.getDate()+'</span>'+cs.map(function(c){return evento(c,ds);}).join('')+'</div>';
     if(!fuera && cs.length) agenda+='<div class="ag-dia'+(ds===HOY_S?' hoy':'')+'"><div class="ag-f">'+DIAS[(d.getDay()+6)%7]+' '+d.getDate()+' de '+MESES[m].toLowerCase()+(ds===HOY_S?' · hoy':'')+'</div>'+cs.map(function(c){return evento(c,ds);}).join('')+'</div>';
   }
-  return '<div class="cal"><div class="cal-head">'+DIAS.map(function(x){return '<div>'+x+'</div>';}).join('')+'</div><div class="cal-grid">'+celdas+'</div></div>'+
+  return franjaMes(y,m+1)+'<div class="cal"><div class="cal-head">'+DIAS.map(function(x){return '<div>'+x+'</div>';}).join('')+'</div><div class="cal-grid">'+celdas+'</div></div>'+
     '<div class="agenda">'+(agenda||'<div class="pempty" style="color:var(--suave)">No hay terrenos este mes. Prográmalos desde «Año · proyectos» o con «＋ Nueva campaña».</div>')+'</div>';
 }
 
@@ -573,8 +591,8 @@ function renderAnio(){
       var inner;
       if(s.k==='camp') inner='<button class="mc '+ESTC[s.e]+'" data-abrir="'+esc(s.c.id)+'" data-sub="calendario" title="'+esc(tip+' · '+s.e)+'"><b>'+esc(s.per)+'</b> '+(s.e==='Completa'?'✓':prog(s.c).pm+'%')+'<small>'+esc(s.e)+' · '+fmtD(s.c.ini)+'</small></button>';
       else if(s.k==='previo') inner='<span class="mc e-prev" title="'+esc(tip+' · anterior al inicio del seguimiento en esta página')+'"><b>'+esc(s.per)+'</b><small>Antes del seguimiento</small></span>';
-      else if(s.k==='sinr') inner='<button class="mc e-sinr" data-prog="'+r.pid+'|'+esc(s.per)+'" title="'+esc(tip+' · correspondía y no hay registro')+'"><b>'+esc(s.per)+'</b> !<small>Sin registro</small></button>';
-      else inner='<button class="mc e-porp" data-prog="'+r.pid+'|'+esc(s.per)+'" title="'+esc(tip+' · aún no se programa')+'"><b>'+esc(s.per)+'</b> ＋<small>Programar</small></button>';
+      else if(s.k==='sinr') inner='<button class="mc e-sinr" data-prog="'+r.pid+'|'+esc(s.per)+'|'+S.anio+'" title="'+esc(tip+' · correspondía y no hay registro')+'"><b>'+esc(s.per)+'</b> !<small>Sin registro</small></button>';
+      else inner='<button class="mc e-porp" data-prog="'+r.pid+'|'+esc(s.per)+'|'+S.anio+'" title="'+esc(tip+' · aún no se programa')+'"><b>'+esc(s.per)+'</b> ＋<small>Programar</small></button>';
       celdas+='<td colspan="'+s.meses.length+'" class="slot'+(s.actual?' act':'')+'">'+inner+'<div class="mcods">'+esc(cods)+'</div></td>';
       mes+=s.meses.length;
     }
@@ -597,6 +615,16 @@ function renderCalendario(){
 }
 
 // ─── CAMPAÑAS ────────────────────────────────────────────
+function renderProyectos(){
+  var y=HOY.getFullYear(), plan=planAnual(y);
+  return '<div class="bar-row" style="margin-top:26px"><div><div class="h1">Proyectos en la matriz maestra</div><div class="sub">'+plan.length+' proyecto'+(plan.length!==1?'s':'')+(MATRIZ_FECHA?' · exportada el '+esc(MATRIZ_FECHA):'')+'. Periodos de '+y+'.</div></div></div><div class="cgrid">'+
+    plan.map(function(r){ var p=r.p, nEst=p.orden.length;
+      return '<div class="ccard pcard2">'+(CLIENTES[p.cliente]?'<div class="logo"><img src="'+CLIENTES[p.cliente].logo+'" alt="'+esc(p.cliente)+'"></div>':'<div class="logo"></div>')+'<div style="flex:1">'+
+        '<div class="cname">'+esc(p.nombre)+'</div><div class="cmeta">'+esc([p.cliente,p.region,p.comuna].filter(Boolean).join(' · '))+(p.responsable?' · Responsable: '+esc(p.responsable):'')+'</div>'+
+        p.informes.map(function(x){return '<div class="cmeta">'+esc(x)+'</div>';}).join('')+
+        '<div class="cmeta"><b>'+p.monitoreos.length+'</b> monitoreos ('+esc(p.monitoreos.map(function(m){return m.cod;}).join(', '))+') · <b>'+nEst+'</b> estaciones · '+esc(p.frecuencia)+'</div>'+
+        '<div class="tocas">'+r.slots.map(function(s){return slotBtn(r.pid,s,y,false);}).join('')+'</div></div></div>'; }).join('')+'</div>';
+}
 function renderCampanas(){
   var act=0,tot=0,done=0,prob=0,docs=0;
   CAMP.forEach(function(c){ var p=prog(c),e=estadoCamp(c); prob+=p.noReal+p.parcial; if(e==='Programada') return; act+=(e!=='Completa'?1:0); tot+=p.T; done+=p.done; docs+=p.dPend+p.dSinRuta; });
@@ -618,7 +646,7 @@ function renderCampanas(){
     return '<button class="ccard" data-abrir="'+esc(c.id)+'">'+logo(c)+'<div style="flex:1"><div class="cname">'+esc(pr.nombre)+badge(c)+'</div>'+
       '<div class="cmeta">'+periodoLabel(c)+' · '+esc(pr.region)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+'</div>'+
       prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'<div class="cfoot">'+avs(c.equipo)+pills.join('')+'</div><div class="cid">'+esc(c.id)+' · Jefe: '+esc(c.jefe)+'</div></div></button>';
-  }).join(''):'<div class="pempty" style="color:var(--suave)">No hay campañas con ese filtro.</div>')+'</div>';
+  }).join(''):'<div class="pempty" style="color:var(--suave)">'+(CAMP.length?'No hay campañas con ese filtro.':'Aún no hay campañas. Prográmalas desde los proyectos de abajo.')+'</div>')+'</div>'+renderProyectos();
   document.getElementById('tc-campanas').innerHTML=h;
 }
 
@@ -754,9 +782,9 @@ function fechaSugerida(per,y){
 }
 function perPorDefecto(p,y){ var mh=HOY.getMonth()+1;
   return p.periodos.filter(function(x){ return mesesPeriodo(x).indexOf(mh)>=0; })[0] || p.periodos.filter(function(x){ return (mesesPeriodo(x)[0]||0)>mh; })[0] || p.periodos[0] || ''; }
-function abrirNueva(pid,per){
+function abrirNueva(pid,per,anio){
   pid=pid||Object.keys(MATRIZ)[0]; if(!pid){ toast('La matriz no tiene proyectos'); return; }
-  var p=MATRIZ[pid], y=S.vista==='anio'?S.anio:HOY.getFullYear(); per=per||perPorDefecto(p,y);
+  var p=MATRIZ[pid], y=anio||(S.vista==='anio'?S.anio:HOY.getFullYear()); per=per||perPorDefecto(p,y);
   var d1=fechaSugerida(per,y), jefe=PERSONAL.indexOf(p.responsable)>=0?p.responsable:PERSONAL[0];
   draft={proyecto:pid,anio:y,periodo:per,ini:d1,fin:d1,jefe:jefe,equipo:[jefe]};
   renderNueva(); document.getElementById('sp').classList.add('on'); document.getElementById('ov').classList.add('on');
@@ -829,7 +857,7 @@ W.addEventListener('click',function(e){
     else S.anio = n===0 ? HOY.getFullYear() : S.anio+n;
     render(); return; }
   if(b.dataset.filtro){ S.filtro=b.dataset.filtro; renderCampanas(); return; }
-  if(b.dataset.prog){ if(!esCoord()){ toast('Solo coordinación programa campañas'); return; } var pm=b.dataset.prog.split('|'); abrirNueva(pm[0],pm[1]); return; }
+  if(b.dataset.prog){ if(!esCoord()){ toast('Solo coordinación programa campañas'); return; } var pm=b.dataset.prog.split('|'); abrirNueva(pm[0],pm[1],+pm[2]||0); return; }
   if(b.dataset.irEst){ var cid=CAMP.filter(function(c){return c.tareas.some(function(t){return t.id===b.dataset.irEst;});})[0].id; abrir(cid,'muestreo',b.dataset.irEst); return; }
   if(b.dataset.abrir){ abrir(b.dataset.abrir,b.dataset.sub); return; }
   if(b.id==='volver'){ irTab(S.prevTab||'calendario'); return; }
