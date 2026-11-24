@@ -109,6 +109,22 @@
   .ev{border:none;text-align:left;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:600;line-height:1.25;width:100%;}
   .ev small{display:block;font-weight:500;opacity:.85;}
   .agenda{display:none;}
+  .tit-s{font-size:13px;font-weight:600;color:var(--suave);margin-left:6px;}
+  .trim{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+  .mm{background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);padding:12px 12px 10px;}
+  .mm-t{font-size:15px;font-weight:700;color:var(--azul);margin-bottom:8px;}
+  .mm-h,.mm-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;}
+  .mm-h div{font-size:10px;font-weight:700;color:var(--suave);text-align:center;padding-bottom:4px;}
+  .md{min-height:58px;border-radius:7px;background:var(--gris);padding:3px;display:flex;flex-direction:column;gap:2px;}
+  .md.vacio{background:none;}
+  .mdn{font-size:11px;font-weight:700;color:var(--suave);padding-left:2px;}
+  .md.hoy{outline:2px solid var(--verde);}
+  .md.hoy .mdn{color:var(--verde);}
+  .mev{border:none;border-radius:4px;padding:2px 3px;font-size:9.5px;font-weight:700;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
+  .est-lista{margin-top:14px;background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);padding:12px 14px;}
+  .est-it{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;width:100%;border:none;background:none;text-align:left;padding:8px 4px;border-top:1px solid var(--borde);font-size:13px;color:var(--texto);}
+  .est-it span{font-size:12px;color:var(--suave);}
+  .est-it .badge{margin-left:auto;}
   .ag-dia{background:var(--card-bg);border-radius:10px;box-shadow:var(--sombra);padding:10px 12px;margin-bottom:8px;display:grid;gap:6px;}
   .ag-dia.hoy{outline:2px solid var(--verde);}
   .ag-f{font-size:12px;font-weight:700;color:var(--suave);}
@@ -308,6 +324,7 @@
     .kgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
     .kpi{padding:10px 12px;}.kval{font-size:22px;}
     .cal{display:none;}.agenda{display:block;}
+    .trim{grid-template-columns:1fr;gap:10px;}.md{min-height:42px;}.mev{font-size:0;height:7px;padding:0;}.tit-s{display:block;margin-left:0;margin-top:2px;}
     .dprogs{grid-template-columns:1fr;}
     .st,.doc{padding:10px 12px;}
     .estado{margin-left:0;}
@@ -481,7 +498,7 @@ function prow(l,p,doc){ return '<div class="prow"><span>'+l+'</span><div class="
 function badge(c){ var e=estadoCamp(c); return '<span class="badge '+ESTC[e]+'">'+e+'</span>'; }
 
 // ─── ESTADO ──────────────────────────────────────────────
-var S={tab:'calendario',vista:'mes',ym:[HOY.getFullYear(),HOY.getMonth()],anio:HOY.getFullYear(),cid:null,sub:'calendario',filtro:'Todas',dataOpen:null,open:{},foco:null,online:true,cola:[]};
+var S={tab:'calendario',vista:'estacion',est:[HOY.getFullYear(),Math.floor(HOY.getMonth()/3)],ym:[HOY.getFullYear(),HOY.getMonth()],anio:HOY.getFullYear(),cid:null,sub:'calendario',filtro:'Todas',dataOpen:null,open:{},foco:null,online:true,cola:[]};
 var usuario='Coordinación';
 try{ usuario=localStorage.getItem('ceamar_terreno_usuario')||'Coordinación'; }catch(e){}
 try{ S.cola=JSON.parse(localStorage.getItem('ceamar_terreno_cola')||'[]'); }catch(e){ S.cola=[]; }
@@ -602,15 +619,33 @@ function renderAnio(){
   return '<div class="twrap"><table class="anual"><thead><tr><th class="pcol">Proyecto</th>'+MES3.map(function(m,i){return '<th'+(i+1===mesAct?' class="mes-act"':'')+'>'+m+'</th>';}).join('')+'</tr></thead><tbody>'+filas+'</tbody></table></div>'+
     '<p class="sub" style="margin-top:8px">Bajo cada periodo van los monitoreos que corresponden según la matriz maestra'+(MATRIZ_FECHA?' (exportada el '+esc(MATRIZ_FECHA)+')':'')+'.</p>';
 }
+// ─── CALENDARIO: ESTACIÓN (3 meses) ──────────────────────
+var ESTACIONES=['Verano','Otoño','Invierno','Primavera'];
+function miniMes(y,m){   // m: 0-11
+  var first=new Date(y,m,1), lead=(first.getDay()+6)%7, n=new Date(y,m+1,0).getDate(), cel='';
+  for(var i=0;i<lead;i++) cel+='<div class="md vacio"></div>';
+  for(var d=1;d<=n;d++){ var ds=y+'-'+pad(m+1)+'-'+pad(d), cs=campsDelDia(ds);
+    cel+='<div class="md'+(ds===HOY_S?' hoy':'')+(cs.length?' con':'')+'"><span class="mdn">'+d+'</span>'+cs.map(function(c){ var e=estadoCamp(c); return '<button class="mev '+ESTC[e]+'" data-abrir="'+esc(c.id)+'" data-sub="calendario" title="'+esc(MATRIZ[c.proyecto].nombre+' · '+periodoLabel(c)+' · '+e)+'">'+esc(MATRIZ[c.proyecto].corto)+'</button>'; }).join('')+'</div>'; }
+  return '<div class="mm"><div class="mm-t">'+MESES[m]+'</div><div class="mm-h">'+DIAS.map(function(x){return '<div>'+x.charAt(0)+'</div>';}).join('')+'</div><div class="mm-g">'+cel+'</div></div>';
+}
+function renderEstacion(){
+  var y=S.est[0], per=ESTACIONES[S.est[1]], ms=TEMP[per], ini=y+'-'+pad(ms[0])+'-01', fin=iso(new Date(y,ms[2],0));
+  var it=[]; planAnual(y).forEach(function(r){ r.slots.forEach(function(sl){ if(sl.meses.some(function(x){return ms.indexOf(x)>=0;})) it.push(slotBtn(r.pid,sl,y,true)); }); });
+  var fr='<div class="franja"><span class="franja-t">Según la matriz, en '+per.toLowerCase()+' '+y+' corresponde:</span>'+(it.length?it.join(''):'<span class="sub">ningún proyecto</span>')+'</div>';
+  var camps=CAMP.filter(function(c){return c.ini<=fin&&c.fin>=ini;}).sort(function(a,b){return a.ini<b.ini?-1:1;});
+  var lista='<div class="est-lista"><div class="franja-t" style="margin-bottom:8px">Campañas de la estación</div>'+(camps.length?camps.map(function(c){ var e=estadoCamp(c);
+    return '<button class="est-it" data-abrir="'+esc(c.id)+'" data-sub="calendario"><i class="sw '+ESTC[e]+'"></i><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b><span>'+periodoLabel(c)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+'</span><span class="badge '+ESTC[e]+'">'+e+' · '+prog(c).pm+'%</span></button>'; }).join(''):'<div class="sub">Aún no hay campañas programadas en esta estación.</div>')+'</div>';
+  return fr+'<div class="trim">'+ms.map(function(m){return miniMes(y,m-1);}).join('')+'</div>'+lista;
+}
 function renderCalendario(){
-  var tit = S.vista==='mes' ? MESES[S.ym[1]]+' '+S.ym[0] : 'Plan '+S.anio;
-  var html='<div class="bar-row"><div><div class="h1">'+tit+'</div><div class="sub">'+(S.vista==='mes'?'Terrenos por día. Toca uno para ver su grilla de estaciones.':'Periodos de cada proyecto según la matriz maestra. Toca «Programar» para crear la campaña.')+'</div></div>'+
+  var tit = S.vista==='estacion' ? ESTACIONES[S.est[1]]+' '+S.est[0]+' <span class="tit-s">'+TEMP[ESTACIONES[S.est[1]]].map(function(m){return MESES[m-1].toLowerCase();}).join(' · ')+'</span>' : S.vista==='mes' ? MESES[S.ym[1]]+' '+S.ym[0] : 'Plan '+S.anio;
+  var html='<div class="bar-row"><div><div class="h1">'+tit+'</div><div class="sub">'+(S.vista==='estacion'?'Los tres meses de la estación. Toca una campaña para ver su grilla de estaciones.':S.vista==='mes'?'Terrenos por día. Toca uno para ver su grilla de estaciones.':'Periodos de cada proyecto según la matriz maestra. Toca «Programar» para crear la campaña.')+'</div></div>'+
     '<div class="spacer"></div><button class="arrow" data-nav="-1" aria-label="Anterior">‹</button><button class="arrow" data-nav="1" aria-label="Siguiente">›</button><button class="btn-s" data-nav="0">Hoy</button>'+
-    '<div class="seg"><button data-vista="mes" aria-pressed="'+(S.vista==='mes')+'">Mes</button><button data-vista="anio" aria-pressed="'+(S.vista==='anio')+'">Año · proyectos</button></div>'+
+    '<div class="seg"><button data-vista="estacion" aria-pressed="'+(S.vista==='estacion')+'">Estación</button><button data-vista="mes" aria-pressed="'+(S.vista==='mes')+'">Mes</button><button data-vista="anio" aria-pressed="'+(S.vista==='anio')+'">Año · proyectos</button></div>'+
     (esCoord()?'<button class="btn-p" id="np-abrir">＋ Nueva campaña</button>':'')+'</div>';
   html+='<div class="leyenda"><span><i class="sw e-terr"></i>En terreno</span><span><i class="sw e-prog"></i>Programada</span><span><i class="sw e-pend"></i>Con pendientes</span><span><i class="sw e-comp"></i>Completa</span>'+
     (S.vista==='anio'?'<span><i class="sw e-porp"></i>Por programar</span><span><i class="sw e-sinr"></i>Sin registro</span><span><i class="sw e-prev"></i>Antes del seguimiento</span>':'')+'</div>';
-  html+= S.vista==='mes' ? renderMes() : renderAnio();
+  html+= S.vista==='estacion' ? renderEstacion() : S.vista==='mes' ? renderMes() : renderAnio();
   document.getElementById('tc-calendario').innerHTML=html;
 }
 
@@ -853,7 +888,8 @@ W.addEventListener('click',function(e){
   if(b.id==='borrar-pruebas'){ if(!CAMP.length){ toast('No hay registros de prueba'); return; } if(!confirm('¿Borrar las '+CAMP.length+' campañas de prueba guardadas en este navegador?')) return; CAMP=[]; guardarCamp(); S.cid=null; irTab('calendario'); toast('Registros de prueba borrados'); return; }
   if(b.dataset.vista){ S.vista=b.dataset.vista; renderCalendario(); return; }
   if(b.dataset.nav!=null){ var n=+b.dataset.nav;
-    if(S.vista==='mes'){ if(n===0) S.ym=[HOY.getFullYear(),HOY.getMonth()]; else { var d=new Date(S.ym[0],S.ym[1]+n,1); S.ym=[d.getFullYear(),d.getMonth()]; } }
+    if(S.vista==='estacion'){ if(n===0) S.est=[HOY.getFullYear(),Math.floor(HOY.getMonth()/3)]; else { var k=S.est[0]*4+S.est[1]+n; S.est=[Math.floor(k/4),k%4]; } }
+    else if(S.vista==='mes'){ if(n===0) S.ym=[HOY.getFullYear(),HOY.getMonth()]; else { var d=new Date(S.ym[0],S.ym[1]+n,1); S.ym=[d.getFullYear(),d.getMonth()]; } }
     else S.anio = n===0 ? HOY.getFullYear() : S.anio+n;
     render(); return; }
   if(b.dataset.filtro){ S.filtro=b.dataset.filtro; renderCampanas(); return; }
