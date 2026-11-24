@@ -512,7 +512,7 @@ var CLIENTES = {
   'CMP':                      { logo:'logos/cmp.png' },
   'Grupo Minero Las Cenizas': { logo:'logos/cenizas.png' }
 };
-var PERSONAL = ['Alonso Vega','Nicolás Vera','Ulyces Urtubia','Edward Peñalver','Nicole Piaget','Marcelo Valdebenito','Juan Capella','Manuel Díaz','Helmo Pérez','Jose Manuel Vildósola','Francisco Díaz'];
+var PERSONAL = ['Nicolás Vera','Ulyces Urtubia','Edward Peñalver','Marcelo Valdebenito','Juan Capella','Manuel Díaz','Helmo Pérez','Jose Manuel Vildósola','Francisco Díaz'];
 var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var MES3 = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 var DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
@@ -603,7 +603,8 @@ function getC(id){ return CAMP.filter(function(c){return c.id===id;})[0]; }
 var CAMP=[];
 // Mientras no esté conectada la planilla de seguimiento, las campañas de prueba se guardan en este navegador.
 function guardarCamp(){ try{ localStorage.setItem('ceamar_terreno_campanas',JSON.stringify(CAMP)); }catch(e){} }
-function cargarCamp(){ try{ CAMP=JSON.parse(localStorage.getItem('ceamar_terreno_campanas')||'[]').filter(function(c){ return MATRIZ[c.proyecto]&&c.tareas; }); }catch(e){ CAMP=[]; } }
+function cargarCamp(){ try{ CAMP=JSON.parse(localStorage.getItem('ceamar_terreno_campanas')||'[]').filter(function(c){ return MATRIZ[c.proyecto]&&c.tareas; }); }catch(e){ CAMP=[]; }
+  CAMP.forEach(function(c){ var ok=function(n){return PERSONAL.indexOf(n)>=0;}; c.equipo=c.equipo.filter(ok); if(PERSONAL.indexOf(c.jefe)<0) c.jefe=c.equipo[0]||''; Object.keys(c.monResp||{}).forEach(function(k){ c.monResp[k]=c.monResp[k].filter(ok); }); }); }
 
 // ─── CÁLCULOS ────────────────────────────────────────────
 function prog(c){
