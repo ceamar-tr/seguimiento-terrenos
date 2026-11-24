@@ -189,6 +189,18 @@
   .buscar input{flex:1;border:none;background:none;outline:none;padding:9px 0;font:inherit;font-size:13.5px;color:var(--texto);min-width:0;}
   .chips-cli{display:flex;flex-wrap:wrap;gap:6px;}
   .proy-n{margin-left:auto;font-size:12px;color:var(--suave);font-weight:600;white-space:nowrap;}
+  .eqtab td{vertical-align:middle;padding:12px 12px;}
+  .eqtab th:first-child{width:32%;}
+  .eq-p{display:flex;align-items:center;gap:10px;}
+  .eq-p b{font-size:14px;}
+  .eq-p .av{width:34px;height:34px;font-size:12px;margin:0;flex:0 0 auto;}
+  .av.av-on{background:var(--verde);color:#fff;}
+  .eq-camp{display:inline-flex;flex-direction:column;align-items:flex-start;border:none;background:none;padding:0;text-align:left;cursor:pointer;color:var(--texto);vertical-align:middle;}
+  .eq-camp b{font-size:13.5px;color:var(--azul);}
+  .eq-camp:hover b{text-decoration:underline;}
+  .eq-camp small{font-size:11.5px;color:var(--suave);}
+  .eq-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--verde);box-shadow:0 0 0 3px var(--verde-s);margin-right:9px;vertical-align:middle;}
+  .eq-no{color:var(--suave);font-size:13px;}
   .ck-list{border:1px solid var(--borde);border-radius:10px;overflow:hidden;}
   .ck-row{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 4px;border-top:1px solid var(--borde);}
   .ck-row:first-child{border-top:none;}
@@ -431,7 +443,7 @@
     .kpi{padding:10px 12px;}.kval{font-size:22px;}
     .cal{display:none;}.agenda{display:block;}
     .trim{grid-template-columns:1fr;gap:10px;}
-    table.rtab.resp thead{display:none;} table.rtab.resp tr{display:block;padding:8px 0;border-bottom:1px solid var(--borde);} table.rtab.resp td{display:flex;gap:10px;border:none;padding:3px 6px;min-width:0;} table.rtab.resp td[data-l]::before{content:attr(data-l);flex:0 0 92px;font-size:10.5px;font-weight:700;color:var(--suave);text-transform:uppercase;padding-top:2px;} table.rtab td.obs{min-width:0;} .htab .logo{display:none;}.reg-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.reg{padding:12px;}
+    table.rtab.resp thead{display:none;} table.rtab.resp tr{display:block;padding:8px 0;border-bottom:1px solid var(--borde);} table.rtab.resp td{display:flex;gap:10px;border:none;padding:3px 6px;min-width:0;} table.rtab.resp td[data-l]::before{content:attr(data-l);flex:0 0 92px;font-size:10.5px;font-weight:700;color:var(--suave);text-transform:uppercase;padding-top:2px;} table.rtab td.obs{min-width:0;} .htab .logo{display:none;} .eqtab.resp td:first-child::before{display:none;} .eqtab.resp td:first-child{padding-bottom:6px;} .eqtab.resp td{padding:3px 6px;} .eq-dot{flex:0 0 8px;margin:6px 0 0 0;}.reg-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.reg{padding:12px;}
     .ck{grid-template-columns:1fr;gap:10px;}.ck-mons{position:sticky;top:var(--top-h,134px);z-index:60;max-height:none;display:flex;overflow-x:auto;gap:6px;padding:8px;}.ck-total{display:none;}.ck-mon{flex:0 0 auto;width:auto;min-width:132px;background:var(--gris);}.ck-main{padding:12px 10px;}.ck-meta{display:none;}.ck-seg button{min-width:36px;padding:6px 6px;}.ck-est small{max-width:150px;}.ficha{top:auto;bottom:0;height:88%;width:100%;border-radius:16px 16px 0 0;}.dhead .dmeta{display:none;}.ficha table.mini th:nth-child(2),.ficha table.mini td:nth-child(2){display:none;}.ck{scroll-margin-top:var(--top-h,134px);}.av-row{grid-template-columns:1fr 62px;}.av-row .pbar{grid-column:1/-1;grid-row:2;}.et-card .logo{display:none;}.md{min-height:42px;}.mev{font-size:0;height:7px;padding:0;}.tit-s{display:block;margin-left:0;margin-top:2px;}
     .dprogs{grid-template-columns:1fr;}
     .st,.doc{padding:10px 12px;}
@@ -1022,16 +1034,24 @@ function renderPendientes(){
   }).join('');
   document.getElementById('tc-pendientes').innerHTML='<div class="bar-row"><div><div class="h1">Pendientes'+(esCoord()?'':' de '+esc(usuario))+'</div><div class="sub">Lo que falta registrar o completar en cada campaña.</div></div></div><div class="pgrid">'+cards+'</div>';
 }
+function diasHasta(f){ var d=Math.round((new Date(f+'T00:00:00')-new Date(HOY_S+'T00:00:00'))/864e5); return d===0?'hoy':d===1?'mañana':'en '+d+' días'; }
 function renderEquipo(){
-  document.getElementById('tc-equipo').innerHTML='<div class="bar-row"><div><div class="h1">Equipo de terreno</div><div class="sub">Registros por persona en las campañas abiertas.</div></div></div><div class="egrid">'+PERSONAL.map(function(n){
-    var camps=CAMP.filter(function(c){return c.equipo.indexOf(n)>=0;}), hechas=0, prob=0, docs=0, ult='', prox='';
-    CAMP.forEach(function(c){ if(c.equipo.indexOf(n)>=0&&c.ini>=HOY_S&&(!prox||c.ini<prox)) prox=c.ini;
-      c.tareas.forEach(function(t){ if(respMon(c,t.mon).indexOf(n)<0) return; if(t.estado==='Realizado') hechas++; if((t.estado==='No realizado'||t.estado==='Parcial')&&!t.motivo.trim()) prob++; if(t.fecha>ult) ult=t.fecha; });
-      c.docs.forEach(function(d){ if(d.resp===n&&d.estado==='Completo') docs++; }); });
-    return '<div class="ecard"><div class="eh"><span class="av">'+esc(ini(n))+'</span><div><div class="en">'+esc(n)+'</div><div class="sub">'+(camps.length?camps.length+' campaña'+(camps.length>1?'s':''):'Sin campañas asignadas')+'</div></div></div>'+
-      '<div class="er"><span>Estaciones registradas</span><b>'+hechas+'</b></div><div class="er"><span>Sin motivo</span><b style="color:'+(prob?'var(--rojo)':'inherit')+'">'+prob+'</b></div>'+
-      '<div class="er"><span>Documentos completados</span><b>'+docs+'</b></div><div class="er"><span>Último registro</span><b>'+(ult?fmtD(ult):'—')+'</b></div><div class="er"><span>Próximo terreno</span><b>'+(prox?fmtD(prox):'—')+'</b></div></div>';
-  }).join('')+'</div>';
+  var filas=PERSONAL.map(function(n){
+    var mias=CAMP.filter(function(c){return c.equipo.indexOf(n)>=0;});
+    var act=mias.filter(function(c){return c.ini<=HOY_S&&c.fin>=HOY_S;}).sort(function(a,b){return a.ini<b.ini?-1:1;})[0];
+    var prox=mias.filter(function(c){return c.ini>HOY_S;}).sort(function(a,b){return a.ini<b.ini?-1:1;})[0];
+    return {n:n,act:act,prox:prox};
+  }).sort(function(a,b){ if(!!a.act!==!!b.act) return a.act?-1:1; if(!!a.prox!==!!b.prox) return a.prox?-1:1; if(a.prox&&b.prox&&a.prox.ini!==b.prox.ini) return a.prox.ini<b.prox.ini?-1:1; return a.n.localeCompare(b.n); });
+  var nT=filas.filter(function(x){return x.act;}).length, f=S.eqFiltro||'todos';
+  var vis=filas.filter(function(x){ return f==='todos'||(f==='terreno'?x.act:!x.act); });
+  function camp(c,prox){ return '<button class="eq-camp" data-abrir="'+esc(c.id)+'" data-sub="muestreo"><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b><small>'+periodoLabel(c)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+(prox?' · '+diasHasta(c.ini):'')+'</small></button>'; }
+  var rows=vis.map(function(x){
+    return '<tr><td data-l="Persona"><div class="eq-p"><span class="av'+(x.act?' av-on':'')+'">'+esc(ini(x.n))+'</span><b>'+esc(x.n)+'</b></div></td>'+
+      '<td data-l="En terreno">'+(x.act?'<span class="eq-dot"></span>'+camp(x.act):'<span class="eq-no">Ninguno</span>')+'</td>'+
+      '<td data-l="Próximo">'+(x.prox?camp(x.prox,true):'<span class="eq-no">Sin programar</span>')+'</td></tr>'; }).join('');
+  document.getElementById('tc-equipo').innerHTML='<div class="bar-row"><div><div class="h1">Equipo de terreno</div><div class="sub">Dónde está cada persona hoy y cuál es su próximo terreno.</div></div>'+
+    '<div class="seg"><button data-eqf="todos" aria-pressed="'+(f==='todos')+'">Todos ('+filas.length+')</button><button data-eqf="terreno" aria-pressed="'+(f==='terreno')+'">En terreno ('+nT+')</button><button data-eqf="libre" aria-pressed="'+(f==='libre')+'">Disponibles ('+(filas.length-nT)+')</button></div></div>'+
+    '<div class="twrap card-t"><table class="rtab eqtab resp"><thead><tr><th>Persona</th><th>Terreno actual</th><th>Próximo terreno</th></tr></thead><tbody>'+(rows||'<tr><td colspan="3" class="eq-no" style="padding:16px">Nadie en esta categoría.</td></tr>')+'</tbody></table></div>';
 }
 
 // ─── NUEVA CAMPAÑA ───────────────────────────────────────
@@ -1139,6 +1159,7 @@ W.addEventListener('click',function(e){
   if(b.id==='reg-print'){ window.print(); return; }
   if(b.dataset.pcli!=null){ S.pcli=b.dataset.pcli; document.querySelectorAll('[data-pcli]').forEach(function(x){x.setAttribute('aria-pressed',String(x.dataset.pcli===S.pcli));}); pintarProyectos(); return; }
   if(b.id==='proy-limpiar'){ S.pq=''; S.pcli=''; renderCampanas(); return; }
+  if(b.dataset.eqf){ S.eqFiltro=b.dataset.eqf; renderEquipo(); return; }
   if(b.dataset.verpend!=null){ S.verPend=b.dataset.verpend==='1'; renderDetalle(); return; }
   if(b.id==='ficha-cerrar'){ S.ficha=null; S.dataOpen=null; renderDetalle(); return; }
   if(b.dataset.irMon){ S.open[b.dataset.irMon]=true; renderDetalle(); var g=document.querySelector('details[data-m="'+b.dataset.irMon+'"]'); if(g) g.scrollIntoView({behavior:'smooth',block:'start'}); return; }
