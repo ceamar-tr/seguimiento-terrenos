@@ -181,6 +181,14 @@
   .htab td{vertical-align:middle;}
   .hfil .sel{width:auto;}
   @media print{ .top,.demo-note,.alertas,.subnav,.dhead,.reg-acc,.volver{display:none!important;} body{background:#fff;} .reg{box-shadow:none;padding:0;} }
+  .proy-sec{margin-top:30px;padding-top:22px;border-top:1px solid var(--borde);}
+  .proy-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);padding:10px 12px;margin-bottom:14px;}
+  .buscar{flex:1 1 320px;display:flex;align-items:center;gap:8px;border:1px solid var(--borde);border-radius:20px;padding:0 12px;background:var(--fondo,transparent);}
+  .buscar:focus-within{border-color:var(--verde);box-shadow:0 0 0 3px var(--verde-s);}
+  .buscar svg{width:17px;height:17px;fill:none;stroke:var(--suave);stroke-width:2;stroke-linecap:round;flex:0 0 auto;}
+  .buscar input{flex:1;border:none;background:none;outline:none;padding:9px 0;font:inherit;font-size:13.5px;color:var(--texto);min-width:0;}
+  .chips-cli{display:flex;flex-wrap:wrap;gap:6px;}
+  .proy-n{margin-left:auto;font-size:12px;color:var(--suave);font-weight:600;white-space:nowrap;}
   .ck-list{border:1px solid var(--borde);border-radius:10px;overflow:hidden;}
   .ck-row{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 4px;border-top:1px solid var(--borde);}
   .ck-row:first-child{border-top:none;}
@@ -758,15 +766,33 @@ function renderCalendario(){
 }
 
 // ─── CAMPAÑAS ────────────────────────────────────────────
+function sinTilde(x){ return String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
+function tarjetaProyecto(r,y){ var p=r.p, nEst=p.orden.length;
+  return '<div class="ccard pcard2">'+(CLIENTES[p.cliente]?'<div class="logo"><img src="'+CLIENTES[p.cliente].logo+'" alt="'+esc(p.cliente)+'"></div>':'<div class="logo"></div>')+'<div style="flex:1;min-width:0">'+
+    '<div class="cname">'+esc(p.nombre)+'</div><div class="cmeta">'+esc([p.cliente,p.region,p.comuna].filter(Boolean).join(' · '))+(p.responsable?' · Responsable: '+esc(p.responsable):'')+'</div>'+
+    p.informes.map(function(x){return '<div class="cmeta">'+esc(x)+'</div>';}).join('')+
+    '<div class="cmeta"><b>'+p.monitoreos.length+'</b> monitoreos ('+esc(p.monitoreos.map(function(m){return m.cod;}).join(', '))+') · <b>'+nEst+'</b> estaciones · '+esc(p.frecuencia)+'</div>'+
+    '<div class="tocas">'+r.slots.map(function(s){return slotBtn(r.pid,s,y,false);}).join('')+'</div></div></div>';
+}
+function pintarProyectos(){
+  var box=document.getElementById('proy-lista'); if(!box) return;
+  var y=HOY.getFullYear(), q=sinTilde(S.pq||'').trim(), cl=S.pcli||'';
+  var lista=planAnual(y).filter(function(r){ var p=r.p;
+    if(cl&&p.cliente!==cl) return false;
+    if(!q) return true;
+    var txt=sinTilde([p.nombre,p.id,p.cliente,p.region,p.comuna,p.responsable].concat(p.monitoreos.map(function(m){return m.nombre+' '+m.cod;})).join(' '));
+    return q.split(/\s+/).every(function(w){return txt.indexOf(w)>=0;}); });
+  document.getElementById('proy-n').textContent=lista.length+' de '+Object.keys(MATRIZ).length+' proyecto'+(Object.keys(MATRIZ).length!==1?'s':'');
+  box.innerHTML=lista.length?'<div class="cgrid">'+lista.map(function(r){return tarjetaProyecto(r,y);}).join('')+'</div>'
+    :'<div class="pempty">Ningún proyecto coincide'+(q?' con «'+esc(S.pq)+'»':'')+(cl?' en '+esc(cl):'')+'. <button class="lnk" id="proy-limpiar">Limpiar búsqueda</button></div>';
+}
 function renderProyectos(){
-  var y=HOY.getFullYear(), plan=planAnual(y);
-  return '<div class="bar-row" style="margin-top:26px"><div><div class="h1">Proyectos en la matriz maestra</div><div class="sub">'+plan.length+' proyecto'+(plan.length!==1?'s':'')+(MATRIZ_FECHA?' · exportada el '+esc(MATRIZ_FECHA):'')+'. Periodos de '+y+'.</div></div></div><div class="cgrid">'+
-    plan.map(function(r){ var p=r.p, nEst=p.orden.length;
-      return '<div class="ccard pcard2">'+(CLIENTES[p.cliente]?'<div class="logo"><img src="'+CLIENTES[p.cliente].logo+'" alt="'+esc(p.cliente)+'"></div>':'<div class="logo"></div>')+'<div style="flex:1">'+
-        '<div class="cname">'+esc(p.nombre)+'</div><div class="cmeta">'+esc([p.cliente,p.region,p.comuna].filter(Boolean).join(' · '))+(p.responsable?' · Responsable: '+esc(p.responsable):'')+'</div>'+
-        p.informes.map(function(x){return '<div class="cmeta">'+esc(x)+'</div>';}).join('')+
-        '<div class="cmeta"><b>'+p.monitoreos.length+'</b> monitoreos ('+esc(p.monitoreos.map(function(m){return m.cod;}).join(', '))+') · <b>'+nEst+'</b> estaciones · '+esc(p.frecuencia)+'</div>'+
-        '<div class="tocas">'+r.slots.map(function(s){return slotBtn(r.pid,s,y,false);}).join('')+'</div></div></div>'; }).join('')+'</div>';
+  var clientes=[]; Object.keys(MATRIZ).forEach(function(k){ var c=MATRIZ[k].cliente; if(c&&clientes.indexOf(c)<0) clientes.push(c); }); clientes.sort();
+  setTimeout(pintarProyectos,0);
+  return '<div class="proy-sec"><div class="bar-row"><div><div class="h1">Todos los proyectos</div><div class="sub">Alcance según la matriz maestra'+(MATRIZ_FECHA?' (exportada el '+esc(MATRIZ_FECHA)+')':'')+'. Programa cada periodo desde aquí.</div></div></div>'+
+    '<div class="proy-bar"><label class="buscar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="proy-q" placeholder="Buscar por proyecto, cliente, comuna o monitoreo" value="'+esc(S.pq||'')+'" aria-label="Buscar proyecto o cliente"></label>'+
+      '<div class="chips-cli" role="group" aria-label="Filtrar por cliente"><button class="chip" data-pcli="" aria-pressed="'+!S.pcli+'">Todos los clientes</button>'+clientes.map(function(c){return '<button class="chip" data-pcli="'+esc(c)+'" aria-pressed="'+(S.pcli===c)+'">'+esc(c)+'</button>';}).join('')+'</div>'+
+      '<span class="proy-n" id="proy-n"></span></div><div id="proy-lista"></div></div>';
 }
 function renderCampanas(){
   var act=0,tot=0,done=0,prob=0,docs=0;
@@ -1111,6 +1137,8 @@ W.addEventListener('click',function(e){
   if(b.id==='lote-deshacer'){ var cc=getC(S.cid); cc.tareas.forEach(function(t){ if(S.lote.ids.indexOf(t.id)>=0){ t.estado=''; t.fecha=''; t.hora=''; guardarTarea(cc,t); } }); S.lote=null; render(); toast('Se deshizo el marcado'); return; }
   if(b.id==='reg-csv'){ csvRegistro(getC(S.cid)); return; }
   if(b.id==='reg-print'){ window.print(); return; }
+  if(b.dataset.pcli!=null){ S.pcli=b.dataset.pcli; document.querySelectorAll('[data-pcli]').forEach(function(x){x.setAttribute('aria-pressed',String(x.dataset.pcli===S.pcli));}); pintarProyectos(); return; }
+  if(b.id==='proy-limpiar'){ S.pq=''; S.pcli=''; renderCampanas(); return; }
   if(b.dataset.verpend!=null){ S.verPend=b.dataset.verpend==='1'; renderDetalle(); return; }
   if(b.id==='ficha-cerrar'){ S.ficha=null; S.dataOpen=null; renderDetalle(); return; }
   if(b.dataset.irMon){ S.open[b.dataset.irMon]=true; renderDetalle(); var g=document.querySelector('details[data-m="'+b.dataset.irMon+'"]'); if(g) g.scrollIntoView({behavior:'smooth',block:'start'}); return; }
@@ -1130,6 +1158,7 @@ W.addEventListener('click',function(e){
       try{ navigator.clipboard.writeText(inp.value).then(function(){toast('Ruta copiada');},function(){inp.select();toast('Selecciona y copia la ruta');}); }catch(x){ inp.select(); toast('Selecciona y copia la ruta'); } } }
 });
 W.addEventListener('toggle',function(e){ var g=e.target.closest&&e.target.closest('details[data-m]'); if(g) S.open[g.dataset.m]=g.open; },true);
+W.addEventListener('input',function(e){ if(e.target.id==='proy-q'){ S.pq=e.target.value; pintarProyectos(); } });
 W.addEventListener('change',function(e){
   var el=e.target;
   if(el.id==='h-proy'||el.id==='h-anio'){ if(el.id==='h-proy') S.hProy=el.value; else S.hAnio=el.value; renderHistorial(); return; }
