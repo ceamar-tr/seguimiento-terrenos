@@ -19,3 +19,5 @@ Luego subir el nuevo `data/matriz.js` al repositorio.
 
 ## Estado
 Modo prueba: los registros se guardan solo en el navegador de cada persona. Falta conectar la planilla de seguimiento en Drive (Apps Script) en el bloque `CONFIG` de `index.html`.
+
+Inicio de sesión con Google activo desde el 25-11-2026.
