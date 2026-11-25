@@ -79,6 +79,7 @@ function buscarUsuario_(correo) {
 // ─── Lectura ──────────────────────────────────────────────
 function datos_(u) {
   var camps = leer_('Campañas'), tareas = leer_('Checklist'), resp = leer_('Responsables'), docs = leer_('Documentos');
+  var conds = SpreadsheetApp.getActive().getSheetByName('Condiciones') ? leer_('Condiciones') : [];
   var nombres = {}; leer_('Usuarios').forEach(function (r) { if (r.correo) nombres[String(r.correo).trim().toLowerCase()] = String(r.nombre || '').trim(); });
   function quien(x) { x = String(x || '').trim(); return nombres[x.toLowerCase()] || x; }
   var personal = leer_('Personal').filter(function (r) { return String(r.activo).trim() === 'Sí' && r.nombre; }).map(function (r) { return String(r.nombre).trim(); });
@@ -89,7 +90,7 @@ function datos_(u) {
     return {
       id: id, proyecto: c.id_proyecto, anio: Number(c.anio), periodo: String(c.periodo), ini: fecha_(c.inicio), fin: fecha_(c.termino),
       jefe: c.jefe, equipo: lista_(c.equipo), estadoAdm: c.estado || 'Abierta', cerradaPor: c.cerrada_por || '', cerradaEl: texto_(c.cerrada_el), creadaPor: quien(c.creada_por), creadaEl: texto_(c.creada_el),
-      monResp: monResp, monRedes: monRedes,
+      monResp: monResp, monRedes: monRedes, monClima: climaDe_(conds, id),
       tareas: tareas.filter(function (t) { return t.id_campana === id; }).map(function (t) {
         var dat = {}; try { dat = t.datos ? JSON.parse(t.datos) : {}; } catch (e) {}
         return { id: t.id_tarea, mon: t.monitoreo, est: String(t.estacion), estado: t.estado || '', fecha: fecha_(t.fecha), hora: String(t.hora || ''), motivo: t.motivo || '', datos: dat, por: quien(t.actualizado_por), el: texto_(t.actualizado_el) };
@@ -157,6 +158,17 @@ function cambiar_(u, accion, d) {
       registrar_(u, 'redes', d.campana, d.monitoreo + ': ' + (d.redes || 'sin redes'));
       return { ok: true };
 
+    case 'condiciones':
+      c = campana_(d.campana); if (!c) return noExiste_();
+      if (!puedeMarcar_(u, c)) return negado_();
+      asegurarHoja_('Condiciones', ['id_campana', 'monitoreo', 'fecha', 'clima', 'estado_mar', 'viento', 'direccion_viento', 'observaciones', 'actualizado_por', 'actualizado_el']);
+      var vc = { clima: d.cielo || '', estado_mar: d.mar || '', viento: d.vint || '', direccion_viento: d.vdir || '', observaciones: d.obs || '', actualizado_por: u.correo, actualizado_el: ahora_() };
+      var fc = leer_('Condiciones').filter(function (r) { return r.id_campana === d.campana && r.monitoreo === d.monitoreo && fecha_(r.fecha) === d.fecha; })[0];
+      if (fc) actualizarFila_('Condiciones', fc._fila, vc);
+      else { vc.id_campana = d.campana; vc.monitoreo = d.monitoreo; vc.fecha = d.fecha; agregarVarias_('Condiciones', [vc]); }
+      registrar_(u, 'condiciones', d.campana, d.monitoreo + ' ' + d.fecha + ': ' + [d.cielo, d.mar, d.vint, d.vdir].filter(String).join(' · '));
+      return { ok: true };
+
     case 'doc':
       c = campana_(d.campana); if (!c) return noExiste_();
       if (!puedeMarcar_(u, c)) return negado_();
@@ -204,6 +216,19 @@ function hoja_(n) {
   var h = SpreadsheetApp.getActive().getSheetByName(n);
   if (!h) throw new Error('No existe la hoja ' + n);
   return h;
+}
+function asegurarHoja_(n, cols) {
+  var ss = SpreadsheetApp.getActive(), h = ss.getSheetByName(n);
+  if (!h) { h = ss.insertSheet(n); h.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold'); h.setFrozenRows(1); }
+  return h;
+}
+function climaDe_(conds, id) {
+  var o = {};
+  conds.filter(function (r) { return r.id_campana === id; }).forEach(function (r) {
+    o[r.monitoreo] = o[r.monitoreo] || {};
+    o[r.monitoreo][fecha_(r.fecha)] = { cielo: r.clima || '', mar: r.estado_mar || '', vint: r.viento || '', vdir: r.direccion_viento || '', obs: r.observaciones || '' };
+  });
+  return o;
 }
 function asegurarColumna_(n, col) {
   var h = hoja_(n), hd = encabezados_(h);
