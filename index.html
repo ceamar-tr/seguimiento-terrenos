@@ -203,6 +203,26 @@
   .eq-camp small{font-size:11.5px;color:var(--suave);}
   .eq-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--verde);box-shadow:0 0 0 3px var(--verde-s);margin-right:9px;vertical-align:middle;}
   .eq-no{color:var(--suave);font-size:13px;}
+  .user-area{display:flex;align-items:center;gap:8px;}
+  .verc{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+  .uchip{display:flex;align-items:center;gap:8px;color:#fff;}
+  .uchip .av{margin:0;width:30px;height:30px;font-size:11px;}
+  .uchip b{display:block;font-size:13px;line-height:1.1;}
+  .uchip small{font-size:11px;opacity:.8;}
+  .login{position:fixed;inset:0;z-index:900;background:linear-gradient(135deg,#1a5c2e 0%,#0d3d5c 100%);display:grid;place-items:center;padding:20px;}
+  .login[hidden]{display:none!important;}
+  .login-card{background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:34px 30px;max-width:380px;width:100%;text-align:center;color:#1c2b36;}
+  .login-logo{height:64px;margin-bottom:14px;}
+  .login-t{font-size:21px;font-weight:800;color:#0d3d5c;}
+  .login-s{font-size:13px;color:#5c6b77;margin:8px 0 22px;line-height:1.45;}
+  .login-btn{display:flex;justify-content:center;min-height:44px;}
+  .login-msg{margin-top:14px;font-size:13px;color:#b3261e;font-weight:600;min-height:18px;}
+  .ro-aviso{background:var(--azul-s);color:var(--azul);border-radius:8px;padding:8px 12px;font-size:12.5px;font-weight:600;margin-bottom:10px;}
+  .dacc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--borde);}
+  .btn-peligro{border:1px solid var(--rojo);color:var(--rojo);background:none;border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .badge.cerrada{background:var(--azul);color:#fff;}
+  fieldset.ro-fs{border:none;margin:0;padding:0;min-width:0;}
+  button:disabled{cursor:not-allowed;opacity:.45;}
   .ck-list{border:1px solid var(--borde);border-radius:10px;overflow:hidden;}
   .ck-row{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 4px;border-top:1px solid var(--borde);}
   .ck-row:first-child{border-top:none;}
@@ -466,7 +486,7 @@
     <div class="top-row">
       <div class="brand"><div class="brand-logo"><img src="logos/CEAMAR.jpg" alt="CEAMAR Estudios Ambientales"></div><div><div class="brand-t">Seguimiento de Terrenos</div><div class="brand-s">Muestreos por estación y plan de proyectos</div></div></div>
       <div class="ctl">
-        <select id="usuario" class="selu" aria-label="¿Quién usa la página?"></select>
+        <div id="user-area" class="user-area"></div>
         <button id="net" class="pillbtn net demo" title="Estado de la conexión"><i></i><span class="lg">Prueba</span><span class="sh">Prueba</span></button>
         <div class="zoom"><button id="z-menos" title="Letra más pequeña">A−</button><button id="z-mas" title="Letra más grande">A+</button></div>
         <button class="pillbtn" id="dark-btn" title="Modo oscuro">🌙</button>
@@ -495,16 +515,20 @@
 <div class="ov" id="ov"></div>
 <aside class="sp" id="sp" aria-label="Nueva campaña"></aside>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="login" class="login" hidden><div class="login-card"><img src="logos/CEAMAR.jpg" alt="CEAMAR Estudios Ambientales" class="login-logo">
+  <div class="login-t">Seguimiento de Terrenos</div><div class="login-s">Entra con tu cuenta de Google. Solo pueden ingresar las personas registradas por la administración.</div>
+  <div id="login-btn" class="login-btn"></div><div id="login-msg" class="login-msg" role="alert"></div></div></div>
 
 <script src="data/matriz.js"></script>
 <script>
 {
 // ─── CONFIG ──────────────────────────────────────────────
-// Pegar aquí los ID de las planillas y la URL del Web App de Apps Script.
-// Mientras APPS_SCRIPT_URL esté vacío, la página funciona en modo prueba (registros guardados solo en este navegador).
-var CONFIG = { MATRIZ_ID:'', SEGUIMIENTO_ID:'', APPS_SCRIPT_URL:'', INICIO_SEGUIMIENTO:'2026-11-01' };
+// APPS_SCRIPT_URL: URL de la aplicación web de Apps Script (planilla "Seguimiento de Terrenos CEAMAR").
+// GOOGLE_CLIENT_ID: ID de cliente OAuth de Google Cloud para "Iniciar sesión con Google".
+// Mientras falte alguno de los dos, la página funciona en modo prueba (registros guardados solo en este navegador).
+var CONFIG = { MATRIZ_ID:'', APPS_SCRIPT_URL:'', GOOGLE_CLIENT_ID:'', INICIO_SEGUIMIENTO:'2026-11-01' };
 // INICIO_SEGUIMIENTO: los periodos que terminaron antes de esta fecha no se marcan como "sin registro".
-var DEMO = !CONFIG.APPS_SCRIPT_URL;
+var DEMO = !(CONFIG.APPS_SCRIPT_URL&&CONFIG.GOOGLE_CLIENT_ID);
 
 var CLIENTES = {
   'Lundin Mining':            { logo:'logos/lundin.jpg' },
@@ -512,7 +536,14 @@ var CLIENTES = {
   'CMP':                      { logo:'logos/cmp.png' },
   'Grupo Minero Las Cenizas': { logo:'logos/cenizas.png' }
 };
-var PERSONAL = ['Nicolás Vera','Ulyces Urtubia','Edward Peñalver','Marcelo Valdebenito','Juan Capella','Manuel Díaz','Helmo Pérez','Jose Manuel Vildósola','Francisco Díaz'];
+// Personal que puede ir a terreno. Con la planilla conectada se lee de la hoja Personal.
+var PERSONAL = ['Nicolás Vera','Ulyces Urtubia','Edward Peñalver','Marcelo Valdebenito','Juan Capella','Manuel Díaz','Helmo Pérez','José Manuel Vildósola','Francisco Díaz'];
+// Copia de la hoja Usuarios, solo para probar los roles en modo prueba.
+var USUARIOS_PRUEBA = [
+  {nombre:'Tamara Riquelme',rol:'Administrador'},{nombre:'Marcelo Valdebenito',rol:'Coordinación'},{nombre:'Luis Caillaux',rol:'Coordinación'},
+  {nombre:'Ulyces Urtubia',rol:'Coordinación'},{nombre:'Manuel Díaz',rol:'Coordinación'},{nombre:'Nicolás Vera',rol:'Coordinación'},{nombre:'Edward Peñalver',rol:'Coordinación'},
+  {nombre:'José Manuel Vildósola',rol:'Muestreador'},{nombre:'Helmo Pérez',rol:'Muestreador'},
+  {nombre:'Alonso Vega',rol:'Consulta'},{nombre:'Rocío Valdebenito',rol:'Consulta'},{nombre:'Abigail Villalobos',rol:'Consulta'}];
 var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var MES3 = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 var DIAS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
@@ -600,11 +631,12 @@ function periodoLabel(c){ return c.periodo+' '+c.anio; }
 function monsCamp(c){ var p=MATRIZ[c.proyecto]; return (c.mons||[]).map(function(k){return mOf(c,k);}).filter(Boolean); }
 function mOf(c,cod){ return MATRIZ[c.proyecto].monitoreos.filter(function(m){return m.cod===cod;})[0]; }
 function getC(id){ return CAMP.filter(function(c){return c.id===id;})[0]; }
-var CAMP=[];
+var CAMP=[], CAMP_ALL=[];   // CAMP = las que este usuario puede ver
+function vista(){ CAMP=CAMP_ALL.filter(puedeVer); }
 // Mientras no esté conectada la planilla de seguimiento, las campañas de prueba se guardan en este navegador.
-function guardarCamp(){ try{ localStorage.setItem('ceamar_terreno_campanas',JSON.stringify(CAMP)); }catch(e){} }
-function cargarCamp(){ try{ CAMP=JSON.parse(localStorage.getItem('ceamar_terreno_campanas')||'[]').filter(function(c){ return MATRIZ[c.proyecto]&&c.tareas; }); }catch(e){ CAMP=[]; }
-  CAMP.forEach(function(c){ var ok=function(n){return PERSONAL.indexOf(n)>=0;}; c.equipo=c.equipo.filter(ok); if(PERSONAL.indexOf(c.jefe)<0) c.jefe=c.equipo[0]||''; Object.keys(c.monResp||{}).forEach(function(k){ c.monResp[k]=c.monResp[k].filter(ok); }); }); }
+function guardarCamp(){ if(!DEMO) return; try{ localStorage.setItem('ceamar_terreno_campanas',JSON.stringify(CAMP_ALL)); }catch(e){} }
+function cargarCamp(){ try{ CAMP_ALL=JSON.parse(localStorage.getItem('ceamar_terreno_campanas')||'[]').filter(function(c){ return MATRIZ[c.proyecto]&&c.tareas; }); }catch(e){ CAMP_ALL=[]; }
+  CAMP_ALL.forEach(function(c){ var ok=function(n){return PERSONAL.indexOf(n)>=0;}; c.equipo=c.equipo.filter(ok); if(PERSONAL.indexOf(c.jefe)<0) c.jefe=c.equipo[0]||''; Object.keys(c.monResp||{}).forEach(function(k){ c.monResp[k]=c.monResp[k].filter(ok); }); c.estadoAdm=c.estadoAdm||'Abierta'; }); vista(); }
 
 // ─── CÁLCULOS ────────────────────────────────────────────
 function prog(c){
@@ -620,24 +652,74 @@ function vol(fi,ff,d,k){ var v=(+ff)-(+fi); if(!isFinite(v)||!d||!k) return null
 function logo(c){ var cfg=CLIENTES[MATRIZ[c.proyecto].cliente]||{}; return '<div class="logo">'+(cfg.logo?'<img src="'+cfg.logo+'" alt="'+esc(MATRIZ[c.proyecto].cliente)+'">':'')+'</div>'; }
 function avs(eq){ return '<div class="avs">'+eq.map(function(n){return '<span class="av" title="'+esc(n)+'">'+esc(ini(n))+'</span>';}).join('')+'</div>'; }
 function prow(l,p,doc){ return '<div class="prow"><span>'+l+'</span><div class="pbar"><div class="pfill'+(doc?' doc':'')+'" style="width:'+p+'%"></div></div><span class="ppct">'+p+'%</span></div>'; }
-function badge(c){ var e=estadoCamp(c); return '<span class="badge '+ESTC[e]+'">'+e+'</span>'; }
+function badge(c){ var e=estadoCamp(c); return '<span class="badge '+ESTC[e]+'">'+e+'</span>'+(c.estadoAdm==='Cerrada'?'<span class="badge cerrada" title="Cerrada por '+esc(c.cerradaPor||'')+'">🔒 Cerrada</span>':''); }
 
 // ─── ESTADO ──────────────────────────────────────────────
 var S={tab:'calendario',vista:'estacion',est:[HOY.getFullYear(),Math.floor(HOY.getMonth()/3)],ym:[HOY.getFullYear(),HOY.getMonth()],anio:HOY.getFullYear(),cid:null,sub:'calendario',filtro:'Todas',dataOpen:null,open:{},foco:null,online:true,cola:[]};
-var usuario='Coordinación';
-try{ usuario=localStorage.getItem('ceamar_terreno_usuario')||'Coordinación'; }catch(e){}
 try{ S.cola=JSON.parse(localStorage.getItem('ceamar_terreno_cola')||'[]'); }catch(e){ S.cola=[]; }
-function esCoord(){ return usuario==='Coordinación'; }
+var USUARIO=null, usuario='', SESION='';
+try{ SESION=localStorage.getItem('ceamar_terreno_sesion')||''; }catch(e){}
+function fijarUsuario(u){ USUARIO=u; usuario=u?u.nombre:''; vista(); }
+function rol(){ return USUARIO?USUARIO.rol:''; }
+function esAdmin(){ return rol()==='Administrador'; }
+function esCoord(){ return rol()==='Administrador'||rol()==='Coordinación'; }
+function esConsulta(){ return rol()==='Consulta'; }
+function puedeVer(c){ return rol()!=='Muestreador'||c.equipo.indexOf(usuario)>=0; }
+function puedeMarcar(c){ if(!c) return false; if(esCoord()) return true; return rol()==='Muestreador'&&c.equipo.indexOf(usuario)>=0&&c.estadoAdm!=='Cerrada'; }
+function motivoLectura(c){ return esConsulta()?'tu rol es de consulta':c.estadoAdm==='Cerrada'?'la campaña está cerrada':'no estás en el equipo de esta campaña'; }
 
 // ─── SINCRONIZACIÓN (cola en el teléfono + Apps Script) ──
-function enviar(accion,datos){ guardarCamp(); S.cola.push({accion:accion,datos:datos,usuario:usuario,ts:new Date().toISOString()}); guardarCola(); flush(); pintarNet(); }
+function enviar(accion,datos){ guardarCamp(); if(DEMO) return; S.cola.push({accion:accion,datos:datos,ts:new Date().toISOString()}); guardarCola(); flush(); pintarNet(); }
 function guardarCola(){ try{ localStorage.setItem('ceamar_terreno_cola',JSON.stringify(S.cola)); }catch(e){} }
-function hayRed(){ return DEMO?S.online:navigator.onLine; }
+function hayRed(){ return DEMO?true:navigator.onLine; }
 function flush(){
   if(!hayRed()||!S.cola.length) return;
   if(DEMO){ S.cola=[]; guardarCola(); return; }
-  fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(S.cola[0])})
-    .then(function(){ S.cola.shift(); guardarCola(); pintarNet(); flush(); }).catch(function(){ pintarNet(); });
+  if(!SESION||S.enviando) return;
+  var it=S.cola[0]; S.enviando=true;
+  api(it.accion,it.datos).then(function(r){ S.enviando=false;
+    if(r.ok){ S.cola.shift(); guardarCola(); pintarNet(); if(S.cola.length) flush(); return; }
+    if(r.error==='sesion'){ pintarNet(); pedirLogin(r.mensaje); return; }
+    S.cola.shift(); guardarCola(); pintarNet(); toast(r.mensaje||r.error||'No se pudo guardar el cambio'); recargar();
+  }).catch(function(){ S.enviando=false; pintarNet(); });
+}
+function api(accion,datos,extra){
+  var body={accion:accion,sesion:SESION,datos:datos||{}}; if(extra) Object.keys(extra).forEach(function(k){ body[k]=extra[k]; });
+  return fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(r){ return r.json(); });
+}
+// ─── SESIÓN (Google) ─────────────────────────────────────
+function aplicarDatos(r){
+  fijarUsuario(r.usuario); if(r.personal&&r.personal.length) PERSONAL=r.personal;
+  CAMP_ALL=(r.campanas||[]).filter(function(c){ return MATRIZ[c.proyecto]; }).map(function(c){
+    var cods=[]; c.tareas.forEach(function(t){ if(cods.indexOf(t.mon)<0) cods.push(t.mon); t.datos=t.datos||{}; });
+    c.mons=MATRIZ[c.proyecto].monitoreos.map(function(m){return m.cod;}).filter(function(k){return cods.indexOf(k)>=0;});
+    c.monResp=c.monResp||{}; c.estadoAdm=c.estadoAdm||'Abierta'; return c; });
+  vista(); if(S.cid&&!getC(S.cid)){ S.cid=null; if(S.tab==='detalle') S.tab='calendario'; }
+  pintarUsuario(); render();
+}
+function recargar(){ if(DEMO||!SESION||S.cola.length) return; api('datos').then(function(r){ if(r.ok) aplicarDatos(r); else if(r.error==='sesion') pedirLogin(r.mensaje); }).catch(function(){}); }
+var gisCargado=false;
+function pedirLogin(msg){
+  var ov=document.getElementById('login'); ov.hidden=false; document.getElementById('login-msg').textContent=msg||'';
+  function boton(){ google.accounts.id.initialize({client_id:CONFIG.GOOGLE_CLIENT_ID,callback:alEntrar,ux_mode:'popup'});
+    google.accounts.id.renderButton(document.getElementById('login-btn'),{theme:'filled_blue',size:'large',shape:'pill',text:'signin_with',locale:'es',width:280}); }
+  if(gisCargado){ boton(); return; }
+  var sc=document.createElement('script'); sc.src='https://accounts.google.com/gsi/client'; sc.async=true; sc.onload=function(){ gisCargado=true; boton(); };
+  sc.onerror=function(){ document.getElementById('login-msg').textContent='No se pudo cargar el inicio de sesión de Google. Revisa la conexión.'; }; document.head.appendChild(sc);
+}
+function alEntrar(resp){
+  var m=document.getElementById('login-msg'); m.textContent='Verificando…';
+  api('login',null,{idToken:resp.credential}).then(function(r){
+    if(!r.ok){ m.textContent=r.mensaje||r.error||'No se pudo entrar'; return; }
+    SESION=r.sesion; try{ localStorage.setItem('ceamar_terreno_sesion',SESION); }catch(e){}
+    document.getElementById('login').hidden=true; aplicarDatos(r); flush(); toast('Hola, '+r.usuario.nombre.split(' ')[0]);
+  }).catch(function(){ m.textContent='Sin conexión con el servidor. Intenta de nuevo.'; });
+}
+function salir(){ if(SESION) api('logout').catch(function(){}); SESION=''; try{ localStorage.removeItem('ceamar_terreno_sesion'); }catch(e){} fijarUsuario(null); CAMP_ALL=[]; vista(); pedirLogin('Sesión cerrada.'); }
+function pintarUsuario(){
+  var a=document.getElementById('user-area');
+  if(DEMO){ a.innerHTML='<label class="verc"><span>Ver como</span><select id="ver-como" class="selu" aria-label="Probar la página como otro usuario">'+USUARIOS_PRUEBA.map(function(u,i){return '<option value="'+i+'"'+(USUARIO&&u.nombre===USUARIO.nombre?' selected':'')+'>'+esc(u.nombre)+' · '+esc(u.rol)+'</option>';}).join('')+'</select></label>'; return; }
+  a.innerHTML=USUARIO?'<span class="uchip"><span class="av">'+esc(ini(USUARIO.nombre))+'</span><span><b>'+esc(USUARIO.nombre)+'</b><small>'+esc(USUARIO.rol)+'</small></span></span><button class="pillbtn" id="salir">Salir</button>':'';
 }
 window.addEventListener('online',function(){ flush(); pintarNet(); });
 window.addEventListener('offline',pintarNet);
@@ -653,7 +735,8 @@ function fetchSheet(id,hoja){
 function pintarNet(){
   var b=document.getElementById('net'), n=S.cola.length;
   b.className='pillbtn net'+(!hayRed()?' off':DEMO?' demo':'');
-  b.querySelector('.lg').textContent = !hayRed() ? 'Sin señal · '+n+' por enviar' : DEMO ? 'Prueba · simular sin señal' : (n?'Enviando '+n+'…':'En línea');
+  b.title=DEMO?'Modo prueba: sin conexión con la planilla de Drive; los registros quedan en este navegador':'Estado del envío a la planilla de Drive';
+  b.querySelector('.lg').textContent = !hayRed() ? 'Sin señal · '+n+' por enviar' : DEMO ? 'Modo prueba' : (n?'Enviando '+n+'…':'En línea');
   b.querySelector('.sh').textContent = !hayRed() ? 'Sin señal ('+n+')' : DEMO ? 'Prueba' : (n?n+'…':'En línea');
 }
 
@@ -680,6 +763,7 @@ function slotBtn(pid,s,anio,corto){
   var nom=esc(corto?MATRIZ[pid].corto+' · ':'')+esc(s.per)+' '+anio;
   if(s.k==='camp') return '<button class="toca '+ESTC[s.e]+'" data-abrir="'+esc(s.c.id)+'" data-sub="muestreo">'+nom+'<small>'+esc(s.e)+' · '+prog(s.c).pm+'%</small></button>';
   if(s.k==='previo') return '<span class="toca e-prev">'+nom+'<small>Antes del seguimiento</small></span>';
+  if(!esCoord()) return '<span class="toca '+(s.k==='sinr'?'e-sinr':'e-porp')+'">'+nom+'<small>'+(s.k==='sinr'?'Sin registro':'Por programar')+'</small></span>';
   return '<button class="toca '+(s.k==='sinr'?'e-sinr':'e-porp')+'" data-prog="'+pid+'|'+esc(s.per)+'|'+anio+'">'+nom+'<small>'+(s.k==='sinr'?'Sin registro · programar':'＋ Programar')+'</small></button>';
 }
 function franjaMes(y,m1){
@@ -733,7 +817,8 @@ function renderAnio(){
       if(s.k==='camp') inner='<button class="mc '+ESTC[s.e]+'" data-abrir="'+esc(s.c.id)+'" data-sub="muestreo" title="'+esc(tip+' · '+s.e)+'"><b>'+esc(s.per)+'</b> '+(s.e==='Completa'?'✓':prog(s.c).pm+'%')+'<small>'+esc(s.e)+' · '+fmtD(s.c.ini)+'</small></button>';
       else if(s.k==='previo') inner='<span class="mc e-prev" title="'+esc(tip+' · anterior al inicio del seguimiento en esta página')+'"><b>'+esc(s.per)+'</b><small>Antes del seguimiento</small></span>';
       else if(s.k==='sinr') inner='<button class="mc e-sinr" data-prog="'+r.pid+'|'+esc(s.per)+'|'+S.anio+'" title="'+esc(tip+' · correspondía y no hay registro')+'"><b>'+esc(s.per)+'</b> !<small>Sin registro</small></button>';
-      else inner='<button class="mc e-porp" data-prog="'+r.pid+'|'+esc(s.per)+'|'+S.anio+'" title="'+esc(tip+' · aún no se programa')+'"><b>'+esc(s.per)+'</b> ＋<small>Programar</small></button>';
+      if(!esCoord()&&(s.k==='sinr'||s.k==='porp')) inner='<span class="mc '+(s.k==='sinr'?'e-sinr':'e-porp')+'"><b>'+esc(s.per)+'</b><small>'+(s.k==='sinr'?'Sin registro':'Por programar')+'</small></span>';
+      else if(s.k==='porp') inner='<button class="mc e-porp" data-prog="'+r.pid+'|'+esc(s.per)+'|'+S.anio+'" title="'+esc(tip+' · aún no se programa')+'"><b>'+esc(s.per)+'</b> ＋<small>Programar</small></button>';
       celdas+='<td colspan="'+s.meses.length+'" class="slot'+(s.actual?' act':'')+'">'+inner+'<div class="mcods">'+esc(cods)+'</div></td>';
       mes+=s.meses.length;
     }
@@ -913,7 +998,7 @@ var ICO={'Realizado':'✓','Parcial':'±','No realizado':'✕','No aplica':'–'
 function renderChecklist(c){
   var ms=monsCamp(c), p=prog(c);
   if(!S.mon||!ms.some(function(m){return m.cod===S.mon;})){ var pend=ms.filter(function(m){return avanceMon(c,m).pct<100;})[0]; S.mon=(pend||ms[0]).cod; }
-  var m=mOf(c,S.mon), a=avanceMon(c,m), pr=MATRIZ[c.proyecto];
+  var m=mOf(c,S.mon), a=avanceMon(c,m), pr=MATRIZ[c.proyecto], ro=!puedeMarcar(c), dis=ro?' disabled':'';
   var lado='<aside class="ck-mons"><div class="ck-total"><span class="ck-big">'+p.pm+'%</span><span>'+p.done+' de '+p.T+' estaciones listas</span><span class="pbar"><span class="pfill" style="width:'+p.pm+'%"></span></span></div>'+
     ms.map(function(x){ var ax=avanceMon(c,x);
       return '<button class="ck-mon'+(x.cod===S.mon?' sel':'')+(ax.pct===100?' listo':'')+'" data-mon="'+esc(x.cod)+'" aria-pressed="'+(x.cod===S.mon)+'"><span class="ck-mn"><b>'+esc(x.nombre)+'</b><small>'+(ax.pct===100?'✓ Completo':ax.dn+' de '+ax.ts.length)+(respMon(c,x.cod).length?' · '+esc(respMon(c,x.cod).map(ini).join(', ')):'')+'</small></span><span class="ck-pct">'+ax.pct+'%</span><span class="pbar"><span class="pfill" style="width:'+ax.pct+'%"></span></span></button>'; }).join('')+'</aside>';
@@ -923,7 +1008,7 @@ function renderChecklist(c){
     return '<div class="ck-row e-'+(t.estado?t.estado.replace(' ','-').toLowerCase():'vacio')+'" data-t="'+esc(t.id)+'">'+
       '<button class="ck-info" data-act="ficha"><span class="ck-dot">'+(ICO[t.estado]||'')+'</span><span class="ck-est"><b>'+esc(estNombre(t.est))+'</b><small>'+(x.sector?esc(x.sector)+' · ':'')+esc(coordTxt(pr,t.est))+'</small></span>'+
         '<span class="ck-meta">'+(t.estado?fmtD(t.fecha):'')+(falla?'<em>falta motivo</em>':'')+(got&&got<m.total?'<em class="az">'+got+'/'+m.total+' muestras</em>':'')+'</span></button>'+
-      '<span class="estado ck-seg" role="group" aria-label="Estado de '+esc(t.est)+'">'+OPC.map(function(o){return '<button type="button" data-act="estado" data-v="'+o+'" aria-pressed="'+(t.estado===o)+'" title="'+o+'">'+LAB[o]+'</button>';}).join('')+'</span>'+
+      '<span class="estado ck-seg" role="group" aria-label="Estado de '+esc(t.est)+'">'+OPC.map(function(o){return '<button type="button" data-act="estado" data-v="'+o+'" aria-pressed="'+(t.estado===o)+'" title="'+o+'"'+dis+'>'+LAB[o]+'</button>';}).join('')+'</span>'+
       '<button class="ck-mas" data-act="ficha" aria-label="Detalle de '+esc(t.est)+'">›</button></div>'; }).join('');
   if(!filas) filas='<div class="pempty">✓ No quedan estaciones pendientes en este monitoreo.</div>';
   var rm=respMon(c,m.cod), hayMarcas=a.ts.some(function(t){return t.estado;});
@@ -931,16 +1016,17 @@ function renderChecklist(c){
     '<div class="ck-resp"><span>Realizado por</span><div class="ck-chips">'+c.equipo.map(function(n){var on=rm.indexOf(n)>=0; return '<button class="chip" data-mresp="'+esc(n)+'" aria-pressed="'+on+'">'+(on?'✓ ':'')+esc(n)+'</button>';}).join('')+'</div></div>'+
     (hayMarcas&&!rm.length?'<div class="warnline">Indica quién hizo este monitoreo</div>':'')+'</div>';
   var sinM=a.ts.filter(function(t){return !t.estado;});
-  if(S.lote&&S.lote.mon===m.cod) antes+='<div class="lote">'+S.lote.ids.length+' estaciones marcadas como realizadas el '+fmtD(S.lote.fecha)+'. <button class="lnk" id="lote-deshacer">Deshacer</button></div>';
+  if(ro) antes='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.'+(rm.length?' Realizado por: '+esc(rm.join(', '))+'.':'')+'</div>';
+  else if(S.lote&&S.lote.mon===m.cod) antes+='<div class="lote">'+S.lote.ids.length+' estaciones marcadas como realizadas el '+fmtD(S.lote.fecha)+'. <button class="lnk" id="lote-deshacer">Deshacer</button></div>';
   else if(S.confirmTodas===m.cod&&sinM.length) antes+='<div class="lote">¿Marcar las <b>'+sinM.length+'</b> estaciones sin marcar de '+esc(m.nombre)+' como realizadas el <b>'+fmtD(S.fechaTrabajo)+'</b>? <button class="btn-p btn-sm" id="todas-si">Sí, marcar</button> <button class="btn-s btn-sm" id="todas-no">Cancelar</button></div>';
   else if(sinM.length>1) antes+='<div class="lote-btn"><button class="btn-s" id="todas">✓ Marcar todas como realizadas ('+sinM.length+')</button></div>';
   var main='<section class="ck-main"><div class="ck-head"><div><div class="ck-tit">'+esc(m.nombre)+' <span class="ck-cnt">'+a.dn+'/'+a.ts.length+'</span></div><div class="sub">'+esc(resumenMon(m))+'</div></div>'+
     '<div class="seg"><button data-verpend="0" aria-pressed="'+!S.verPend+'">Todas</button><button data-verpend="1" aria-pressed="'+!!S.verPend+'">Pendientes ('+a.falta.length+')</button></div></div>'+
-    antes+'<div class="ck-list">'+filas+'</div><p class="sub" style="margin-top:8px">Elige la fecha y quién hizo el monitoreo, luego toca ✓ en cada estación terminada. Toca el nombre de la estación para cambiar su fecha, anotar un motivo o marcar réplicas.</p></section>';
+    antes+'<div class="ck-list">'+filas+'</div>'+(ro?'':'<p class="sub" style="margin-top:8px">Elige la fecha y quién hizo el monitoreo, luego toca ✓ en cada estación terminada. Toca el nombre de la estación para cambiar su fecha, anotar un motivo o marcar réplicas.</p>')+'</section>';
   var ficha='';
   if(S.ficha){ var tf=c.tareas.filter(function(t){return t.id===S.ficha;})[0];
     if(tf){ S.dataOpen=tf.id; var mf=mOf(c,tf.mon);
-      ficha='<div class="ficha-ov" data-cerrar-ficha="1"></div><div class="ficha" role="dialog" aria-label="Detalle de '+esc(tf.est)+'"><div class="ficha-h"><div><div class="sub">'+esc(mf.nombre)+'</div><div class="ck-tit">'+esc(estNombre(tf.est))+'</div></div><button class="arrow" id="ficha-cerrar" aria-label="Cerrar">✕</button></div><div class="ficha-b">'+stRow(c,tf)+'</div></div>'; } }
+      ficha='<div class="ficha-ov" data-cerrar-ficha="1"></div><div class="ficha" role="dialog" aria-label="Detalle de '+esc(tf.est)+'"><div class="ficha-h"><div><div class="sub">'+esc(mf.nombre)+'</div><div class="ck-tit">'+esc(estNombre(tf.est))+'</div></div><button class="arrow" id="ficha-cerrar" aria-label="Cerrar">✕</button></div><div class="ficha-b">'+(ro?'<fieldset class="ro-fs" disabled>'+stRow(c,tf)+'</fieldset>':stRow(c,tf))+'</div></div>'; } }
   return '<div class="ck">'+lado+main+'</div>'+ficha;
 }
 // ─── REGISTRO DE EJECUCIÓN E HISTORIAL ───────────────────
@@ -986,12 +1072,23 @@ function renderHistorial(){
     monsCamp(c).forEach(function(m){ respMon(c,m.cod).forEach(function(n){ if(pers.indexOf(n)<0) pers.push(n); }); });
     return '<tr class="hrow" data-abrir="'+esc(c.id)+'" data-sub="registro" tabindex="0"><td><div class="pcell">'+logo(c)+'<div><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b><div class="sub">'+periodoLabel(c)+'</div></div></div></td>'+
       '<td class="num" data-l="Ejecución">'+(ex?fmtD(ex.ini)+(ex.fin!==ex.ini?' al '+fmtD(ex.fin):''):'—')+'</td><td class="num" data-l="Monitoreos">'+monsCamp(c).length+'</td><td data-l="Realizado por">'+(pers.length?esc(pers.join(', ')):'<span class="falta">sin indicar</span>')+'</td>'+
-      '<td data-l="Documentos"><span class="badge '+(p.pd===100?'e-comp':'e-pend')+'">'+p.pd+'%</span></td><td class="num"><span class="lnk">Ver registro ›</span></td></tr>'; }).join('');
+      '<td data-l="Documentos"><span class="badge '+(p.pd===100?'e-comp':'e-pend')+'">'+p.pd+'%</span></td>'+
+      '<td data-l="Para informe">'+(c.estadoAdm==='Cerrada'?'<span class="badge cerrada">Lista</span>':'<span class="badge e-prog">En revisión</span>')+'</td><td class="num"><span class="lnk">Ver registro ›</span></td></tr>'; }).join('');
   var proys=Object.keys(MATRIZ).map(function(k){return '<option value="'+k+'"'+(k===fp?' selected':'')+'>'+esc(MATRIZ[k].nombre)+'</option>';}).join('');
   document.getElementById('tc-historial').innerHTML='<div class="bar-row"><div><div class="h1">Historial de campañas</div><div class="sub">Campañas con todo el muestreo registrado: cuándo se hizo y quién lo hizo.</div></div>'+
     '<div class="hfil"><select class="sel" id="h-proy" aria-label="Proyecto"><option value="">Todos los proyectos</option>'+proys+'</select><select class="sel" id="h-anio" aria-label="Año"><option value="">Todos los años</option>'+anios.sort().reverse().map(function(a){return '<option'+(String(a)===fa?' selected':'')+'>'+a+'</option>';}).join('')+'</select></div></div>'+
-    (filas?'<div class="twrap card-t"><table class="rtab htab resp"><thead><tr><th>Campaña</th><th>Ejecución</th><th>Monitoreos</th><th>Realizado por</th><th>Documentos</th><th></th></tr></thead><tbody>'+filas+'</tbody></table></div>'
+    (filas?'<div class="twrap card-t"><table class="rtab htab resp"><thead><tr><th>Campaña</th><th>Ejecución</th><th>Monitoreos</th><th>Realizado por</th><th>Documentos</th><th>Para informe</th><th></th></tr></thead><tbody>'+filas+'</tbody></table></div>'
       :'<div class="pempty">Aún no hay campañas con todo el muestreo completo. Cuando una campaña llegue al 100 %, quedará aquí con sus fechas y responsables.</div>');
+}
+function accionesCamp(c,p){
+  if(!esCoord()) return c.estadoAdm==='Cerrada'?'<div class="dacc"><span class="sub">Cerrada por '+esc(c.cerradaPor||'coordinación')+(c.cerradaEl?' el '+esc(String(c.cerradaEl).slice(0,10)):'')+' · lista para informe.</span></div>':'';
+  var h='';
+  if(S.confElim===c.id) return '<div class="dacc"><span>¿Eliminar la campaña <b>'+esc(c.id)+'</b> con todos sus registros? No se puede deshacer.</span><button class="btn-peligro" id="elim-si">Sí, eliminar</button><button class="btn-s btn-sm" id="elim-no">Cancelar</button></div>';
+  if(c.estadoAdm==='Cerrada') h+='<span class="sub">Cerrada por '+esc(c.cerradaPor||'')+(c.cerradaEl?' el '+esc(String(c.cerradaEl).slice(0,10)):'')+' · lista para informe.</span><button class="btn-s btn-sm" id="reabrir-camp">Reabrir</button>';
+  else if(p.pm===100) h+='<button class="btn-p btn-sm" id="cerrar-camp">🔒 Cerrar campaña · lista para informe</button><span class="sub">Al cerrarla, solo coordinación puede corregirla.</span>';
+  else h+='<span class="sub">Se podrá cerrar cuando el muestreo llegue al 100 %.</span>';
+  if(esAdmin()) h+='<span class="spacer"></span><button class="btn-peligro" id="elim-camp">Eliminar campaña</button>';
+  return '<div class="dacc">'+h+'</div>';
 }
 function renderDetalle(){
   var c=getC(S.cid); if(!c) return; var p=prog(c), pr=MATRIZ[c.proyecto];
@@ -999,20 +1096,22 @@ function renderDetalle(){
     '<div class="sub">'+esc(c.id)+' · '+periodoLabel(c)+' · '+esc(pr.region)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+'</div>'+
     '<div class="sub dmeta">Jefe de terreno: <b>'+esc(c.jefe)+'</b> · Equipo: '+c.equipo.map(esc).join(', ')+'</div>'+pr.informes.map(function(x){return '<div class="sub dmeta">'+esc(x)+'</div>';}).join('')+'</div></div>'+
     '<div class="dprogs">'+prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'</div>'+
-    '<div class="cfoot">'+(p.sinMarcar?'<span class="pill p-gris">'+p.sinMarcar+' sin marcar</span>':'')+(p.noReal?'<span class="pill p-rojo">'+p.noReal+' no realizadas</span>':'')+(p.parcial?'<span class="pill p-amber">'+p.parcial+' parciales</span>':'')+(p.sinMotivo?'<span class="pill p-rojo">'+p.sinMotivo+' sin motivo</span>':'')+(p.dPend?'<span class="pill p-amber">'+p.dPend+' docs. pendientes</span>':'')+(p.dSinRuta?'<span class="pill p-amber">'+p.dSinRuta+' sin ruta</span>':'')+'</div></div>';
+    '<div class="cfoot">'+(p.sinMarcar?'<span class="pill p-gris">'+p.sinMarcar+' sin marcar</span>':'')+(p.noReal?'<span class="pill p-rojo">'+p.noReal+' no realizadas</span>':'')+(p.parcial?'<span class="pill p-amber">'+p.parcial+' parciales</span>':'')+(p.sinMotivo?'<span class="pill p-rojo">'+p.sinMotivo+' sin motivo</span>':'')+(p.dPend?'<span class="pill p-amber">'+p.dPend+' docs. pendientes</span>':'')+(p.dSinRuta?'<span class="pill p-amber">'+p.dSinRuta+' sin ruta</span>':'')+'</div>'+accionesCamp(c,p)+'</div>';
   h+='<div class="subnav" role="tablist">'+[['muestreo','Checklist · '+p.pm+'%'],['calendario','Estaciones por día'],['documentos','Documentos · '+p.pd+'%'],['registro','Registro']].map(function(x){return '<button data-sub="'+x[0]+'" aria-selected="'+(S.sub===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
   if(S.sub==='calendario') h+=renderGrilla(c);
   else if(S.sub==='muestreo') h+=renderChecklist(c);
   else if(S.sub==='registro') h+=renderRegistro(c);
   else {
+    var dro=!puedeMarcar(c), dis=dro?' disabled':'';
+    if(dro) h+='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.</div>';
     h+=['SSO','ISO','Otro'].map(function(tp){
       var ds=c.docs.filter(function(d){return d.t===tp;});
       return '<details class="grupo" open><summary><span class="gtit">'+(tp==='Otro'?'Otros registros':'Registros '+tp)+'</span><span class="gcount">'+ds.filter(function(d){return d.estado==='Completo'&&d.ruta.trim();}).length+'/'+ds.length+'</span></summary>'+
         ds.map(function(d){ var i=c.docs.indexOf(d), sinRuta=d.estado==='Completo'&&!d.ruta.trim();
           return '<div class="doc" data-d="'+i+'"><div class="st-top"><b>'+esc(d.n)+'</b>'+
-            '<span class="estado" role="group" aria-label="Estado de '+esc(d.n)+'"><button type="button" data-act="doc" data-o="Completo" data-v="Realizado" aria-pressed="'+(d.estado==='Completo')+'">Completo</button><button type="button" data-act="doc" data-o="Pendiente" data-v="No aplica" aria-pressed="'+(d.estado!=='Completo')+'">Pendiente</button></span></div>'+
-            '<div class="st-meta"><label>Responsable <select class="sel" data-f="dresp" id="dresp-'+i+'"><option value="">— elegir —</option>'+c.equipo.map(function(n){return '<option'+(n===d.resp?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label><span class="num">'+fmtD(d.fecha)+'</span></div>'+
-            '<div class="ruta"><input class="inp" type="text" data-f="ruta" id="ruta-'+i+'" value="'+esc(d.ruta)+'" placeholder="\\\\SERVIDOR\\Terrenos\\2026\\..." aria-label="Ruta en el servidor de '+esc(d.n)+'"><button type="button" class="btn-s" data-act="copiar">Copiar</button></div>'+
+            '<span class="estado" role="group" aria-label="Estado de '+esc(d.n)+'"><button type="button" data-act="doc" data-o="Completo" data-v="Realizado" aria-pressed="'+(d.estado==='Completo')+'"'+dis+'>Completo</button><button type="button" data-act="doc" data-o="Pendiente" data-v="No aplica" aria-pressed="'+(d.estado!=='Completo')+'"'+dis+'>Pendiente</button></span></div>'+
+            '<div class="st-meta"><label>Responsable <select class="sel" data-f="dresp" id="dresp-'+i+'"'+dis+'><option value="">— elegir —</option>'+c.equipo.map(function(n){return '<option'+(n===d.resp?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label><span class="num">'+fmtD(d.fecha)+'</span></div>'+
+            '<div class="ruta"><input class="inp" type="text" data-f="ruta" id="ruta-'+i+'"'+dis+' value="'+esc(d.ruta)+'" placeholder="\\\\SERVIDOR\\Terrenos\\2026\\..." aria-label="Ruta en el servidor de '+esc(d.n)+'"><button type="button" class="btn-s" data-act="copiar">Copiar</button></div>'+
             (sinRuta?'<div class="warnline">Marcado como completo, pero falta la ruta del archivo escaneado</div>':'')+'</div>'; }).join('')+'</details>';
     }).join('');
   }
@@ -1107,7 +1206,7 @@ function render(){
 function pintarNota(){
   var n=document.getElementById('demo-note'), np=Object.keys(MATRIZ).length;
   n.innerHTML='<b>Modo prueba.</b> '+np+' proyecto'+(np!==1?'s':'')+' de la matriz maestra'+(MATRIZ_FECHA?' (exportada el '+esc(MATRIZ_FECHA)+')':'')+': '+Object.keys(MATRIZ).map(function(k){return esc(MATRIZ[k].nombre);}).join(', ')+
-    '. Lo que registres se guarda solo en este navegador hasta conectar la planilla de Drive. <button type="button" class="lnk" id="borrar-pruebas">Borrar registros de prueba</button>';
+    '. Lo que registres se guarda solo en este navegador hasta conectar la planilla de Drive. Usa «Ver como» arriba para probar cada rol. <button type="button" class="lnk" id="borrar-pruebas">Borrar registros de prueba</button>';
   n.hidden=!DEMO;
 }
 function abrir(id,sub,foco){ if(S.tab!=='detalle') S.prevTab=S.tab; S.cid=id; S.sub=sub||'muestreo'; S.open={}; S.dataOpen=null; S.foco=null; S.ficha=null; S.verPend=false; S.mon=null; S.lote=null; S.confirmTodas=null; S.fechaTrabajo=fechaTrabajoDef(getC(id)); if(foco){ var t=getC(id).tareas.filter(function(x){return x.id===foco;})[0]; if(t){ S.mon=t.mon; S.ficha=t.id; } } irTab('detalle'); if(!foco) window.scrollTo(0,0); }
@@ -1116,14 +1215,15 @@ function respMon(c,cod){ return (c.monResp&&c.monResp[cod])||[]; }
 function fechaTrabajoDef(c){ return HOY_S<c.ini?c.ini:HOY_S>c.fin?c.fin:HOY_S; }
 function sello(t,c){ if(!t.fecha){ var n=new Date(); t.fecha=S.fechaTrabajo||iso(n); t.hora=pad(n.getHours())+':'+pad(n.getMinutes()); } }
 function guardarTarea(c,t){ enviar('tarea',{campana:c.id,id:t.id,monitoreo:t.mon,estacion:t.est,estado:t.estado,responsables:respMon(c,t.mon).join(', '),fecha:t.fecha,hora:t.hora,motivo:t.motivo,datos:t.datos}); }
-function guardarDoc(c,d){ enviar('documento',{campana:c.id,documento:d.n,tipo:d.t,estado:d.estado,responsable:d.resp,fecha:d.fecha,ruta:d.ruta}); }
+function guardarDoc(c,d){ enviar('doc',{campana:c.id,documento:d.n,tipo:d.t,estado:d.estado,responsable:d.resp,fecha:d.fecha,ruta:d.ruta}); }
 
 // ─── EVENTOS ─────────────────────────────────────────────
 document.querySelector('.nav').addEventListener('click',function(e){ var b=e.target.closest('[data-tab]'); if(b) irTab(b.dataset.tab); });
-var selU=document.getElementById('usuario');
-selU.innerHTML=['Coordinación'].concat(PERSONAL).map(function(n){return '<option'+(n===usuario?' selected':'')+'>'+esc(n)+'</option>';}).join('');
-selU.addEventListener('change',function(){ usuario=selU.value; try{localStorage.setItem('ceamar_terreno_usuario',usuario);}catch(x){} render(); toast('Usando la página como '+usuario); });
-document.getElementById('net').addEventListener('click',function(){ if(!DEMO) return; S.online=!S.online; if(S.online){ var n=S.cola.length; flush(); toast(n?'Señal recuperada: '+n+' cambio(s) enviados':'Señal recuperada'); } else toast('Sin señal: los cambios se guardan en el teléfono'); pintarNet(); });
+var UA=document.getElementById('user-area');
+UA.addEventListener('change',function(e){ if(e.target.id!=='ver-como') return; var u=USUARIOS_PRUEBA[+e.target.value]; fijarUsuario(u); try{localStorage.setItem('ceamar_terreno_ver_como',u.nombre);}catch(x){}
+  if(S.tab==='detalle'&&!getC(S.cid)) S.tab='calendario'; render(); toast('Viendo la página como '+u.nombre+' ('+u.rol+')'); });
+UA.addEventListener('click',function(e){ if(e.target.closest('#salir')) salir(); });
+document.getElementById('net').addEventListener('click',function(){ toast(DEMO?'Modo prueba: la página aún no está conectada a la planilla de Drive; lo que registres queda solo en este navegador.':!hayRed()?'Sin señal: los cambios se guardan en el teléfono y se envían al volver la conexión.':S.cola.length?'Enviando cambios a la planilla…':'Todo enviado a la planilla de Drive.'); });
 var ZOOM=[0.85,1,1.15,1.3], zi=1; try{ var zs=parseInt(localStorage.getItem('ceamar_terreno_zoom')); if(zs>=0&&zs<ZOOM.length) zi=zs; }catch(e){}
 function aplicarZoom(){ document.getElementById('wrap').style.zoom=ZOOM[zi]; try{localStorage.setItem('ceamar_terreno_zoom',zi);}catch(e){} }
 document.getElementById('z-menos').addEventListener('click',function(){ zi=Math.max(0,zi-1); aplicarZoom(); });
@@ -1139,7 +1239,7 @@ W.addEventListener('click',function(e){
   if(e.target.dataset&&e.target.dataset.cerrarFicha){ S.ficha=null; S.dataOpen=null; renderDetalle(); return; }
   var b=e.target.closest('button'); if(!b) return;
   if(b.id==='np-abrir'){ abrirNueva(); return; }
-  if(b.id==='borrar-pruebas'){ if(!CAMP.length){ toast('No hay registros de prueba'); return; } if(!confirm('¿Borrar las '+CAMP.length+' campañas de prueba guardadas en este navegador?')) return; CAMP=[]; guardarCamp(); S.cid=null; irTab('calendario'); toast('Registros de prueba borrados'); return; }
+  if(b.id==='borrar-pruebas'){ if(!CAMP_ALL.length){ toast('No hay registros de prueba'); return; } if(!confirm('¿Borrar las '+CAMP_ALL.length+' campañas de prueba guardadas en este navegador?')) return; CAMP_ALL=[]; vista(); guardarCamp(); S.cid=null; irTab('calendario'); toast('Registros de prueba borrados'); return; }
   if(b.dataset.vista){ S.vista=b.dataset.vista; renderCalendario(); return; }
   if(b.dataset.nav!=null){ var n=+b.dataset.nav;
     if(S.vista==='estacion'){ if(n===0) S.est=[HOY.getFullYear(),Math.floor(HOY.getMonth()/3)]; else { var k=S.est[0]*4+S.est[1]+n; S.est=[Math.floor(k/4),k%4]; } }
@@ -1164,6 +1264,11 @@ W.addEventListener('click',function(e){
   if(b.dataset.pcli!=null){ S.pcli=b.dataset.pcli; document.querySelectorAll('[data-pcli]').forEach(function(x){x.setAttribute('aria-pressed',String(x.dataset.pcli===S.pcli));}); pintarProyectos(); return; }
   if(b.id==='proy-limpiar'){ S.pq=''; S.pcli=''; renderCampanas(); return; }
   if(b.dataset.eqf){ S.eqFiltro=b.dataset.eqf; renderEquipo(); return; }
+  if(b.id==='cerrar-camp'||b.id==='reabrir-camp'){ var cc=getC(S.cid), cerrar=b.id==='cerrar-camp';
+    cc.estadoAdm=cerrar?'Cerrada':'Abierta'; cc.cerradaPor=cerrar?usuario:''; cc.cerradaEl=cerrar?HOY_S:''; enviar(cerrar?'cerrar':'reabrir',{campana:cc.id}); render(); toast(cerrar?'Campaña cerrada: queda lista para informe':'Campaña reabierta'); return; }
+  if(b.id==='elim-camp'){ S.confElim=S.cid; renderDetalle(); return; }
+  if(b.id==='elim-no'){ S.confElim=null; renderDetalle(); return; }
+  if(b.id==='elim-si'){ var idc=S.cid; CAMP_ALL=CAMP_ALL.filter(function(x){return x.id!==idc;}); vista(); S.confElim=null; S.cid=null; enviar('eliminarCampana',{campana:idc}); irTab('campanas'); toast('Campaña eliminada'); return; }
   if(b.dataset.verpend!=null){ S.verPend=b.dataset.verpend==='1'; renderDetalle(); return; }
   if(b.id==='ficha-cerrar'){ S.ficha=null; S.dataOpen=null; renderDetalle(); return; }
   if(b.dataset.irMon){ S.open[b.dataset.irMon]=true; renderDetalle(); var g=document.querySelector('details[data-m="'+b.dataset.irMon+'"]'); if(g) g.scrollIntoView({behavior:'smooth',block:'start'}); return; }
@@ -1221,7 +1326,8 @@ SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b
     if(draft.fin<draft.ini){ toast('La fecha de término es anterior a la de inicio'); return; }
     var c=nuevaCampana(draft.proyecto,draft.anio,draft.periodo,draft.ini,draft.fin,draft.jefe,draft.equipo);
     if(getC(c.id)){ toast('Ya existe la campaña '+c.id); return; }
-    CAMP.push(c); enviar('crearCampana',{id:c.id,proyecto:c.proyecto,anio:c.anio,periodo:c.periodo,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo});
+    c.estadoAdm='Abierta'; CAMP_ALL.push(c); vista(); enviar('crearCampana',{id:c.id,proyecto:c.proyecto,nombreProyecto:MATRIZ[c.proyecto].nombre,anio:c.anio,periodo:c.periodo,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,
+      tareas:c.tareas.map(function(t){return {id:t.id,mon:t.mon,est:t.est};}),docs:c.docs.map(function(d){return {n:d.n,t:d.t};})});
     cerrarNueva(); abrir(c.id,'muestreo'); toast('Campaña creada: '+c.tareas.length+' tareas y '+c.docs.length+' documentos'); } });
 
 // ─── INICIO ──────────────────────────────────────────────
@@ -1229,7 +1335,13 @@ aplicarZoom(); pintarTema();
 function altoTop(){ var t=document.querySelector('.top'); if(t) document.documentElement.style.setProperty('--top-h',t.offsetHeight+'px'); }
 altoTop(); window.addEventListener('resize',altoTop);
 cargarMatriz().catch(function(){ toast('No se pudo leer la matriz en línea; se usa la copia exportada'); CONFIG.MATRIZ_ID=''; return cargarMatriz(); })
-  .then(function(){ cargarCamp(); pintarNota(); render(); flush(); });
+  .then(function(){
+    pintarNota();
+    if(DEMO){ cargarCamp(); var vc=''; try{ vc=localStorage.getItem('ceamar_terreno_ver_como')||''; }catch(e){}
+      fijarUsuario(USUARIOS_PRUEBA.filter(function(u){return u.nombre===vc;})[0]||USUARIOS_PRUEBA[0]); pintarUsuario(); render(); return; }
+    if(SESION){ api('datos').then(function(r){ if(r.ok){ aplicarDatos(r); flush(); } else pedirLogin(r.mensaje); }).catch(function(){ pedirLogin('Sin conexión con el servidor.'); }); }
+    else pedirLogin();
+  });
 }
 </script>
 </body>
