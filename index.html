@@ -969,7 +969,7 @@ function renderCampanas(){
     if(e==='Programada') pills.push('<span class="pill p-azul">'+p.T+' tareas preparadas</span>');
     return '<button class="ccard" data-abrir="'+esc(c.id)+'">'+logo(c)+'<div style="flex:1"><div class="cname">'+esc(pr.nombre)+badge(c)+'</div>'+
       '<div class="cmeta">'+periodoLabel(c)+' · '+esc(pr.region)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+'</div>'+
-      prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'<div class="cfoot">'+avs(c.equipo)+pills.join('')+'</div><div class="cid">'+esc(c.id)+' · Jefe: '+esc(c.jefe)+'</div></div></button>';
+      prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'<div class="cfoot">'+avs(c.equipo)+pills.join('')+'</div></div></button>';
   }).join(''):'<div class="pempty" style="color:var(--suave)">'+(CAMP.length?'No hay campañas con ese filtro.':'Aún no hay campañas. Prográmalas desde los proyectos de abajo.')+'</div>')+'</div>'+renderProyectos();
   document.getElementById('tc-campanas').innerHTML=h;
 }
