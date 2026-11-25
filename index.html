@@ -1175,7 +1175,10 @@ var REDES=['Epi','Bongo','Nansen','Sentina'];
 var MAR=['0 · Calma (mar como espejo)','1 · Rizada (0–0,1 m)','2 · Marejadilla (0,1–0,5 m)','3 · Marejada (0,5–1,25 m)','4 · Fuerte marejada (1,25–2,5 m)','5 · Gruesa (2,5–4 m)','6 · Muy gruesa (más de 4 m)'];
 var CIELO=['Despejado','Parcialmente nublado','Nublado','Neblina','Llovizna','Lluvia'];
 var V_INT=['Calma','Leve','Moderado','Fuerte'], V_DIR=['N','NE','E','SE','S','SO','O','NO'];
-function esCTD(m){ return !!m&&/(^|[^a-z])ctd([^a-z]|$)/.test(sinTilde(m.nombre+' '+m.cod)); }
+// Un monitoreo es CTD si su nombre lo dice o si mide alguno de los parámetros de la sonda CTD.
+var CTD_PARAM=[/^temperatura/,/^ph$/,/^salinidad/,/^oxigeno disuelto/,/saturacion de oxigeno/,/fluor/];
+function esCTD(m){ if(!m) return false; if(/(^|[^a-z])ctd([^a-z]|$)/.test(sinTilde(m.nombre+' '+m.cod))) return true;
+  return (m.items||[]).some(function(x){ var n=sinTilde(x.param).trim(); return CTD_PARAM.some(function(r){return r.test(n);}); }); }
 function climaMon(c,cod){ return (c.monClima&&c.monClima[cod])||{}; }
 function climaFalta(k){ k=k||{}; var f=[]; if(!k.cielo) f.push('clima'); if(!k.mar) f.push('estado de mar'); if(!k.vint) f.push('viento'); else if(k.vint!=='Calma'&&!k.vdir) f.push('dirección del viento'); return f; }
 function climaTxt(k){ k=k||{}; return [k.cielo, k.mar?'mar '+k.mar.split(' (')[0]:'', k.vint?'viento '+k.vint.toLowerCase()+(k.vdir&&k.vint!=='Calma'?' '+k.vdir:''):'', k.obs].filter(Boolean).join(' · '); }
