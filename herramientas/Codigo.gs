@@ -79,6 +79,8 @@ function buscarUsuario_(correo) {
 // ─── Lectura ──────────────────────────────────────────────
 function datos_(u) {
   var camps = leer_('Campañas'), tareas = leer_('Checklist'), resp = leer_('Responsables'), docs = leer_('Documentos');
+  var nombres = {}; leer_('Usuarios').forEach(function (r) { if (r.correo) nombres[String(r.correo).trim().toLowerCase()] = String(r.nombre || '').trim(); });
+  function quien(x) { x = String(x || '').trim(); return nombres[x.toLowerCase()] || x; }
   var personal = leer_('Personal').filter(function (r) { return String(r.activo).trim() === 'Sí' && r.nombre; }).map(function (r) { return String(r.nombre).trim(); });
   var visibles = camps.filter(function (c) { return puedeVer_(u, c); }).map(function (c) {
     var id = c.id_campana;
@@ -86,11 +88,11 @@ function datos_(u) {
     resp.filter(function (r) { return r.id_campana === id; }).forEach(function (r) { monResp[r.monitoreo] = lista_(r.responsables); });
     return {
       id: id, proyecto: c.id_proyecto, anio: Number(c.anio), periodo: String(c.periodo), ini: fecha_(c.inicio), fin: fecha_(c.termino),
-      jefe: c.jefe, equipo: lista_(c.equipo), estadoAdm: c.estado || 'Abierta', cerradaPor: c.cerrada_por || '', cerradaEl: c.cerrada_el || '',
+      jefe: c.jefe, equipo: lista_(c.equipo), estadoAdm: c.estado || 'Abierta', cerradaPor: c.cerrada_por || '', cerradaEl: texto_(c.cerrada_el), creadaPor: quien(c.creada_por), creadaEl: texto_(c.creada_el),
       monResp: monResp,
       tareas: tareas.filter(function (t) { return t.id_campana === id; }).map(function (t) {
         var dat = {}; try { dat = t.datos ? JSON.parse(t.datos) : {}; } catch (e) {}
-        return { id: t.id_tarea, mon: t.monitoreo, est: String(t.estacion), estado: t.estado || '', fecha: fecha_(t.fecha), hora: String(t.hora || ''), motivo: t.motivo || '', datos: dat };
+        return { id: t.id_tarea, mon: t.monitoreo, est: String(t.estacion), estado: t.estado || '', fecha: fecha_(t.fecha), hora: String(t.hora || ''), motivo: t.motivo || '', datos: dat, por: quien(t.actualizado_por), el: texto_(t.actualizado_el) };
       }),
       docs: docs.filter(function (d) { return d.id_campana === id; }).map(function (d) {
         return { n: d.documento, t: d.tipo, estado: d.estado || '', resp: d.responsable || '', fecha: fecha_(d.fecha), ruta: d.ruta || '' };
@@ -231,6 +233,11 @@ function registrar_(u, accion, campana, detalle) { agregar_('Cambios', { fecha_h
 // ─── Utilidades ───────────────────────────────────────────
 function lista_(s) { return String(s || '').split(',').map(function (x) { return x.trim(); }).filter(String); }
 function ahora_() { return Utilities.formatDate(new Date(), 'America/Santiago', 'yyyy-MM-dd HH:mm'); }
+function texto_(v) {
+  if (!v) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') return Utilities.formatDate(v, 'America/Santiago', 'yyyy-MM-dd HH:mm');
+  return String(v);
+}
 function fecha_(v) {
   if (!v) return '';
   if (Object.prototype.toString.call(v) === '[object Date]') return Utilities.formatDate(v, 'America/Santiago', 'yyyy-MM-dd');
