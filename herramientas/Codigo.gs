@@ -7,7 +7,7 @@
 
 // ID de cliente OAuth de Google Cloud (el mismo que se pone en la página).
 var CLIENT_ID = 'PEGAR_AQUI_EL_ID_DE_CLIENTE.apps.googleusercontent.com';
-var DIAS_SESION = 30;   // días que dura la sesión en un teléfono antes de pedir entrar de nuevo
+var DIAS_SESION = 90;   // la sesión dura 90 días sin usar la página; cada uso la renueva
 var ROLES_EDITAN = ['Administrador', 'Coordinación'];
 
 // ─── Entrada ──────────────────────────────────────────────
@@ -58,6 +58,8 @@ function usuarioDeSesion_(sesion) {
   if (!raw) return null;
   var s = JSON.parse(raw);
   if (s.exp < Date.now()) { PropertiesService.getScriptProperties().deleteProperty('s_' + sesion); return null; }
+  // Sesión deslizante: si se usó, se renueva (como máximo una vez al día para no escribir en cada llamada).
+  if (s.exp - Date.now() < (DIAS_SESION - 1) * 864e5) { s.exp = Date.now() + DIAS_SESION * 864e5; PropertiesService.getScriptProperties().setProperty('s_' + sesion, JSON.stringify(s)); }
   return buscarUsuario_(s.correo);   // se revisa la hoja en cada llamada: quitar a alguien tiene efecto inmediato
 }
 
