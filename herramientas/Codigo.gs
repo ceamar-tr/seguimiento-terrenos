@@ -84,12 +84,12 @@ function datos_(u) {
   var personal = leer_('Personal').filter(function (r) { return String(r.activo).trim() === 'Sí' && r.nombre; }).map(function (r) { return String(r.nombre).trim(); });
   var visibles = camps.filter(function (c) { return puedeVer_(u, c); }).map(function (c) {
     var id = c.id_campana;
-    var monResp = {};
-    resp.filter(function (r) { return r.id_campana === id; }).forEach(function (r) { monResp[r.monitoreo] = lista_(r.responsables); });
+    var monResp = {}, monRedes = {};
+    resp.filter(function (r) { return r.id_campana === id; }).forEach(function (r) { monResp[r.monitoreo] = lista_(r.responsables); if (r.redes) monRedes[r.monitoreo] = String(r.redes); });
     return {
       id: id, proyecto: c.id_proyecto, anio: Number(c.anio), periodo: String(c.periodo), ini: fecha_(c.inicio), fin: fecha_(c.termino),
       jefe: c.jefe, equipo: lista_(c.equipo), estadoAdm: c.estado || 'Abierta', cerradaPor: c.cerrada_por || '', cerradaEl: texto_(c.cerrada_el), creadaPor: quien(c.creada_por), creadaEl: texto_(c.creada_el),
-      monResp: monResp,
+      monResp: monResp, monRedes: monRedes,
       tareas: tareas.filter(function (t) { return t.id_campana === id; }).map(function (t) {
         var dat = {}; try { dat = t.datos ? JSON.parse(t.datos) : {}; } catch (e) {}
         return { id: t.id_tarea, mon: t.monitoreo, est: String(t.estacion), estado: t.estado || '', fecha: fecha_(t.fecha), hora: String(t.hora || ''), motivo: t.motivo || '', datos: dat, por: quien(t.actualizado_por), el: texto_(t.actualizado_el) };
@@ -147,6 +147,16 @@ function cambiar_(u, accion, d) {
       registrar_(u, 'responsables', d.campana, d.monitoreo + ': ' + d.responsables);
       return { ok: true };
 
+    case 'redes':
+      c = campana_(d.campana); if (!c) return noExiste_();
+      if (!puedeMarcar_(u, c)) return negado_();
+      asegurarColumna_('Responsables', 'redes');
+      var fr2 = leer_('Responsables').filter(function (r) { return r.id_campana === d.campana && r.monitoreo === d.monitoreo; })[0];
+      if (fr2) actualizarFila_('Responsables', fr2._fila, { redes: d.redes || '', actualizado_por: u.correo, actualizado_el: ahora_() });
+      else agregar_('Responsables', { id_campana: d.campana, monitoreo: d.monitoreo, responsables: '', redes: d.redes || '', actualizado_por: u.correo, actualizado_el: ahora_() });
+      registrar_(u, 'redes', d.campana, d.monitoreo + ': ' + (d.redes || 'sin redes'));
+      return { ok: true };
+
     case 'doc':
       c = campana_(d.campana); if (!c) return noExiste_();
       if (!puedeMarcar_(u, c)) return negado_();
@@ -194,6 +204,10 @@ function hoja_(n) {
   var h = SpreadsheetApp.getActive().getSheetByName(n);
   if (!h) throw new Error('No existe la hoja ' + n);
   return h;
+}
+function asegurarColumna_(n, col) {
+  var h = hoja_(n), hd = encabezados_(h);
+  if (hd.indexOf(col) < 0) h.getRange(1, hd.length + 1).setValue(col).setFontWeight('bold');
 }
 function encabezados_(h) { return h.getRange(1, 1, 1, h.getLastColumn()).getValues()[0].map(function (x) { return String(x).trim(); }); }
 function leer_(n) {
