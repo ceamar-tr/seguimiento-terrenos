@@ -154,6 +154,12 @@
   .chip{border:1px solid var(--borde);background:var(--card-bg);border-radius:16px;padding:5px 11px;font-size:12px;font-weight:600;color:var(--texto);cursor:pointer;}
   .chip[aria-pressed="true"]{background:var(--verde);border-color:var(--verde);color:#fff;}
   .ck-antes .warnline{flex-basis:100%;margin:0;}
+  .ck-clima{flex-basis:100%;border-top:1px dashed var(--borde);padding-top:10px;}
+  .ck-clima .cl-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 12px;margin-top:6px;}
+  .ck-clima label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--suave);}
+  .ck-clima label.falta select{border-color:var(--rojo);}
+  .ck-clima .cl-obs{grid-column:1/-1;}
+  .ck-clima .cl-otros{margin-top:8px;font-size:12px;color:var(--suave);}
   .ck-redes{flex-basis:100%;border-top:1px dashed var(--borde);padding-top:10px;}
   .ck-redes .rd-l{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:8px;}
   .ck-redes .rd-i{display:flex;align-items:center;gap:6px;background:var(--card-bg);border:1px solid var(--borde);border-radius:10px;padding:5px 6px 5px 12px;}
@@ -736,7 +742,7 @@ function aplicarDatos(r){
   CAMP_ALL=(r.campanas||[]).filter(function(c){ return MATRIZ[c.proyecto]; }).map(function(c){
     var cods=[]; c.tareas.forEach(function(t){ if(cods.indexOf(t.mon)<0) cods.push(t.mon); t.datos=t.datos||{}; });
     c.mons=MATRIZ[c.proyecto].monitoreos.map(function(m){return m.cod;}).filter(function(k){return cods.indexOf(k)>=0;});
-    c.monResp=c.monResp||{}; c.monRedes=c.monRedes||{}; Object.keys(c.monRedes).forEach(function(k){ if(typeof c.monRedes[k]==='string') c.monRedes[k]=redesLeer(c.monRedes[k]); }); c.estadoAdm=c.estadoAdm||'Abierta'; return c; });
+    c.monResp=c.monResp||{}; c.monRedes=c.monRedes||{}; c.monClima=c.monClima||{}; Object.keys(c.monRedes).forEach(function(k){ if(typeof c.monRedes[k]==='string') c.monRedes[k]=redesLeer(c.monRedes[k]); }); c.estadoAdm=c.estadoAdm||'Abierta'; return c; });
   vista(); if(S.cid&&!getC(S.cid)){ S.cid=null; if(S.tab==='detalle') S.tab='calendario'; }
   pintarUsuario(); render();
 }
@@ -1062,9 +1068,10 @@ function renderChecklist(c){
     (esZoo(m)?(function(){ var rl=redesMon(c,m.cod), sel=rl.map(function(r){return r.red;}), faltaD=rl.filter(function(r){return !r.diam;}).map(function(r){return r.red;});
       return '<div class="ck-redes"><span>Redes usadas</span><div class="ck-chips">'+REDES.map(function(n){ var on=sel.indexOf(n)>=0; return '<button class="chip" data-red="'+esc(n)+'" aria-pressed="'+on+'">'+(on?'✓ ':'')+esc(n)+'</button>'; }).join('')+'</div>'+
         (rl.length?'<div class="rd-l">'+rl.map(function(r){ return '<div class="rd-i"><b>'+esc(r.red)+'</b><label>Diámetro <input class="inp" type="text" data-rdiam="'+esc(r.red)+'" value="'+esc(r.diam)+'" placeholder="ej. 60 cm" aria-label="Diámetro de la red '+esc(r.red)+'"></label></div>'; }).join('')+'</div>':'')+
-        (hayMarcas&&!rl.length?'<div class="warnline" style="margin-top:6px">Indica qué redes se usaron</div>':faltaD.length?'<div class="warnline" style="margin-top:6px">Falta el diámetro de '+esc(faltaD.join(', '))+'</div>':'')+'</div>'; })():'')+'</div>';
+        (hayMarcas&&!rl.length?'<div class="warnline" style="margin-top:6px">Indica qué redes se usaron</div>':faltaD.length?'<div class="warnline" style="margin-top:6px">Falta el diámetro de '+esc(faltaD.join(', '))+'</div>':'')+'</div>'; })():'')+
+    (esCTD(m)?bloqueClima(c,m,hayMarcas):'')+'</div>';
   var sinM=a.ts.filter(function(t){return !t.estado;});
-  if(ro) antes='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.'+(rm.length?' Realizado por: '+esc(rm.join(', '))+'.':'')+(esZoo(m)&&redesMon(c,m.cod).length?' Redes: '+esc(redesLegible(redesMon(c,m.cod)))+'.':'')+'</div>';
+  if(ro) antes='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.'+(rm.length?' Realizado por: '+esc(rm.join(', '))+'.':'')+(esZoo(m)&&redesMon(c,m.cod).length?' Redes: '+esc(redesLegible(redesMon(c,m.cod)))+'.':'')+(esCTD(m)?Object.keys(climaMon(c,m.cod)).sort().map(function(d){return ' Condiciones del '+fmtD(d)+': '+esc(climaTxt(climaMon(c,m.cod)[d]))+'.';}).join(''):'')+'</div>';
   else if(S.lote&&S.lote.mon===m.cod) antes+='<div class="lote">'+S.lote.ids.length+' estaciones marcadas como realizadas el '+fmtD(S.lote.fecha)+'. <button class="lnk" id="lote-deshacer">Deshacer</button></div>';
   else if(S.confirmTodas===m.cod&&sinM.length) antes+='<div class="lote">¿Marcar '+(sinM.length===1?'la <b>1</b> estación restante':'las <b>'+sinM.length+'</b> estaciones restantes')+' de '+esc(m.nombre)+' como realizadas el <b>'+fmtD(S.fechaTrabajo)+'</b>? <button class="btn-p btn-sm" id="todas-si">Sí, marcar</button> <button class="btn-s btn-sm" id="todas-no">Cancelar</button></div>';
   else if(sinM.length) antes+='<div class="lote-btn"><button class="btn-todas" id="todas">✓ Marcar todas las restantes como realizadas <span class="n">'+sinM.length+'</span></button></div>';
@@ -1092,7 +1099,7 @@ function renderRegistro(c){
   var filas=regs.map(function(r){
     var obs=r.nr.map(function(t){return estNombre(t.est)+' no realizada'+(t.motivo?': '+t.motivo:'');}).concat(r.parc.map(function(t){return estNombre(t.est)+' parcial'+(t.motivo?': '+t.motivo:'');}));
     if(r.na) obs.push(r.na+' no aplica'); if(r.pend) obs.push(r.pend+' sin marcar');
-    return '<tr><td data-l="Monitoreo"><b>'+esc(r.m.nombre)+'</b></td><td class="num" data-l="Fecha(s)">'+fmtFechas(r.fechas)+'</td><td data-l="Realizado por">'+(r.personas.length?esc(r.personas.join(', ')):'<span class="falta">sin indicar</span>')+(esZoo(r.m)?'<div class="sub">Redes: '+(redesMon(c,r.m.cod).length?esc(redesLegible(redesMon(c,r.m.cod))):'<span class="falta">sin indicar</span>')+'</div>':'')+'</td>'+
+    return '<tr><td data-l="Monitoreo"><b>'+esc(r.m.nombre)+'</b></td><td class="num" data-l="Fecha(s)">'+fmtFechas(r.fechas)+'</td><td data-l="Realizado por">'+(r.personas.length?esc(r.personas.join(', ')):'<span class="falta">sin indicar</span>')+(esCTD(r.m)?'<div class="sub">'+(r.fechas.length?r.fechas.map(function(d){ var k=climaMon(c,r.m.cod)[d]; return fmtD(d)+': '+(k&&climaTxt(k)?esc(climaTxt(k)):'<span class="falta">sin condiciones</span>'); }).join('<br>'):'')+'</div>':'')+(esZoo(r.m)?'<div class="sub">Redes: '+(redesMon(c,r.m.cod).length?esc(redesLegible(redesMon(c,r.m.cod))):'<span class="falta">sin indicar</span>')+'</div>':'')+'</td>'+
       '<td class="num" data-l="Estaciones"><span class="badge '+(r.listo?'e-comp':r.pend===r.total?'e-prog':'e-pend')+'">'+(r.real+r.na)+'/'+r.total+(r.listo?' ✓':'')+'</span></td><td class="obs" data-l="Observ.">'+(obs.length?esc(obs.join(' · ')):'—')+'</td></tr>'; }).join('');
   var docs=c.docs.filter(function(d){return d.estado;}).map(function(d){ return '<tr><td>'+esc(d.n)+'</td><td>'+esc(d.estado)+'</td><td>'+esc(d.resp||'—')+'</td><td class="num">'+(d.fecha?fmtD(d.fecha):'—')+'</td></tr>'; }).join('');
   return '<div class="reg"><div class="reg-head"><div><div class="ck-tit">Registro de ejecución</div><div class="sub">'+esc(MATRIZ[c.proyecto].nombre)+' · '+periodoLabel(c)+'</div></div>'+
@@ -1106,8 +1113,8 @@ function renderRegistro(c){
 }
 function csvRegistro(c){
   var q=function(v){ v=v==null?'':String(v); return /[";\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
-  var L=[['Proyecto','Campaña','Monitoreo','Estación','Estado','Fecha','Realizado por','Motivo','Redes (diámetro)'].join(';')];
-  c.tareas.forEach(function(t){ var m=mOf(c,t.mon); L.push([MATRIZ[c.proyecto].nombre,periodoLabel(c),m?m.nombre:t.mon,estNombre(t.est),t.estado||'Sin marcar',t.fecha?fmtD(t.fecha):'',respMon(c,t.mon).join(', '),t.motivo,m&&esZoo(m)?redesLegible(redesMon(c,t.mon)):''].map(q).join(';')); });
+  var L=[['Proyecto','Campaña','Monitoreo','Estación','Estado','Fecha','Realizado por','Motivo','Redes (diámetro)','Condiciones del día'].join(';')];
+  c.tareas.forEach(function(t){ var m=mOf(c,t.mon); L.push([MATRIZ[c.proyecto].nombre,periodoLabel(c),m?m.nombre:t.mon,estNombre(t.est),t.estado||'Sin marcar',t.fecha?fmtD(t.fecha):'',respMon(c,t.mon).join(', '),t.motivo,m&&esZoo(m)?redesLegible(redesMon(c,t.mon)):'',m&&esCTD(m)&&t.fecha?climaTxt(climaMon(c,t.mon)[t.fecha]):''].map(q).join(';')); });
   var blob=new Blob(['﻿'+L.join('\n')],{type:'text/csv;charset=utf-8'}), a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download='registro_'+c.id+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
 }
@@ -1164,6 +1171,29 @@ function accionesCamp(c,p){
 }
 // ─── REDES DE ZOOPLANCTON ───────────────────────────────
 var REDES=['Epi','Bongo','Nansen','Sentina'];
+// ─── CONDICIONES DEL DÍA (CTD) ──────────────────────────
+var MAR=['0 · Calma (mar como espejo)','1 · Rizada (0–0,1 m)','2 · Marejadilla (0,1–0,5 m)','3 · Marejada (0,5–1,25 m)','4 · Fuerte marejada (1,25–2,5 m)','5 · Gruesa (2,5–4 m)','6 · Muy gruesa (más de 4 m)'];
+var CIELO=['Despejado','Parcialmente nublado','Nublado','Neblina','Llovizna','Lluvia'];
+var V_INT=['Calma','Leve','Moderado','Fuerte'], V_DIR=['N','NE','E','SE','S','SO','O','NO'];
+function esCTD(m){ return !!m&&/(^|[^a-z])ctd([^a-z]|$)/.test(sinTilde(m.nombre+' '+m.cod)); }
+function climaMon(c,cod){ return (c.monClima&&c.monClima[cod])||{}; }
+function climaFalta(k){ k=k||{}; var f=[]; if(!k.cielo) f.push('clima'); if(!k.mar) f.push('estado de mar'); if(!k.vint) f.push('viento'); else if(k.vint!=='Calma'&&!k.vdir) f.push('dirección del viento'); return f; }
+function climaTxt(k){ k=k||{}; return [k.cielo, k.mar?'mar '+k.mar.split(' (')[0]:'', k.vint?'viento '+k.vint.toLowerCase()+(k.vdir&&k.vint!=='Calma'?' '+k.vdir:''):'', k.obs].filter(Boolean).join(' · '); }
+function diasMon(c,cod){ var fs=[]; c.tareas.forEach(function(t){ if(t.mon===cod&&t.estado&&t.fecha&&fs.indexOf(t.fecha)<0) fs.push(t.fecha); }); return fs.sort(); }
+function selClima(k,lab,ops,v,falta){ return '<label'+(falta?' class="falta"':'')+'>'+lab+'<select class="sel" data-clima="'+k+'"><option value="">— elegir —</option>'+ops.map(function(o){return '<option'+(o===v?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></label>'; }
+function bloqueClima(c,m,hayMarcas){
+  var dia=S.fechaTrabajo, all=climaMon(c,m.cod), k=all[dia]||{}, f=climaFalta(k), marcado=diasMon(c,m.cod).indexOf(dia)>=0;
+  var pend=diasMon(c,m.cod).filter(function(d){ return d!==dia&&climaFalta(all[d]).length; });
+  var otros=Object.keys(all).filter(function(d){return d!==dia&&climaTxt(all[d]);}).sort();
+  return '<div class="ck-clima"><span>Condiciones del día · '+fmtD(dia)+'</span><div class="cl-g">'+
+    selClima('cielo','Clima',CIELO,k.cielo,marcado&&!k.cielo)+selClima('mar','Estado de mar (Douglas)',MAR,k.mar,marcado&&!k.mar)+
+    selClima('vint','Viento',V_INT,k.vint,marcado&&!k.vint)+(k.vint&&k.vint!=='Calma'?selClima('vdir','Dirección del viento',V_DIR,k.vdir,marcado&&!k.vdir):'')+
+    '<label class="cl-obs">Observaciones (opcional)<input class="inp" type="text" data-clima="obs" value="'+esc(k.obs||'')+'" placeholder="Ej.: marejadas del SO, corriente fuerte"></label></div>'+
+    (marcado&&f.length?'<div class="warnline" style="margin-top:6px">Falta registrar: '+esc(f.join(', '))+' del '+fmtD(dia)+'</div>':'')+
+    (pend.length?'<div class="warnline" style="margin-top:6px">Faltan condiciones del '+pend.map(fmtD).join(', ')+' (cambia la fecha de muestreo para completarlas)</div>':'')+
+    (otros.length?'<div class="cl-otros">'+otros.map(function(d){return '<b>'+fmtD(d)+':</b> '+esc(climaTxt(all[d]));}).join('<br>')+'</div>':'')+'</div>';
+}
+function guardarClima(c,cod,dia){ var k=climaMon(c,cod)[dia]||{}; enviar('condiciones',{campana:c.id,monitoreo:cod,fecha:dia,cielo:k.cielo||'',mar:k.mar||'',vint:k.vint||'',vdir:k.vdir||'',obs:k.obs||''}); }
 function esZoo(m){ return !!m&&/zooplancton/.test(sinTilde(m.nombre)); }
 function redesMon(c,cod){ return (c.monRedes&&c.monRedes[cod])||[]; }
 function redesTxt(l){ return l.map(function(r){ return r.red+': '+(r.diam||''); }).join('; '); }
@@ -1412,6 +1442,8 @@ W.addEventListener('change',function(e){
   var el=e.target;
   if(el.id==='h-proy'||el.id==='h-anio'){ if(el.id==='h-proy') S.hProy=el.value; else S.hAnio=el.value; renderHistorial(); return; }
   var c=getC(S.cid); if(!c||S.tab!=='detalle') return;
+  if(el.dataset.clima){ c.monClima=c.monClima||{}; c.monClima[S.mon]=c.monClima[S.mon]||{}; var kd=c.monClima[S.mon][S.fechaTrabajo]=c.monClima[S.mon][S.fechaTrabajo]||{};
+    kd[el.dataset.clima]=el.value.trim(); if(el.dataset.clima==='vint'&&el.value==='Calma') kd.vdir=''; guardarClima(c,S.mon,S.fechaTrabajo); renderDetalle(); return; }
   if(el.dataset.rdiam){ var lr2=redesMon(c,S.mon); lr2.forEach(function(r){ if(r.red===el.dataset.rdiam) r.diam=el.value.trim(); }); guardarRedes(c,S.mon); renderDetalle(); return; }
   if(el.id==='fecha-trabajo'){ S.fechaTrabajo=el.value||fechaTrabajoDef(c); renderDetalle(); return; }
   var row=el.closest('[data-t]');
