@@ -683,7 +683,13 @@ function getC(id){ return CAMP.filter(function(c){return c.id===id;})[0]; }
 var CAMP=[], CAMP_ALL=[];   // CAMP = las que este usuario puede ver
 function vista(){ CAMP=CAMP_ALL.filter(puedeVer); }
 // Mientras no esté conectada la planilla de seguimiento, las campañas de prueba se guardan en este navegador.
-function guardarCamp(){ if(!DEMO) return; try{ localStorage.setItem('ceamar_terreno_campanas',JSON.stringify(CAMP_ALL)); }catch(e){} }
+function guardarCamp(){ if(!DEMO){ guardarCopia(); return; } try{ localStorage.setItem('ceamar_terreno_campanas',JSON.stringify(CAMP_ALL)); }catch(e){} }
+// Copia local (modo real): permite abrir la página sin señal con los últimos datos del usuario.
+function guardarCopia(){ if(DEMO||!USUARIO) return; try{ localStorage.setItem('ceamar_terreno_copia',JSON.stringify({usuario:USUARIO,personal:PERSONAL,campanas:CAMP_ALL,el:ahoraTxt()})); }catch(e){} }
+function usarCopia(msg){ var k=null; try{ k=JSON.parse(localStorage.getItem('ceamar_terreno_copia')||'null'); }catch(e){}
+  if(!k||!k.usuario){ pedirLogin(msg); return; }
+  fijarUsuario(k.usuario); if(k.personal&&k.personal.length) PERSONAL=k.personal; CAMP_ALL=(k.campanas||[]).filter(function(c){ return MATRIZ[c.proyecto]; }); vista(); pintarUsuario(); render();
+  toast(msg+' Se muestran los datos guardados en este equipo ('+cuando(k.el)+'). Lo que marques se enviará al volver la señal.'); }
 function cargarCamp(){ try{ CAMP_ALL=JSON.parse(localStorage.getItem('ceamar_terreno_campanas')||'[]').filter(function(c){ return MATRIZ[c.proyecto]&&c.tareas; }); }catch(e){ CAMP_ALL=[]; }
   CAMP_ALL.forEach(function(c){ var ok=function(n){return PERSONAL.indexOf(n)>=0;}; c.equipo=c.equipo.filter(ok); if(PERSONAL.indexOf(c.jefe)<0) c.jefe=c.equipo[0]||''; Object.keys(c.monResp||{}).forEach(function(k){ c.monResp[k]=c.monResp[k].filter(ok); }); c.estadoAdm=c.estadoAdm||'Abierta'; }); vista(); }
 
@@ -744,7 +750,7 @@ function aplicarDatos(r){
     c.mons=MATRIZ[c.proyecto].monitoreos.map(function(m){return m.cod;}).filter(function(k){return cods.indexOf(k)>=0;});
     c.monResp=c.monResp||{}; c.monRedes=c.monRedes||{}; c.monClima=c.monClima||{}; Object.keys(c.monRedes).forEach(function(k){ if(typeof c.monRedes[k]==='string') c.monRedes[k]=redesLeer(c.monRedes[k]); }); c.estadoAdm=c.estadoAdm||'Abierta'; return c; });
   vista(); if(S.cid&&!getC(S.cid)){ S.cid=null; if(S.tab==='detalle') S.tab='calendario'; }
-  pintarUsuario(); render();
+  guardarCopia(); pintarUsuario(); render();
 }
 function recargar(){ if(DEMO||!SESION||S.cola.length) return; api('datos').then(function(r){ if(r.ok) aplicarDatos(r); else if(r.error==='sesion') pedirLogin(r.mensaje); }).catch(function(){}); }
 var gisCargado=false;
@@ -764,13 +770,13 @@ function alEntrar(resp){
     document.getElementById('login').hidden=true; aplicarDatos(r); flush(); toast('Hola, '+r.usuario.nombre.split(' ')[0]);
   }).catch(function(){ m.textContent='Sin conexión con el servidor. Intenta de nuevo.'; });
 }
-function salir(){ if(SESION) api('logout').catch(function(){}); SESION=''; try{ localStorage.removeItem('ceamar_terreno_sesion'); }catch(e){} fijarUsuario(null); CAMP_ALL=[]; vista(); pedirLogin('Sesión cerrada.'); }
+function salir(){ if(SESION) api('logout').catch(function(){}); SESION=''; try{ localStorage.removeItem('ceamar_terreno_sesion'); localStorage.removeItem('ceamar_terreno_copia'); }catch(e){} fijarUsuario(null); CAMP_ALL=[]; vista(); pedirLogin('Sesión cerrada.'); }
 function pintarUsuario(){
   var a=document.getElementById('user-area');
   if(DEMO){ a.innerHTML='<label class="verc"><span>Ver como</span><select id="ver-como" class="selu" aria-label="Probar la página como otro usuario">'+USUARIOS_PRUEBA.map(function(u,i){return '<option value="'+i+'"'+(USUARIO&&u.nombre===USUARIO.nombre?' selected':'')+'>'+esc(u.nombre)+' · '+esc(u.rol)+'</option>';}).join('')+'</select></label>'; return; }
   a.innerHTML=USUARIO?'<span class="uchip"><span class="av">'+esc(ini(USUARIO.nombre))+'</span><span><b>'+esc(USUARIO.nombre)+'</b><small>'+esc(USUARIO.rol)+'</small></span></span><button class="pillbtn" id="salir">Salir</button>':'';
 }
-window.addEventListener('online',function(){ flush(); pintarNet(); });
+window.addEventListener('online',function(){ flush(); pintarNet(); setTimeout(recargar,4000); });
 window.addEventListener('offline',pintarNet);
 // Lectura de Google Sheets (mismo método que avance-informes), para cuando se conecten las planillas.
 function fetchSheet(id,hoja){
@@ -1350,7 +1356,7 @@ function pintarNota(){
   n.hidden=!DEMO;
 }
 function abrir(id,sub,foco){ if(S.tab!=='detalle') S.prevTab=S.tab; S.cid=id; S.sub=sub||'muestreo'; S.open={}; S.dataOpen=null; S.foco=null; S.ficha=null; S.verPend=false; S.mon=null; S.lote=null; S.confirmTodas=null; S.chip=null; S.fechaTrabajo=fechaTrabajoDef(getC(id)); if(foco){ var t=getC(id).tareas.filter(function(x){return x.id===foco;})[0]; if(t){ S.mon=t.mon; S.ficha=t.id; } } irTab('detalle'); if(!foco) window.scrollTo(0,0); }
-var tt; function toast(m){ var el=document.getElementById('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){el.classList.remove('on');},2600); }
+var tt; function toast(m){ var el=document.getElementById('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){el.classList.remove('on');},m.length>80?6500:2600); }
 function respMon(c,cod){ return (c.monResp&&c.monResp[cod])||[]; }
 function fechaTrabajoDef(c){ return HOY_S<c.ini?c.ini:HOY_S>c.fin?c.fin:HOY_S; }
 function sello(t,c){ if(!t.fecha){ var n=new Date(); t.fecha=S.fechaTrabajo||iso(n); t.hora=pad(n.getHours())+':'+pad(n.getMinutes()); } }
@@ -1494,7 +1500,7 @@ cargarMatriz().catch(function(){ toast('No se pudo leer la matriz en línea; se 
     pintarNota();
     if(DEMO){ cargarCamp(); var vc=''; try{ vc=localStorage.getItem('ceamar_terreno_ver_como')||''; }catch(e){}
       fijarUsuario(USUARIOS_PRUEBA.filter(function(u){return u.nombre===vc;})[0]||USUARIOS_PRUEBA[0]); pintarUsuario(); render(); return; }
-    if(SESION){ api('datos').then(function(r){ if(r.ok){ aplicarDatos(r); flush(); } else pedirLogin(r.mensaje); }).catch(function(){ pedirLogin('Sin conexión con el servidor.'); }); }
+    if(SESION){ api('datos').then(function(r){ if(r.ok){ aplicarDatos(r); flush(); } else if(r.error==='sesion') pedirLogin(r.mensaje); else usarCopia('El servidor no respondió bien.'); }).catch(function(){ usarCopia('Sin conexión.'); }); }
     else pedirLogin();
   });
 }
