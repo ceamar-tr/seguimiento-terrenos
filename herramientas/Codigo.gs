@@ -82,6 +82,7 @@ function buscarUsuario_(correo) {
 function datos_(u) {
   var camps = leer_('Campañas'), tareas = leer_('Checklist'), resp = leer_('Responsables'), docs = leer_('Documentos');
   var conds = SpreadsheetApp.getActive().getSheetByName('Condiciones') ? leer_('Condiciones') : [];
+  var plans = SpreadsheetApp.getActive().getSheetByName('Planillas') ? leer_('Planillas') : [];
   var nombres = {}; leer_('Usuarios').forEach(function (r) { if (r.correo) nombres[String(r.correo).trim().toLowerCase()] = String(r.nombre || '').trim(); });
   function quien(x) { x = String(x || '').trim(); return nombres[x.toLowerCase()] || x; }
   var personal = leer_('Personal').filter(function (r) { return String(r.activo).trim() === 'Sí' && r.nombre; }).map(function (r) { return String(r.nombre).trim(); });
@@ -92,7 +93,7 @@ function datos_(u) {
     return {
       id: id, proyecto: c.id_proyecto, anio: Number(c.anio), periodo: String(c.periodo), ini: fecha_(c.inicio), fin: fecha_(c.termino),
       jefe: c.jefe, equipo: lista_(c.equipo), estadoAdm: c.estado || 'Abierta', cerradaPor: c.cerrada_por || '', cerradaEl: texto_(c.cerrada_el), creadaPor: quien(c.creada_por), creadaEl: texto_(c.creada_el),
-      monResp: monResp, monRedes: monRedes, monClima: climaDe_(conds, id),
+      monResp: monResp, monRedes: monRedes, monClima: climaDe_(conds, id), planillas: planillasDe_(plans, id),
       tareas: tareas.filter(function (t) { return t.id_campana === id; }).map(function (t) {
         var dat = {}; try { dat = t.datos ? JSON.parse(t.datos) : {}; } catch (e) {}
         return { id: t.id_tarea, mon: t.monitoreo, est: String(t.estacion), estado: t.estado || '', fecha: fecha_(t.fecha), hora: String(t.hora || ''), motivo: t.motivo || '', datos: dat, por: quien(t.actualizado_por), el: texto_(t.actualizado_el) };
@@ -171,6 +172,17 @@ function cambiar_(u, accion, d) {
       registrar_(u, 'condiciones', d.campana, d.monitoreo + ' ' + d.fecha + ': ' + [d.cielo, d.mar, d.vint, d.vdir].filter(String).join(' · '));
       return { ok: true };
 
+    case 'planilla':
+      c = campana_(d.campana); if (!c) return noExiste_();
+      if (!puedeMarcar_(u, c)) return negado_();
+      asegurarHoja_('Planillas', ['id_campana', 'clave', 'monitoreo', 'planilla', 'datos', 'actualizado_por', 'actualizado_el']);
+      var vp = { datos: String(d.datos || ''), actualizado_por: u.correo, actualizado_el: ahora_() };
+      var fp = leer_('Planillas').filter(function (r) { return r.id_campana === d.campana && r.clave === d.clave; })[0];
+      if (fp) actualizarFila_('Planillas', fp._fila, vp);
+      else { vp.id_campana = d.campana; vp.clave = d.clave; vp.monitoreo = String(d.clave).split('|')[0]; vp.planilla = String(d.clave).split('|')[1] || ''; agregarVarias_('Planillas', [vp]); }
+      registrar_(u, 'planilla', d.campana, d.clave);
+      return { ok: true };
+
     case 'doc':
       c = campana_(d.campana); if (!c) return noExiste_();
       if (!puedeMarcar_(u, c)) return negado_();
@@ -194,6 +206,7 @@ function cambiar_(u, accion, d) {
     case 'eliminarCampana':
       if (u.rol !== 'Administrador') return negado_();
       ['Checklist', 'Responsables', 'Documentos', 'Campañas'].forEach(function (h) { borrarDeCampana_(h, d.campana); });
+      ['Condiciones', 'Planillas'].forEach(function (h) { if (SpreadsheetApp.getActive().getSheetByName(h)) borrarDeCampana_(h, d.campana); });
       registrar_(u, 'eliminar campaña', d.campana, '');
       return { ok: true };
   }
@@ -223,6 +236,13 @@ function asegurarHoja_(n, cols) {
   var ss = SpreadsheetApp.getActive(), h = ss.getSheetByName(n);
   if (!h) { h = ss.insertSheet(n); h.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold'); h.setFrozenRows(1); }
   return h;
+}
+function planillasDe_(plans, id) {
+  var o = {};
+  plans.filter(function (r) { return r.id_campana === id && r.clave; }).forEach(function (r) {
+    try { o[r.clave] = JSON.parse(r.datos); } catch (e) { }
+  });
+  return o;
 }
 function climaDe_(conds, id) {
   var o = {};
