@@ -168,6 +168,7 @@
   .ck-redes .rd-i input{width:110px;padding:5px 8px;font-size:13px;}
   .lote{flex-basis:100%;background:var(--card-bg);border:1px solid var(--borde);border-radius:8px;padding:8px 12px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .lote-btn{flex-basis:100%;margin:6px 0 18px;}
+  .logo-txt{font-size:11px;font-weight:800;color:var(--azul);text-align:center;line-height:1.15;padding:4px;word-break:break-word;}
   .btn-todas{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:24px;border:none;background:#14532d;color:#fff;font-weight:800;font-size:14px;letter-spacing:.2px;box-shadow:0 3px 10px rgba(20,83,45,.35);cursor:pointer;}
   .btn-todas:hover{background:#0f3f22;box-shadow:0 4px 14px rgba(20,83,45,.45);}
   .btn-todas:focus-visible{outline:3px solid #86efac;outline-offset:2px;}
@@ -617,7 +618,13 @@ var CLIENTES = {
   'Lundin Mining':            { logo:'logos/lundin.jpg' },
   'Antofagasta Minerals':     { logo:'logos/antofagasta.png' },
   'CMP':                      { logo:'logos/cmp.png' },
-  'Grupo Minero Las Cenizas': { logo:'logos/cenizas.png' }
+  'Grupo Minero Las Cenizas': { logo:'logos/cenizas.png' },
+  'Teck':                     { logo:'logos/teck.png' },
+  'BHP':                      { logo:'logos/bhp.png' },
+  'Capstone Copper':          { logo:'logos/capstone.jpeg' },
+  'Sal Lobos':                { logo:'logos/sal-lobos.png' },
+  'Puerto Mejillones':        { logo:'logos/mejilllones.png' },
+  'Aguas del Altiplano':      { logo:'logos/aguas-altiplano.jpeg' }
 };
 // Personal que puede ir a terreno. Con la planilla conectada se lee de la hoja Personal.
 var PERSONAL = ['Nicolás Vera','Ulyces Urtubia','Edward Peñalver','Marcelo Valdebenito','Juan Capella','Manuel Díaz','Helmo Pérez','José Manuel Vildósola','Francisco Díaz'];
@@ -676,7 +683,10 @@ function construirMatriz(H){
       m.metodo=m.items.some(function(x){return x.metodo==='Transecto';})?'Transecto':'';
       m.periodos.forEach(function(x){ if(per.indexOf(x)<0) per.push(x); }); if(m.frecuencia&&fr.indexOf(m.frecuencia)<0) fr.push(m.frecuencia); });
     p.periodos=per.sort(function(a,b){return ORDEN_PER.indexOf(a)-ORDEN_PER.indexOf(b);}); p.frecuencia=fr.join(' / ');
-    p.est.GENERAL={e:'',n:'',ef:'',nf:'',sector:'',general:true}; });
+    p.est.GENERAL={e:'',n:'',ef:'',nf:'',sector:'',general:true};
+    // Mismo monitoreo en varios informes del proyecto (p. ej. CTD en PS-12, PS-13 y PS-14): se agrega el informe al nombre.
+    var cuenta={}; p.monitoreos.forEach(function(m){ cuenta[m.nombre]=(cuenta[m.nombre]||0)+1; });
+    p.monitoreos.forEach(function(m){ if(cuenta[m.nombre]>1){ var sg=(String(m.informe).match(/\(([^)]+)\)\s*$/)||[])[1]; m.nombre=m.nombre+' · '+(sg||('Informe '+(m.n_informe||'?'))); } }); });
   return M;
 }
 function cargarMatriz(){
@@ -738,7 +748,7 @@ function prog(c){
 }
 function estadoCamp(c){ var p=prog(c); if(p.pm===100&&p.pd===100) return 'Completa'; if(c.ini>HOY_S) return 'Programada'; if(c.fin>=HOY_S) return 'En terreno'; return 'Con pendientes'; }
 function vol(fi,ff,d,k){ var v=(+ff)-(+fi); if(!isFinite(v)||!d||!k) return null; return v*k*Math.PI*Math.pow(d/2,2); }
-function logo(c){ var cfg=CLIENTES[MATRIZ[c.proyecto].cliente]||{}; return '<div class="logo">'+(cfg.logo?'<img src="'+cfg.logo+'" alt="'+esc(MATRIZ[c.proyecto].cliente)+'">':'')+'</div>'; }
+function logo(c){ var cl=MATRIZ[c.proyecto].cliente, cfg=CLIENTES[cl]||{}; return '<div class="logo">'+(cfg.logo?'<img src="'+cfg.logo+'" alt="'+esc(cl)+'">':'<span class="logo-txt">'+esc(cl)+'</span>')+'</div>'; }
 function avs(eq){ return '<div class="avs">'+eq.map(function(n){return '<span class="av" title="'+esc(n)+'">'+esc(ini(n))+'</span>';}).join('')+'</div>'; }
 function prow(l,p,doc){ return '<div class="prow"><span>'+l+'</span><div class="pbar"><div class="pfill'+(doc?' doc':'')+'" style="width:'+p+'%"></div></div><span class="ppct">'+p+'%</span></div>'; }
 function badge(c){ var e=estadoCamp(c); return '<span class="badge '+ESTC[e]+'">'+e+'</span>'+(c.estadoAdm==='Cerrada'?'<span class="badge cerrada" title="Cerrada por '+esc(c.cerradaPor||'')+'">🔒 Cerrada</span>':''); }
