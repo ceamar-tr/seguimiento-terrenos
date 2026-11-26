@@ -609,6 +609,14 @@
   .team label{display:flex;align-items:center;gap:8px;border:1px solid var(--borde);border-radius:8px;padding:7px 9px;font-size:12px;}
   .prev{background:var(--gris);border-radius:10px;padding:12px;font-size:12px;display:grid;gap:6px;}
   .prev ul{padding-left:18px;}
+  .gd{position:fixed;left:16px;bottom:18px;z-index:890;display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;font-size:13.5px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.18);opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100% - 32px);}
+  .gd.on{opacity:1;transform:none;}
+  .gd-run{background:#fff;color:#455a64;border:1px solid #cfd8dc;}
+  .gd-ok{background:#1a5c2e;color:#fff;}
+  .gd-off{background:#fff3e0;color:#bf4a00;border:1px solid #ffcc80;}
+  .gd-err{background:#fdecea;color:#b71c1c;border:1px solid #f5c2c0;}
+  .gd-sp{width:13px;height:13px;border:2px solid #b0bec5;border-top-color:#1a5c2e;border-radius:50%;animation:gdg .8s linear infinite;}
+  @keyframes gdg{to{transform:rotate(360deg);}}
   #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:900;max-width:calc(100% - 32px);}
   #toast.on{opacity:1;}
 
@@ -677,6 +685,7 @@
 <div class="ov" id="ov"></div>
 <aside class="sp" id="sp" aria-label="Programar campaña"></aside>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="guardado" class="gd" role="status" aria-live="polite"></div>
 <div id="login" class="login" hidden><div class="login-card"><img src="logos/CEAMAR.jpg" alt="CEAMAR Estudios Ambientales" class="login-logo">
   <div class="login-t">Seguimiento de Terrenos</div><div class="login-s">Entra con tu cuenta de Google. Solo pueden ingresar las personas registradas por la administración.</div>
   <div id="login-btn" class="login-btn"></div><div id="login-msg" class="login-msg" role="alert"></div></div></div>
@@ -867,7 +876,7 @@ function puedeMarcar(c){ if(!c) return false; if(esCoord()) return true; return 
 function motivoLectura(c){ return esConsulta()?'tu rol es de consulta':c.estadoAdm==='Cerrada'?'la campaña está cerrada':'no estás en el equipo de esta campaña'; }
 
 // ─── SINCRONIZACIÓN (cola en el teléfono + Apps Script) ──
-function enviar(accion,datos){ guardarCamp(); if(DEMO) return; S.cola.push({accion:accion,datos:datos,ts:new Date().toISOString()}); guardarCola(); flush(); pintarNet(); }
+function enviar(accion,datos){ guardarCamp(); S.gdActivo=true; S.gdError=''; if(DEMO){ pintarGd(); return; } S.cola.push({accion:accion,datos:datos,ts:new Date().toISOString()}); guardarCola(); flush(); pintarNet(); }
 function guardarCola(){ try{ localStorage.setItem('ceamar_terreno_cola',JSON.stringify(S.cola)); }catch(e){} }
 function hayRed(){ return DEMO?true:navigator.onLine; }
 function flush(){
@@ -876,10 +885,10 @@ function flush(){
   if(!SESION||S.enviando) return;
   var it=S.cola[0]; S.enviando=true;
   api(it.accion,it.datos).then(function(r){ S.enviando=false;
-    if(r.ok){ S.cola.shift(); guardarCola(); pintarNet(); if(S.cola.length) flush(); return; }
+    S.gdFallo=false; if(r.ok){ S.cola.shift(); guardarCola(); pintarNet(); if(S.cola.length) flush(); return; }
     if(r.error==='sesion'){ pintarNet(); pedirLogin(r.mensaje); return; }
-    S.cola.shift(); guardarCola(); pintarNet(); toast(r.mensaje||r.error||'No se pudo guardar el cambio'); recargar();
-  }).catch(function(){ S.enviando=false; pintarNet(); });
+    S.cola.shift(); guardarCola(); S.gdError=r.mensaje||r.error||'error del servidor'; pintarNet(); toast(r.mensaje||r.error||'No se pudo guardar el cambio'); recargar();
+  }).catch(function(){ S.enviando=false; S.gdFallo=true; pintarNet(); setTimeout(flush,15000); });
 }
 function api(accion,datos,extra){
   var body={accion:accion,sesion:SESION,datos:datos||{}}; if(extra) Object.keys(extra).forEach(function(k){ body[k]=extra[k]; });
@@ -930,7 +939,15 @@ function fetchSheet(id,hoja){
     return (j.table.rows||[]).map(function(r){ var o={}; (r.c||[]).forEach(function(cell,i){ o[cols[i]]=cell?(typeof cell.v==='number'?cell.v:(cell.f!=null?cell.f:cell.v)):''; }); return o; });
   });
 }
-function pintarNet(){
+// Aviso de guardado (abajo a la izquierda): Guardando… → ✓ Guardado, o Sin señal si queda en cola.
+function pintarGd(){ var el=document.getElementById('guardado'); if(!el||!S.gdActivo) return; var n=S.cola.length, h, cl;
+  if(S.gdError){ cl='gd-err'; h='⚠ No se guardó: '+esc(S.gdError); }
+  else if(n&&(!hayRed()||S.gdFallo)){ cl='gd-off'; h='Sin señal · '+n+' cambio'+(n>1?'s':'')+' guardado'+(n>1?'s':'')+' en el equipo, se enviará'+(n>1?'n':'')+' al volver la señal'; }
+  else if(n){ cl='gd-run'; h='<span class="gd-sp"></span>Guardando…'; }
+  else { cl='gd-ok'; h='✓ Guardado'+(DEMO?' en este equipo':'')+' · '+new Date().toTimeString().slice(0,5); }
+  el.className='gd on '+cl; el.innerHTML=h; clearTimeout(S.gdT);
+  if(cl==='gd-ok') S.gdT=setTimeout(function(){ el.classList.remove('on'); },4000); }
+function pintarNet(){ pintarGd();
   var b=document.getElementById('net'), n=S.cola.length;
   b.className='pillbtn net'+(!hayRed()?' off':DEMO?' demo':'');
   b.title=DEMO?'Modo prueba: sin conexión con la planilla de Drive; los registros quedan en este navegador':'Estado del envío a la planilla de Drive';
@@ -1459,7 +1476,7 @@ function getPlan(c,mon,pk,crear){ c.planillas=c.planillas||{}; var key=mon+'|'+p
   else P.rows.push(nuevaFila());
   var rm=redesMon(c,mon).filter(function(x){return 'f-'+x.red===pk;})[0]; if(rm&&rm.diam){ var dd=String(rm.diam).replace(/[^0-9]/g,''); if(DIAM.indexOf(dd)>=0) P.rows.forEach(function(r){ r.diam=dd; }); }
   c.planillas[key]=P; return P; }
-function guardarPlan(c,mon,pk){ var P=getPlan(c,mon,pk); if(!P) return; P.por=usuario; P.el=ahoraTxt(); enviar('planilla',{campana:c.id,clave:mon+'|'+pk,datos:JSON.stringify(P)}); }
+function guardarPlan(c,mon,pk){ var P=getPlan(c,mon,pk); if(!P) return; clearTimeout(S.plT); var j=JSON.stringify([P.hdr,P.rows]), key=c.id+'|'+mon+'|'+pk; S.plUlt=S.plUlt||{}; if(S.plUlt[key]===j) return; S.plUlt[key]=j; P.por=usuario; P.el=ahoraTxt(); enviar('planilla',{campana:c.id,clave:mon+'|'+pk,datos:JSON.stringify(P)}); }
 function filasLlenas(P,d){ return (P&&P.rows||[]).filter(function(r){ return d.cols.some(function(x){ return (x.ty==='num'||x.ty==='txt'||x.ty==='hora')&&r[x.k]!=null&&r[x.k]!==''; }); }).length; }
 function celdaPlan(d,x,r,P,pk,dis){
   var v=r[x.k]==null?'':r[x.k], at=' data-pl="'+esc(pk)+'" data-row="'+esc(r.id)+'" data-col="'+x.k+'"'+dis, bad='';
@@ -1803,7 +1820,11 @@ W.addEventListener('click',function(e){
       try{ navigator.clipboard.writeText(inp.value).then(function(){toast('Ruta copiada');},function(){inp.select();toast('Selecciona y copia la ruta');}); }catch(x){ inp.select(); toast('Selecciona y copia la ruta'); } } }
 });
 W.addEventListener('toggle',function(e){ var g=e.target.closest&&e.target.closest('details[data-m]'); if(g) S.open[g.dataset.m]=g.open; },true);
-W.addEventListener('input',function(e){ if(e.target.id==='proy-q'){ S.pq=e.target.value; pintarProyectos(); } });
+W.addEventListener('input',function(e){ if(e.target.id==='proy-q'){ S.pq=e.target.value; pintarProyectos(); return; }
+  var el=e.target; if(el.tagName!=='INPUT'||!(el.dataset.pl||el.dataset.plh)) return; if(el.dataset.plh&&/^(arr)$/.test(el.dataset.col)) return;
+  var c=getC(S.cid); if(!c) return; var pk=el.dataset.pl||el.dataset.plh, P=getPlan(c,S.mon,pk,true);
+  if(el.dataset.plh){ P.hdr=P.hdr||{}; P.hdr[el.dataset.col]=el.value.trim(); } else P.rows.forEach(function(r){ if(r.id===el.dataset.row) r[el.dataset.col]=el.value.trim(); });
+  refrescarPlan(c,pk); clearTimeout(S.plT); S.plT=setTimeout(function(){ guardarPlan(c,S.mon,pk); },1200); });
 W.addEventListener('change',function(e){
   var el=e.target;
   if(el.id==='h-proy'||el.id==='h-anio'){ if(el.id==='h-proy') S.hProy=el.value; else S.hAnio=el.value; renderHistorial(); return; }
