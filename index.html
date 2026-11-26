@@ -315,6 +315,8 @@
   .mc small{display:block;font-weight:600;font-size:9.5px;opacity:.85;margin-top:2px;}
   .e-prev{display:block;background:var(--gris);color:var(--suave);border:1px solid var(--borde);cursor:default;}
   .anual td.slot{padding:6px 5px;}
+  .anual tr.fila-anual td{border-top:none;padding-top:0;}
+  .anual tr.fila-anual .mc{max-width:520px;margin:0 auto;}
   .anual td.slot.act{background:var(--verde-s);}
   .mcods{font-size:9.5px;color:var(--suave);margin-top:4px;line-height:1.3;white-space:normal;}
 
@@ -650,10 +652,10 @@ var HOY = new Date(); HOY.setHours(0,0,0,0); var HOY_S = iso(HOY);
 // ─── MATRIZ MAESTRA ──────────────────────────────────────
 // Se arma desde data/matriz.js (exportado del Excel) o, si se configura MATRIZ_ID, desde la planilla de Google.
 var TEMP = { 'Verano':[1,2,3], 'Otoño':[4,5,6], 'Invierno':[7,8,9], 'Primavera':[10,11,12] };
-var ORDEN_PER = ['Verano','Otoño','Invierno','Primavera'].concat(MESES);
+var ORDEN_PER = ['Verano','Otoño','Invierno','Primavera'].concat(MESES).concat(['Anual']);
 var MAX_CHK = 12;   // sobre este número de réplicas se registra con un contador en vez de casillas
 var MATRIZ = {}, MATRIZ_FECHA = '';
-function mesesPeriodo(per){ if(TEMP[per]) return TEMP[per]; var i=MESES.indexOf(per); return i>=0?[i+1]:[]; }
+function mesesPeriodo(per){ if(per==='Anual') return [1,2,3,4,5,6,7,8,9,10,11,12]; if(TEMP[per]) return TEMP[per]; var i=MESES.indexOf(per); return i>=0?[i+1]:[]; }
 function nRep(v){ var n=parseInt(v,10); return n>0?n:1; }
 function construirMatriz(H){
   var M={}, cod={};
@@ -925,7 +927,7 @@ function renderAnio(){
   var filas = planAnual(S.anio).map(function(r){
     var celdas='', mes=1;
     while(mes<=12){
-      var s=r.slots.filter(function(x){return x.meses[0]===mes;})[0];
+      var s=r.slots.filter(function(x){return x.per!=='Anual'&&x.meses[0]===mes;})[0];
       if(!s){ celdas+='<td><span class="mc vacio">·</span></td>'; mes++; continue; }
       var cods=s.mons.map(function(m){return m.cod;}).join(' · '), tip=s.per+' '+S.anio+': '+s.mons.map(function(m){return m.nombre;}).join(', ');
       var inner;
@@ -937,7 +939,14 @@ function renderAnio(){
       celdas+='<td colspan="'+s.meses.length+'" class="slot'+(s.actual?' act':'')+'">'+inner+'<div class="mcods">'+esc(cods)+'</div></td>';
       mes+=s.meses.length;
     }
-    return '<tr><td class="pcol"><div class="pcell">'+(CLIENTES[r.p.cliente]?'<img src="'+CLIENTES[r.p.cliente].logo+'" alt="">':'')+'<div><div class="pname">'+esc(r.p.corto)+'</div><div class="pfrec">'+esc(r.p.frecuencia)+' · '+esc(r.p.region)+'</div></div></div></td>'+celdas+'</tr>';
+    var anu=r.slots.filter(function(x){return x.per==='Anual';}).map(function(s){
+      var cods=s.mons.map(function(m){return m.nombre;}).join(' · '), tip='Anual '+S.anio+': una vez en el año · '+cods, inner;
+      if(s.k==='camp') inner='<button class="mc '+ESTC[s.e]+'" data-abrir="'+esc(s.c.id)+'" data-sub="muestreo" title="'+esc(tip+' · '+s.e)+'"><b>Anual</b> '+(s.e==='Completa'?'✓':prog(s.c).pm+'%')+'<small>'+esc(s.e)+' · '+fmtD(s.c.ini)+'</small></button>';
+      else if(s.k==='previo') inner='<span class="mc e-prev" title="'+esc(tip)+'"><b>Anual</b><small>Antes del seguimiento</small></span>';
+      else if(!esCoord()) inner='<span class="mc '+(s.k==='sinr'?'e-sinr':'e-porp')+'"><b>Anual</b><small>'+(s.k==='sinr'?'Sin registro':'Por programar · una vez en el año')+'</small></span>';
+      else inner='<button class="mc '+(s.k==='sinr'?'e-sinr':'e-porp')+'" data-prog="'+r.pid+'|Anual|'+S.anio+'" title="'+esc(tip)+'"><b>Anual</b> '+(s.k==='sinr'?'!':'＋')+'<small>'+(s.k==='sinr'?'Sin registro':'Programar · una vez en el año')+'</small></button>';
+      return '<tr class="fila-anual"><td class="pcol"><div class="pfrec" style="padding-left:6px">↳ Monitoreo anual</div></td><td colspan="12" class="slot">'+inner+'<div class="mcods">'+esc(cods)+'</div></td></tr>'; }).join('');
+    return '<tr><td class="pcol"><div class="pcell">'+(CLIENTES[r.p.cliente]?'<img src="'+CLIENTES[r.p.cliente].logo+'" alt="">':'')+'<div><div class="pname">'+esc(r.p.corto)+'</div><div class="pfrec">'+esc(r.p.frecuencia)+' · '+esc(r.p.region)+'</div></div></div></td>'+celdas+'</tr>'+anu;
   }).join('');
   if(!filas) filas='<tr><td colspan="13" class="pempty">La matriz no tiene proyectos vigentes.</td></tr>';
   return '<div class="twrap"><table class="anual"><thead><tr><th class="pcol">Proyecto</th>'+MES3.map(function(m,i){return '<th'+(i+1===mesAct?' class="mes-act"':'')+'>'+m+'</th>';}).join('')+'</tr></thead><tbody>'+filas+'</tbody></table></div>'+
