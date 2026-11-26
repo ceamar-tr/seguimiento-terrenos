@@ -1101,7 +1101,7 @@ function accesoTerreno(){
 function renderCalendario(){
   var en=ESTACIONES[S.est[1]], meses=TEMP[en].map(function(m){return MESES[m-1];}), sub;
   var tit = S.vista==='estacion' ? '<div class="est-cab '+clsEst(en)+'"><span class="est-ico">'+icoEst(en)+'</span><div><div class="est-nom">'+en+' <span>'+S.est[0]+'</span></div><div class="est-mes">'+meses.join(' · ')+'</div></div></div>' : '<div class="h1">'+(S.vista==='mes' ? MESES[S.ym[1]]+' '+S.ym[0] : 'Plan '+S.anio)+'</div>';
-  var html='<div class="bar-row"><div>'+tit+'<div class="sub">'+(S.vista==='estacion'?'Toca una campaña para abrirla y ver el avance de cada estación de muestreo.':S.vista==='mes'?'Terrenos por día. Toca uno para abrirlo y ver el avance de cada estación de muestreo.':'Periodos de cada proyecto según la matriz maestra. Toca «Programar» para crear la campaña.')+'</div></div>'+
+  var html='<div class="bar-row"><div>'+tit+'<div class="sub">'+(S.vista==='estacion'?'Toca una campaña para revisar su avance.':S.vista==='mes'?'Terrenos por día. Toca uno para revisar el avance de la campaña.':'Periodos de cada proyecto según la matriz maestra. Toca «Programar» para crear la campaña.')+'</div></div>'+
     '<div class="spacer"></div><button class="arrow" data-nav="-1" aria-label="Anterior">‹</button><button class="arrow" data-nav="1" aria-label="Siguiente">›</button><button class="btn-s" data-nav="0">Hoy</button>'+
     '<div class="seg"><button data-vista="estacion" aria-pressed="'+(S.vista==='estacion')+'">Estación</button><button data-vista="mes" aria-pressed="'+(S.vista==='mes')+'">Mes</button><button data-vista="anio" aria-pressed="'+(S.vista==='anio')+'">Año · proyectos</button></div>'+
     (esCoord()?'<button class="btn-p" id="np-abrir">Programar campaña</button>':'')+'</div>';
@@ -1161,10 +1161,12 @@ function renderCampanas(){
     '<div class="spacer"></div>'+(esCoord()?'<button class="btn-p" id="np-abrir">Programar campaña</button>':'')+'</div>';
   h+='<div class="cgrid">'+(lista.length?lista.map(function(c){
     var p=prog(c), pr=MATRIZ[c.proyecto], e=estadoCamp(c), pills=[];
-    if(e!=='Programada'&&p.sinMarcar) pills.push('<span class="pill p-gris">'+p.sinMarcar+' sin marcar</span>');
-    if(p.sinMotivo) pills.push('<span class="pill p-rojo">'+p.sinMotivo+' sin motivo</span>');
-    if(e!=='Programada'&&(p.dPend+p.dSinRuta)) pills.push('<span class="pill p-amber">'+(p.dPend+p.dSinRuta)+' docs.</span>');
-    if(e==='Programada') pills.push('<span class="pill p-azul">'+p.T+' tareas preparadas</span>');
+    // Resumen por monitoreo: sin hacer (nada marcado), sin completar (empezado) o todos completos.
+    var ms=monsCamp(c), nSin=0, nInc=0; ms.forEach(function(m){ var a=avanceMon(c,m); if(a.pct===100) return; if(a.ts.some(function(t){return t.estado;})) nInc++; else nSin++; });
+    var pl=function(n,t){ return n+' monitoreo'+(n>1?'s':'')+' '+t; };
+    if(nSin) pills.push('<span class="pill p-gris">'+pl(nSin,'sin hacer')+'</span>');
+    if(nInc) pills.push('<span class="pill p-amber">'+pl(nInc,'sin completar')+'</span>');
+    if(ms.length&&!nSin&&!nInc) pills.push('<span class="pill p-verde">✓ Monitoreos completos</span>');
     return '<button class="ccard" data-abrir="'+esc(c.id)+'">'+logo(c)+'<div style="flex:1"><div class="cname">'+esc(pr.nombre)+badge(c)+'</div>'+
       '<div class="cmeta">'+periodoLabel(c)+' · '+esc(pr.region)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+'</div>'+
       prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'<div class="cfoot">'+avs(c.equipo)+pills.join('')+'</div></div></button>';
