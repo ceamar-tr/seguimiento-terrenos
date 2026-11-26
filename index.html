@@ -673,6 +673,22 @@ function construirMatriz(H){
   (H.ESTACIONES||[]).forEach(function(r){ var p=M[r.id_proyecto]; if(!p||r.estacion==null) return; var e=String(r.estacion);
     p.est[e]={e:r.utm_este||'',n:r.utm_norte||'',ef:r.utm_este_fin||'',nf:r.utm_norte_fin||'',sector:r.sector||'',huso:r.huso||'',datum:r.datum||''}; p.orden.push(e); });
   (H.ESTACION_MONITOREO||[]).forEach(function(r){ var m=mid[r.id_monitoreo]; if(m&&r.estacion!=null&&m.estaciones.indexOf(String(r.estacion))<0) m.estaciones.push(String(r.estacion)); });
+  // Un proyecto con varios informes (p. ej. Quebrada Blanca II: PS-12, PS-13, PS-14) se muestra como un proyecto por informe,
+  // cada uno con sus propias campañas. El id queda como ID_PROYECTO-INF<n>.
+  var M2={};
+  Object.keys(M).forEach(function(pid){ var p=M[pid], grupos=[], porInf={};
+    p.monitoreos.forEach(function(m){ var k=String(m.n_informe||m.informe||''); if(!porInf[k]){ porInf[k]=[]; grupos.push(k); } porInf[k].push(m); });
+    if(grupos.length<2){ M2[pid]=p; return; }
+    grupos.forEach(function(k){ var ms=porInf[k], m0=ms[0];
+      var sigla=(String(m0.informe).match(/\(([^)]+)\)\s*$/)||[])[1]||('Informe '+(m0.n_informe||k));
+      var id=pid+'-INF'+(m0.n_informe||(grupos.indexOf(k)+1));
+      var np={}; Object.keys(p).forEach(function(x){ np[x]=p[x]; });
+      np.id=id; np.padre=pid; np.sigla=sigla; np.nombre=p.nombre+' · '+sigla; np.corto=np.nombre; np.monitoreos=ms;
+      var inf=(m0.n_informe?'Informe '+m0.n_informe+': ':'')+m0.informe+(m0.etapa?' · Etapa '+m0.etapa.toLowerCase():'');
+      np.informes=m0.informe?[inf]:[]; np.nombres=m0.informe?[m0.informe+(m0.etapa?' · Etapa '+m0.etapa.toLowerCase():'')]:[];
+      ms.forEach(function(m){ var base=m.cod.replace(/-\d+$/,''); if(m.cod!==base&&!ms.some(function(o){return o!==m&&o.cod===base;})) m.cod=base; });
+      M2[id]=np; }); });
+  M=M2;
   Object.keys(M).forEach(function(pid){ var p=M[pid], per=[], fr=[];
     p.monitoreos.forEach(function(m){
       if(!m.estaciones.length) m.estaciones=['GENERAL'];
