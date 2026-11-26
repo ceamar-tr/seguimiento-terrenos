@@ -1407,9 +1407,11 @@ function defFlujo(red,h,m){ h=h||{};
   var cols=[];
   if(!sinEst) cols.push({k:'est',l:'Estación',ty:'est'});
   if(sinEst) cols.push({k:'mu',l:'Muestra',ty:'txt'});
-  else { cols.push({k:'mu',l:'Muestra',ty:'sel',ops:M.rep.length>1?M.rep:['A','B'],def:M.rep.length>1?M.rep:['']}); if(M.noche) cols.push({k:'dn',l:'Día / noche',ty:'sel',ops:['Día','Noche']}); }
-  if(dos) cols.push({k:'estr',l:'Estrato',ty:'sel',ops:['Fondo','Mitad']});
-  else if(!sinEst&&M.es.length) cols.push({k:'estr',l:'Estrato',ty:'sel',ops:M.es});
+  else { // una sola columna Muestra: Día/Noche, estrato y réplica según el proyecto (p. ej. A, B · Superficie, Fondo · Día A, Noche A…)
+    var dims=[]; if(dos) dims.push(['Fondo','Mitad']); else { if(M.noche) dims.push(['Día','Noche']); if(M.es.length) dims.push(M.es); }
+    if(M.rep.length>1) dims.push(M.rep);
+    var comb=dims.reduce(function(a,d){ var o=[]; a.forEach(function(x){ d.forEach(function(y){ o.push(x?x+' '+y:y); }); }); return o; },['']);
+    cols.push({k:'mu',l:'Muestra',ty:'sel',ops:dims.length?comb:['A','B'],def:dims.length?comb:['']}); }
   cols.push({k:'diam',l:'Diámetro (cm)',ty:'sel',ops:DIAM},{k:'fi',l:'Flujómetro inicial',ty:'num',min:0},{k:'ff',l:'Flujómetro final',ty:'num',min:0},{k:'vol',l:'Volumen filtrado (m³)',ty:'calc'});
   return {t:'Flujómetro · '+red,flujo:true,red:red,cols:cols};
 }
@@ -1490,6 +1492,7 @@ function pdfPlanilla(c,mon,pk){
   var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
   var filas=P.rows.filter(function(r){ return orden.some(function(x){ return (x.ty==='num'||x.ty==='txt'||x.ty==='hora')&&r[x.k]!=null&&r[x.k]!==''; }); });
   if(!filas.length){ toast('La planilla aún no tiene datos'); return; }
+  if(d.flujo) orden=orden.filter(function(x){ return x.k==='est'||x.k==='mu'||x.ty==='calc'; });
   toast('Preparando PDF…');
   var cfg=CLIENTES[pr.cliente]||{};
   Promise.all([libPDF(),imgData('logos/CEAMAR.jpg'),imgData(cfg.logo)]).then(function(res){
@@ -1510,7 +1513,8 @@ function pdfPlanilla(c,mon,pk){
     doc.autoTable({startY:doc.lastAutoTable.finalY+4,margin:{left:M,right:M},head:head,body:body,theme:'grid',
       headStyles:{fillColor:[26,92,46],textColor:255,fontStyle:'bold',fontSize:9,halign:'center'},bodyStyles:{fontSize:9.5,halign:'center',textColor:[31,41,55]},alternateRowStyles:{fillColor:[243,247,244]},styles:{lineColor:[210,214,220],lineWidth:.2}});
     var y=doc.lastAutoTable.finalY+6; doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90);
-    var notas=[]; if(d.flujo) notas.push('Volumen filtrado (m³) = (final − inicial) × π × (diámetro/2)² × '+(h.k||'constante')+' (constante del flujómetro).');
+    var notas=[]; if(d.flujo){ var dms=[]; filas.forEach(function(r){ if(r.diam&&dms.indexOf(r.diam)<0) dms.push(r.diam); }); if(dms.length) notas.push('Red '+d.red+' · diámetro '+dms.join(' / ')+' cm.'); }
+    if(d.flujo) notas.push('Volumen filtrado (m³) = (final − inicial) × π × (diámetro/2)² × '+(h.k||'constante')+' (constante del flujómetro).');
     if(h.equipo||h.serie) notas.push('Equipo: '+(h.equipo||'—')+(h.serie?' · N° de serie: '+h.serie:''));
     if(h.rev) notas.push('Revisado por '+(h.revPor||'')+' el '+cuando(h.revEl)+'.');
     notas.forEach(function(t){ var ls=doc.splitTextToSize(pdfTxt(t),W-2*M); doc.text(ls,M,y); y+=ls.length*4.2; });
