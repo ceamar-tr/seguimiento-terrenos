@@ -169,6 +169,7 @@
   .lote{flex-basis:100%;background:var(--card-bg);border:1px solid var(--borde);border-radius:8px;padding:8px 12px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .lote-btn{flex-basis:100%;margin:6px 0 18px;}
   .logo-txt{font-size:11px;font-weight:800;color:var(--azul);text-align:center;line-height:1.15;padding:4px;word-break:break-word;}
+  .tag-anual{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;background:#7c3aed;color:#fff;font-size:10px;font-weight:800;letter-spacing:.3px;vertical-align:middle;text-transform:uppercase;}
   .btn-todas{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:24px;border:none;background:#14532d;color:#fff;font-weight:800;font-size:14px;letter-spacing:.2px;box-shadow:0 3px 10px rgba(20,83,45,.35);cursor:pointer;}
   .btn-todas:hover{background:#0f3f22;box-shadow:0 4px 14px rgba(20,83,45,.45);}
   .btn-todas:focus-visible{outline:3px solid #86efac;outline-offset:2px;}
@@ -701,6 +702,8 @@ function construirMatriz(H){
       m.metodo=m.items.some(function(x){return x.metodo==='Transecto';})?'Transecto':'';
       m.periodos.forEach(function(x){ if(per.indexOf(x)<0) per.push(x); }); if(m.frecuencia&&fr.indexOf(m.frecuencia)<0) fr.push(m.frecuencia); });
     p.periodos=per.sort(function(a,b){return ORDEN_PER.indexOf(a)-ORDEN_PER.indexOf(b);}); p.frecuencia=fr.join(' / ');
+    // Monitoreo anual que va dentro de una campaña de otra frecuencia (p. ej. la grabación submarina en primavera).
+    p.monitoreos.forEach(function(m){ m.anual=m.frecuencia==='Anual'&&p.monitoreos.some(function(o){return o.frecuencia&&o.frecuencia!=='Anual';}); });
     p.est.GENERAL={e:'',n:'',ef:'',nf:'',sector:'',general:true};
     // Mismo monitoreo en varios informes del proyecto (p. ej. CTD en PS-12, PS-13 y PS-14): se agrega el informe al nombre.
     var cuenta={}; p.monitoreos.forEach(function(m){ cuenta[m.nombre]=(cuenta[m.nombre]||0)+1; });
@@ -929,7 +932,7 @@ function renderAnio(){
     while(mes<=12){
       var s=r.slots.filter(function(x){return x.per!=='Anual'&&x.meses[0]===mes;})[0];
       if(!s){ celdas+='<td><span class="mc vacio">·</span></td>'; mes++; continue; }
-      var cods=s.mons.map(function(m){return m.cod;}).join(' · '), tip=s.per+' '+S.anio+': '+s.mons.map(function(m){return m.nombre;}).join(', ');
+      var cods=s.mons.map(function(m){return m.cod+(m.anual?' (anual)':'');}).join(' · '), tip=s.per+' '+S.anio+': '+s.mons.map(function(m){return m.nombre+(m.anual?' (anual)':'');}).join(', ');
       var inner;
       if(s.k==='camp') inner='<button class="mc '+ESTC[s.e]+'" data-abrir="'+esc(s.c.id)+'" data-sub="muestreo" title="'+esc(tip+' · '+s.e)+'"><b>'+esc(s.per)+'</b> '+(s.e==='Completa'?'✓':prog(s.c).pm+'%')+'<small>'+esc(s.e)+' · '+fmtD(s.c.ini)+'</small></button>';
       else if(s.k==='previo') inner='<span class="mc e-prev" title="'+esc(tip+' · anterior al inicio del seguimiento en esta página')+'"><b>'+esc(s.per)+'</b><small>Antes del seguimiento</small></span>';
@@ -1126,7 +1129,7 @@ function renderChecklist(c){
   var m=mOf(c,S.mon), a=avanceMon(c,m), pr=MATRIZ[c.proyecto], ro=!puedeMarcar(c), dis=ro?' disabled':'';
   var lado='<aside class="ck-mons"><div class="ck-total"><span class="ck-big">'+p.pm+'%</span><span>'+p.done+' de '+p.T+' estaciones listas</span><span class="pbar"><span class="pfill" style="width:'+p.pm+'%"></span></span></div>'+
     ms.map(function(x){ var ax=avanceMon(c,x);
-      return '<button class="ck-mon'+(x.cod===S.mon?' sel':'')+(ax.pct===100?' listo':'')+'" data-mon="'+esc(x.cod)+'" aria-pressed="'+(x.cod===S.mon)+'"><span class="ck-mn"><b>'+esc(x.nombre)+'</b><small>'+(ax.pct===100?'✓ Completo':ax.dn+' de '+ax.ts.length)+(respMon(c,x.cod).length?' · '+esc(respMon(c,x.cod).map(ini).join(', ')):'')+'</small></span><span class="ck-pct">'+ax.pct+'%</span><span class="pbar"><span class="pfill" style="width:'+ax.pct+'%"></span></span></button>'; }).join('')+'</aside>';
+      return '<button class="ck-mon'+(x.cod===S.mon?' sel':'')+(ax.pct===100?' listo':'')+'" data-mon="'+esc(x.cod)+'" aria-pressed="'+(x.cod===S.mon)+'"><span class="ck-mn"><b>'+esc(x.nombre)+tagAnual(x)+'</b><small>'+(ax.pct===100?'✓ Completo':ax.dn+' de '+ax.ts.length)+(respMon(c,x.cod).length?' · '+esc(respMon(c,x.cod).map(ini).join(', ')):'')+'</small></span><span class="ck-pct">'+ax.pct+'%</span><span class="pbar"><span class="pfill" style="width:'+ax.pct+'%"></span></span></button>'; }).join('')+'</aside>';
   var ts=a.ts.slice().sort(function(x,y){ return pr.orden.indexOf(x.est)-pr.orden.indexOf(y.est); });
   var vis=S.verPend?ts.filter(function(t){return t.estado!=='Realizado'&&t.estado!=='No aplica';}):ts;
   var filas=vis.map(function(t){ var x=pr.est[t.est]||{}, falla=(t.estado==='No realizado'||t.estado==='Parcial')&&!t.motivo.trim(), got=contar(m,t.datos);
@@ -1150,7 +1153,7 @@ function renderChecklist(c){
   else if(S.lote&&S.lote.mon===m.cod) antes+='<div class="lote">'+S.lote.ids.length+' estaciones marcadas como realizadas el '+fmtD(S.lote.fecha)+'. <button class="lnk" id="lote-deshacer">Deshacer</button></div>';
   else if(S.confirmTodas===m.cod&&sinM.length) antes+='<div class="lote">¿Marcar '+(sinM.length===1?'la <b>1</b> estación restante':'las <b>'+sinM.length+'</b> estaciones restantes')+' de '+esc(m.nombre)+' como realizadas el <b>'+fmtD(S.fechaTrabajo)+'</b>? <button class="btn-p btn-sm" id="todas-si">Sí, marcar</button> <button class="btn-s btn-sm" id="todas-no">Cancelar</button></div>';
   else if(sinM.length) antes+='<div class="lote-btn"><button class="btn-todas" id="todas">✓ Marcar todas las restantes como realizadas <span class="n">'+sinM.length+'</span></button></div>';
-  var main='<section class="ck-main"><div class="ck-head"><div><div class="ck-tit">'+esc(m.nombre)+' <span class="ck-cnt">'+a.dn+'/'+a.ts.length+'</span></div><div class="sub">'+esc(resumenMon(m))+'</div></div>'+
+  var main='<section class="ck-main"><div class="ck-head"><div><div class="ck-tit">'+esc(m.nombre)+tagAnual(m)+' <span class="ck-cnt">'+a.dn+'/'+a.ts.length+'</span></div><div class="sub">'+esc(resumenMon(m))+'</div></div>'+
     '<div class="seg"><button data-verpend="0" aria-pressed="'+!S.verPend+'">Todas</button><button data-verpend="1" aria-pressed="'+!!S.verPend+'">Pendientes ('+a.falta.length+')</button></div></div>'+
     antes+'<div class="ck-list">'+filas+'</div>'+(ro?'':'<p class="sub" style="margin-top:8px">Elige la fecha y quién hizo el monitoreo, luego toca ✓ en cada estación terminada. Toca el nombre de la estación para cambiar su fecha, anotar un motivo o marcar réplicas.</p>')+'</section>';
   var ficha='';
@@ -1297,6 +1300,7 @@ function renderDocs(c,dro,dis){
           '<div class="dc-b"><label class="dc-l">Responsable<select class="sel" data-f="dresp" id="dresp-'+i+'"'+dis+'><option value="">— elegir —</option>'+c.equipo.map(function(n){return '<option'+(n===d.resp?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>'+
           '<label class="dc-l dc-ruta">Ruta del escaneo<span class="ruta"><input class="inp" type="text" data-f="ruta" id="ruta-'+i+'"'+dis+' value="'+esc(d.ruta)+'" placeholder="\\\\SERVIDOR\\Terrenos\\2026\\..." aria-label="Ruta en el servidor de '+esc(d.n)+'"><button type="button" class="btn-s" data-act="copiar" title="Copiar ruta">Copiar</button></span></label></div></div>'; }).join('')+'</div></section>'; }).join('');
 }
+function tagAnual(m){ return m&&m.anual?'<span class="tag-anual" title="Este monitoreo se hace una vez al año, en esta campaña">Anual</span>':''; }
 function chipB(k,n,l,cl){ return n?'<button type="button" class="pill chip-b '+cl+'" data-chip="'+k+'" aria-pressed="'+(S.chip===k)+'" aria-expanded="'+(S.chip===k)+'">'+n+' '+l+'</button>':''; }
 function panelChip(c,k){
   var tit={sinMarcar:'Estaciones sin marcar',noReal:'Estaciones no realizadas',parcial:'Estaciones parciales',sinMotivo:'No realizadas o parciales sin motivo',dPend:'Documentos pendientes',dSinRuta:'Documentos completos sin ruta'}[k];
@@ -1411,7 +1415,7 @@ function renderNueva(){
     '<div class="f2"><label class="fl">Fecha de inicio<input class="inp" id="n-ini" type="date" value="'+draft.ini+'"></label><label class="fl">Fecha de término<input class="inp" id="n-fin" type="date" value="'+draft.fin+'"></label></div>'+
     '<label class="fl">Jefe de terreno<select class="sel" id="n-jefe">'+PERSONAL.map(function(n){return '<option'+(n===draft.jefe?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>'+
     '<div class="fl">Equipo<div class="team">'+PERSONAL.map(function(n,i){return '<label><input class="chk" type="checkbox" id="n-eq-'+i+'" data-eq="'+esc(n)+'"'+(draft.equipo.indexOf(n)>=0?' checked':'')+'>'+esc(n)+'</label>';}).join('')+'</div></div>'+
-    '<div class="prev"><b>Monitoreos de '+esc(draft.periodo)+' según la matriz:</b><ul>'+ms.map(function(m){return '<li><b>'+esc(m.nombre)+'</b>: '+(m.estaciones[0]==='GENERAL'?'sin estaciones (área general)':m.estaciones.length+' estaciones')+' · '+esc(resumenMon(m))+'</li>';}).join('')+'</ul>'+
+    '<div class="prev"><b>Monitoreos de '+esc(draft.periodo)+' según la matriz:</b><ul>'+ms.map(function(m){return '<li><b>'+esc(m.nombre)+'</b>'+(m.anual?' <span class="tag-anual">Anual · una vez al año</span>':'')+': '+(m.estaciones[0]==='GENERAL'?'sin estaciones (área general)':m.estaciones.length+' estaciones')+' · '+esc(resumenMon(m))+'</li>';}).join('')+'</ul>'+
       '<div><b>'+nT+'</b> estaciones a marcar (monitoreo × estación), <b>'+nM+'</b> muestras y mediciones en total, y <b>'+DOCS.length+'</b> documentos.</div>'+
       (existe?'<div class="warnline">Ya existe la campaña de '+esc(draft.periodo)+' '+draft.anio+' para este proyecto.</div>':'')+'</div>'+
     '</form><div class="spf"><button class="btn-p" id="n-crear">Crear campaña</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>';
