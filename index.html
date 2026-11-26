@@ -220,6 +220,13 @@
   .muestras-todas{margin-top:10px;}
   .act-card{background:var(--card-bg);border-radius:14px;box-shadow:var(--sombra);padding:14px 18px;margin-bottom:18px;}
   .act-card h3{margin:0 0 6px;font-size:15px;color:var(--azul);}
+  .bit-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px;}.bit-h .sub{max-width:620px;}
+  .bit-list{list-style:none;margin:0;padding:0;}
+  .bit-it{display:grid;grid-template-columns:32px 1fr auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--borde);border-radius:8px;}
+  .bit-it:last-child{border-bottom:none;}
+  .bit-it.corr{background:var(--rojo-s);border-left:3px solid var(--rojo);}
+  .bit-it.corr .act-av{background:var(--rojo);}
+  .bit-it .pill{margin-left:6px;font-size:11px;padding:2px 8px;vertical-align:middle;}
   .act-list{list-style:none;margin:0;padding:0;}
   .act-it{display:grid;grid-template-columns:32px 1fr auto;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--borde);cursor:pointer;border-radius:8px;}
   .act-it:last-child{border-bottom:none;}
@@ -890,7 +897,16 @@ function puedeMarcar(c){ if(!c) return false; if(esCoord()) return true; return 
 function motivoLectura(c){ return esConsulta()?'tu rol es de consulta':c.estadoAdm==='Cerrada'?'la campaña está cerrada':'no estás en el equipo de esta campaña'; }
 
 // ─── SINCRONIZACIÓN (cola en el teléfono + Apps Script) ──
-function enviar(accion,datos){ guardarCamp(); S.gdActivo=true; S.gdError=''; if(DEMO){ pintarGd(); return; } S.cola.push({accion:accion,datos:datos,ts:new Date().toISOString()}); guardarCola(); flush(); pintarNet(); }
+function bitLocal(accion,d){ var b=S.bit||[], e={el:ahoraTxt(),por:usuario,accion:accion,campana:d.campana||d.id||'',detalle:'',mon:'',est:'',antes:'',despues:''};
+  if(accion==='tarea'){ e.accion='estación'; e.mon=d.monitoreo; e.est=d.estacion; e.antes=d.antes||'Sin marcar'; e.despues=d.estado||'Sin marcar'; e.detalle=d.motivo?'motivo: '+d.motivo:''; }
+  else if(accion==='crearCampana') e.accion='crear campaña';
+  else if(accion==='eliminarCampana') e.accion='eliminar campaña';
+  else if(accion==='cerrar'||accion==='reabrir') e.accion=accion+' campaña';
+  else if(accion==='planilla'){ e.detalle=String(d.clave||''); }
+  else if(accion==='doc'){ e.accion='documento'; e.detalle=(d.documento||'')+': '+(d.estado||'pendiente'); }
+  else if(accion==='redes'||accion==='responsables'||accion==='condiciones'){ e.detalle=(d.monitoreo||'')+': '+(d.redes||d.responsables||[d.cielo,d.mar,d.vint].filter(Boolean).join(' · ')||'—'); }
+  b.unshift(e); S.bit=b.slice(0,600); try{ localStorage.setItem('ceamar_terreno_bitacora',JSON.stringify(S.bit)); }catch(x){} }
+function enviar(accion,datos){ guardarCamp(); S.gdActivo=true; S.gdError=''; if(DEMO){ bitLocal(accion,datos||{}); pintarGd(); return; } S.cola.push({accion:accion,datos:datos,ts:new Date().toISOString()}); guardarCola(); flush(); pintarNet(); }
 function guardarCola(){ try{ localStorage.setItem('ceamar_terreno_cola',JSON.stringify(S.cola)); }catch(e){} }
 function hayRed(){ return DEMO?true:navigator.onLine; }
 function flush(){
@@ -912,7 +928,7 @@ function api(accion,datos,extra){
 function aplicarDatos(r){
   fijarUsuario(r.usuario); if(r.personal&&r.personal.length) PERSONAL=r.personal;
   CAMP_ALL=(r.campanas||[]).filter(function(c){ return MATRIZ[c.proyecto]; }).map(function(c){
-    var cods=[]; c.tareas.forEach(function(t){ if(cods.indexOf(t.mon)<0) cods.push(t.mon); t.datos=t.datos||{}; });
+    var cods=[]; c.tareas.forEach(function(t){ if(cods.indexOf(t.mon)<0) cods.push(t.mon); t.datos=t.datos||{}; t.est0=t.estado||''; });
     c.mons=MATRIZ[c.proyecto].monitoreos.map(function(m){return m.cod;}).filter(function(k){return cods.indexOf(k)>=0;});
     c.monResp=c.monResp||{}; c.monRedes=c.monRedes||{}; c.monClima=c.monClima||{}; c.planillas=c.planillas||{}; Object.keys(c.monRedes).forEach(function(k){ if(typeof c.monRedes[k]==='string') c.monRedes[k]=redesLeer(c.monRedes[k]); }); c.estadoAdm=c.estadoAdm||'Abierta'; return c; });
   vista(); if(S.cid&&!getC(S.cid)){ S.cid=null; if(S.tab==='detalle') S.tab='calendario'; }
@@ -1353,6 +1369,34 @@ function htmlActividad(fp,fa){
       '<span class="act-tx"><b>'+esc(e.q)+'</b> '+e.tx+(e.sub?'<small>'+esc(e.sub)+'</small>':'')+'</span><span class="act-cu">'+cuando(e.el)+'</span></button></li>'; }).join('')+'</ul>'+
     (ev.length>8?'<button class="lnk" id="act-mas" style="margin-top:6px">'+(S.actTodo?'Ver menos':'Ver toda la actividad ('+ev.length+')')+'</button>':'')+'</div>';
 }
+// ─── Registro de cambios (permanente, viene de la hoja Cambios) ───
+function cargarBit(forzar){ if(DEMO){ if(!S.bit){ try{ S.bit=JSON.parse(localStorage.getItem('ceamar_terreno_bitacora')||'[]'); }catch(e){ S.bit=[]; } } return; }
+  if(S.bitCargando||(!forzar&&S.bitT&&Date.now()-S.bitT<60000)) return; S.bitCargando=true;
+  api('historial').then(function(r){ S.bitCargando=false; if(r.ok){ S.bit=r.cambios||[]; S.bitT=Date.now(); S.bitErr=''; } else S.bitErr=r.mensaje||r.error||'error'; if(S.tab==='historial') renderHistorial(); })
+    .catch(function(){ S.bitCargando=false; S.bitErr='sin conexión'; if(S.tab==='historial') renderHistorial(); }); }
+var BIT_ACC={'crear campaña':'programó la campaña','editar campaña':'editó la campaña','eliminar campaña':'eliminó la campaña','cerrar campaña':'cerró la campaña','reabrir campaña':'reabrió la campaña','planilla':'editó la planilla','documento':'actualizó un documento','redes':'registró las redes','responsables':'asignó responsables','condiciones':'registró las condiciones del día','marcar estación':'marcó una estación','marcar varias':'marcó varias estaciones'};
+function bitDetalle(e,c){ if(e.accion==='planilla'){ var x=String(e.detalle).split('|'), m=c?mOf(c,x[0]):null, d=x[1]?defPlan(x[1],{},m):null; return (d?d.t:x[1]||'')+(m?' · '+m.nombre:''); }
+  if(/^(redes|responsables|condiciones)$/.test(e.accion)){ var i=String(e.detalle).indexOf(':'), m2=c&&i>0?mOf(c,e.detalle.slice(0,i)):null; return m2?m2.nombre+e.detalle.slice(i):e.detalle; }
+  return e.detalle; }
+function esCorreccion(e){ return e.accion==='estación'&&e.antes&&e.antes!=='Sin marcar'&&e.antes!==e.despues; }
+function htmlBit(fp,fa){ cargarBit();
+  var todos=(S.bit||[]).filter(function(e){ var c=getC(e.campana), pid=c?c.proyecto:String(e.campana).split('-').slice(0,-2).join('-'), an=c?String(c.anio):(String(e.campana).split('-').slice(-2)[0]||'');
+    return (!fp||pid===fp)&&(!fa||an===fa); });
+  var lista=S.bitSoloCorr?todos.filter(esCorreccion):todos, nCorr=todos.filter(esCorreccion).length, max=S.bitTodo?600:15;
+  var cab='<div class="bit-h"><div><h3>Registro de cambios</h3><div class="sub">Cada cambio queda guardado en la hoja «Cambios» de Drive y no se puede borrar. Las correcciones (algo que estaba marcado y se cambió) quedan destacadas.</div></div>'+
+    '<div class="seg"><button data-bitf="0" aria-pressed="'+!S.bitSoloCorr+'">Todos</button><button data-bitf="1" aria-pressed="'+!!S.bitSoloCorr+'">Solo correcciones'+(nCorr?' ('+nCorr+')':'')+'</button></div></div>';
+  if(!S.bit) return '<div class="act-card">'+cab+'<div class="sub">Cargando el registro…</div></div>';
+  if(!lista.length) return '<div class="act-card">'+cab+'<div class="sub">'+(S.bitErr?'No se pudo leer el registro ('+esc(S.bitErr)+').':S.bitSoloCorr?'No hay correcciones registradas.':'Aún no hay cambios registrados.')+'</div></div>';
+  return '<div class="act-card">'+cab+'<ul class="bit-list">'+lista.slice(0,max).map(function(e){
+    var c=getC(e.campana), m=c?mOf(c,e.mon):null, corr=esCorreccion(e), tx, sub=[];
+    if(e.accion==='estación'){ tx=corr?'cambió <b>'+esc(e.antes)+'</b> → <b>'+esc(e.despues)+'</b>':(e.despues==='Sin marcar'?'dejó sin marcar':'marcó <b>'+esc(e.despues)+'</b>');
+      sub.push((m?m.nombre:e.mon)+(e.est?' · '+estNombre(e.est):'')); }
+    else { var dt=bitDetalle(e,c); tx=esc(BIT_ACC[e.accion]||e.accion)+(dt?' · '+esc(dt):''); }
+    sub.push(c?MATRIZ[c.proyecto].nombre+' · '+periodoLabel(c):e.campana);
+    if(e.accion==='estación'&&e.detalle) sub.push(e.detalle);
+    return '<li class="bit-it'+(corr?' corr':'')+'"><span class="act-av">'+esc(ini(e.por||'?'))+'</span><span class="act-tx"><b>'+esc(e.por)+'</b> '+tx+(corr?' <span class="pill p-rojo">Corrección</span>':'')+'<small>'+esc(sub.join(' · '))+'</small></span><span class="act-cu">'+esc(String(e.el).replace('T',' ').slice(0,16))+'</span></li>'; }).join('')+'</ul>'+
+    (lista.length>15?'<button class="lnk" id="bit-mas" style="margin-top:6px">'+(S.bitTodo?'Ver menos':'Ver todo ('+lista.length+')')+'</button>':'')+'</div>';
+}
 function renderHistorial(){
   var anios=[], hs=CAMP.filter(function(c){return prog(c).pm===100;});
   CAMP.forEach(function(c){ if(anios.indexOf(c.anio)<0) anios.push(c.anio); });
@@ -1366,7 +1410,7 @@ function renderHistorial(){
       '<td data-l="Para informe">'+(c.estadoAdm==='Cerrada'?'<span class="badge cerrada">Lista</span>':'<span class="badge e-prog">En revisión</span>')+'</td><td class="num"><span class="lnk">Ver registro ›</span></td></tr>'; }).join('');
   var proys=Object.keys(MATRIZ).map(function(k){return '<option value="'+k+'"'+(k===fp?' selected':'')+'>'+esc(MATRIZ[k].nombre)+'</option>';}).join('');
   document.getElementById('tc-historial').innerHTML='<div class="bar-row"><div><div class="h1">Historial</div><div class="sub">Quién hizo cada cambio y las campañas con todo el muestreo registrado.</div></div>'+
-    '<div class="hfil"><select class="sel" id="h-proy" aria-label="Proyecto"><option value="">Todos los proyectos</option>'+proys+'</select><select class="sel" id="h-anio" aria-label="Año"><option value="">Todos los años</option>'+anios.sort().reverse().map(function(a){return '<option'+(String(a)===fa?' selected':'')+'>'+a+'</option>';}).join('')+'</select></div></div>'+htmlActividad(fp,fa)+'<h3 style="margin:6px 0 10px;font-size:15px;color:var(--azul)">Campañas completadas</h3>'+
+    '<div class="hfil"><select class="sel" id="h-proy" aria-label="Proyecto"><option value="">Todos los proyectos</option>'+proys+'</select><select class="sel" id="h-anio" aria-label="Año"><option value="">Todos los años</option>'+anios.sort().reverse().map(function(a){return '<option'+(String(a)===fa?' selected':'')+'>'+a+'</option>';}).join('')+'</select></div></div>'+htmlActividad(fp,fa)+htmlBit(fp,fa)+'<h3 style="margin:6px 0 10px;font-size:15px;color:var(--azul)">Campañas completadas</h3>'+
     (filas?'<div class="twrap card-t"><table class="rtab htab resp"><thead><tr><th>Campaña</th><th>Ejecución</th><th>Monitoreos</th><th>Realizado por</th><th>Documentos</th><th>Para informe</th><th></th></tr></thead><tbody>'+filas+'</tbody></table></div>'
       :'<div class="pempty">Aún no hay campañas con todo el muestreo completo. Cuando una campaña llegue al 100 %, quedará aquí con sus fechas y responsables.</div>');
 }
@@ -1726,7 +1770,7 @@ function renderNueva(){
 
 // ─── NAVEGACIÓN Y RENDER ─────────────────────────────────
 function irTab(tab){
-  S.tab=tab;
+  S.tab=tab; if(tab==='historial') S.bitT=0;
   document.querySelectorAll('.nav button').forEach(function(b){ b.setAttribute('aria-selected', String(b.dataset.tab===tab)); });
   ['calendario','campanas','detalle','pendientes','historial','equipo'].forEach(function(k){ document.getElementById('tc-'+k).classList.toggle('on',k===tab); });
   render();
@@ -1747,7 +1791,7 @@ function respMon(c,cod){ return (c.monResp&&c.monResp[cod])||[]; }
 function fechaTrabajoDef(c){ return HOY_S<c.ini?c.ini:HOY_S>c.fin?c.fin:HOY_S; }
 function sello(t,c){ if(!t.fecha){ var n=new Date(); t.fecha=S.fechaTrabajo||iso(n); t.hora=pad(n.getHours())+':'+pad(n.getMinutes()); } }
 function ahoraTxt(){ var n=new Date(); return iso(n)+' '+pad(n.getHours())+':'+pad(n.getMinutes()); }
-function guardarTarea(c,t){ t.por=usuario; t.el=ahoraTxt(); enviar('tarea',{campana:c.id,id:t.id,monitoreo:t.mon,estacion:t.est,estado:t.estado,responsables:respMon(c,t.mon).join(', '),fecha:t.fecha,hora:t.hora,motivo:t.motivo,datos:t.datos}); }
+function guardarTarea(c,t){ t.por=usuario; t.el=ahoraTxt(); var antes=t.est0!==undefined?t.est0:''; t.est0=t.estado||''; enviar('tarea',{campana:c.id,id:t.id,antes:antes,monitoreo:t.mon,estacion:t.est,estado:t.estado,responsables:respMon(c,t.mon).join(', '),fecha:t.fecha,hora:t.hora,motivo:t.motivo,datos:t.datos}); }
 function guardarDoc(c,d){ enviar('doc',{campana:c.id,documento:d.n,tipo:d.t,estado:d.estado,responsable:d.resp,fecha:d.fecha,ruta:d.ruta}); }
 
 // ─── EVENTOS ─────────────────────────────────────────────
@@ -1806,6 +1850,8 @@ W.addEventListener('click',function(e){
   if(b.dataset.cpDoc){ S.sub='documentos'; S.chip=null; S.docG=b.dataset.cpDoc; renderDetalle(); return; }
   if(b.dataset.acamp){ abrir(b.dataset.acamp,'muestreo'); if(b.dataset.amon){ S.mon=b.dataset.amon; renderDetalle(); } return; }
   if(b.id==='act-mas'){ S.actTodo=!S.actTodo; renderHistorial(); return; }
+  if(b.id==='bit-mas'){ S.bitTodo=!S.bitTodo; renderHistorial(); return; }
+  if(b.dataset.bitf){ S.bitSoloCorr=b.dataset.bitf==='1'; renderHistorial(); return; }
   if(b.dataset.mon){ S.mon=b.dataset.mon; S.ficha=null; S.lote=null; S.confirmTodas=null; renderDetalle(); if(window.innerWidth<760){ var hd=document.querySelector('.ck'); if(hd&&hd.getBoundingClientRect().top<0) hd.scrollIntoView({behavior:'smooth',block:'start'}); } return; }
   if(b.dataset.mresp){ var cc=getC(S.cid); cc.monResp=cc.monResp||{}; var l=(cc.monResp[S.mon]||[]).slice(), i=l.indexOf(b.dataset.mresp); if(i>=0) l.splice(i,1); else l.push(b.dataset.mresp); cc.monResp[S.mon]=l;
     enviar('responsables',{campana:cc.id,monitoreo:S.mon,responsables:l.join(', ')}); renderDetalle(); return; }
