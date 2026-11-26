@@ -398,10 +398,12 @@
   .pt{display:flex;align-items:center;gap:6px;border-radius:10px;padding:7px 7px;text-align:left;border:1px solid transparent;font:inherit;line-height:1.2;}
   button.pt{cursor:pointer;}button.pt:hover{filter:brightness(.97);box-shadow:0 2px 8px rgba(0,0,0,.08);}
   .pt-i{width:18px;height:18px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:rgba(0,0,0,.06);}
-  .pt-t{min-width:0;}.pt-t b{display:block;font-size:12.5px;}.pt-t small{display:block;font-size:10.5px;opacity:.85;}
+  .pt-t{min-width:0;}.pt-t b{display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.pt-t small{display:block;font-size:10.5px;opacity:.85;}
   .pt.e-prev{background:var(--gris);color:var(--suave);}
-  .pt.e-porp{border:1.5px dashed var(--azul-c);color:var(--azul-c);background:transparent;}
-  .pt.e-porp .pt-i{background:var(--azul-c);color:#fff;}
+  .pt.e-porp{border:1px solid #b9d4f1;color:var(--azul-c);background:var(--azul-s);}
+  .pt.e-porp .pt-i{display:none;}
+  .pt.e-porp small{font-weight:700;}
+  button.pt.e-porp:hover{background:#d4e8fb;border-color:var(--azul-c);filter:none;}
   .pt.e-sinr{border:1.5px dashed var(--rojo);color:var(--rojo);background:var(--rojo-s);}
   .pt.e-sinr .pt-i{background:var(--rojo);color:#fff;}
   .pt.pt-act{box-shadow:0 0 0 2px var(--verde-s);}
@@ -1094,7 +1096,7 @@ function tocaMini(pid,s,anio){
   var st, cls, act='', ico='';
   if(s.k==='camp'){ cls=ESTC[s.e]; st=s.e==='Completa'?'Completa':prog(s.c).pm+'% · '+s.e; ico=s.e==='Completa'?'✓':'●'; act=' data-abrir="'+esc(s.c.id)+'" data-sub="muestreo"'; }
   else if(s.k==='previo'){ cls='e-prev'; st='Previo'; ico=''; }
-  else { cls=s.k==='sinr'?'e-sinr':'e-porp'; st=s.k==='sinr'?'Sin registro':'Programar'; ico=s.k==='sinr'?'!':'＋'; if(esCoord()) act=' data-prog="'+pid+'|'+esc(s.per)+'|'+anio+'"'; }
+  else { cls=s.k==='sinr'?'e-sinr':'e-porp'; st=s.k==='sinr'?'Sin registro':'Programar ›'; ico=s.k==='sinr'?'!':'＋'; if(esCoord()) act=' data-prog="'+pid+'|'+esc(s.per)+'|'+anio+'"'; }
   var tag=act?'button type="button"':'span';
   return '<'+tag+' class="pt '+cls+(s.actual?' pt-act':'')+'"'+act+' title="'+esc(s.per+' '+anio+' · '+st+' · '+s.mons.map(function(m){return m.nombre;}).join(', '))+'">'+(ico?'<span class="pt-i">'+ico+'</span>':'')+'<span class="pt-t"><b>'+esc(s.per)+'</b><small>'+esc(st)+'</small></span></'+tag.split(' ')[0]+'>';
 }
