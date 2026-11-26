@@ -270,19 +270,19 @@
   .chips-cli{display:flex;flex-wrap:wrap;gap:6px;}
   .proy-n{margin-left:auto;font-size:12px;color:var(--suave);font-weight:600;white-space:nowrap;}
   .eqc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:14px;margin-bottom:22px;}
-  .eqc{background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--eqc,#16a34a);--eqc:#16a34a;}
+  .eqc{background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);padding:16px;display:flex;flex-direction:column;gap:12px;--eqc:#16a34a;}
   .eqc.eqs-t{--eqc:#ea580c;}.eqc.eqs-p{--eqc:#2563eb;}
   .eqc-h{display:flex;align-items:center;gap:12px;}.eqc-h b{display:block;font-size:15.5px;color:var(--azul);}
-  .eqc-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;background:var(--eqc,#16a34a);flex-shrink:0;box-shadow:0 0 0 3px var(--card-bg),0 0 0 5px color-mix(in srgb,var(--eqc,#16a34a) 30%,transparent);}
-  .eqc-av.sm{width:26px;height:26px;font-size:10.5px;box-shadow:none;}.eqc-av.sm.eqs-t{background:#ea580c;}.eqc-av.sm.eqs-p{background:#2563eb;}.eqc-av.sm.eqs-l{background:#16a34a;}
+  .eqc-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--azul);background:var(--azul-s);flex-shrink:0;}
+  .eqc-av.sm{width:26px;height:26px;font-size:10.5px;}
   .eqc-st{display:inline-block;margin-top:3px;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:color-mix(in srgb,var(--eqc) 12%,transparent);color:var(--eqc);}
-  .eqc-camp{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--borde);border-left:4px solid var(--ec);background:var(--gris);border-radius:10px;padding:9px 10px;cursor:pointer;color:var(--texto);font:inherit;}
+  .eqc-camp{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--borde);background:var(--gris);border-radius:10px;padding:9px 10px;cursor:pointer;color:var(--texto);font:inherit;}
   .eqc-camp:hover{box-shadow:0 2px 10px rgba(0,0,0,.08);}
   .eqc-camp{align-items:flex-start;}
   .eqc-lg{margin-top:4px;width:42px;height:30px;border-radius:6px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;font-size:9px;font-weight:700;color:#334155;}.eqc-lg img{max-width:38px;max-height:26px;}
   .eqc-ct{flex:1;min-width:0;display:flex;flex-direction:column;}.eqc-ct small{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--suave);font-weight:700;}
-  .eqc-ct b{font-size:13.5px;color:var(--azul);}.eqc-per{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ec);font-weight:700;margin-top:2px;}.eqc-fe{font-size:11.5px;color:var(--suave);}.eqc-per .ico-est{width:13px;height:13px;}
-  .eqc-cd{color:var(--ec);font-weight:800;}
+  .eqc-ct b{font-size:13.5px;color:var(--azul);}.eqc-per{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--texto);font-weight:600;margin-top:2px;}.eqc-fe{font-size:11.5px;color:var(--suave);}.eqc-per .ico-est{width:13px;height:13px;}
+  .eqc-cd{color:var(--azul);font-weight:800;}
   .eqc-vacio{font-size:12.5px;color:var(--suave);background:var(--gris);border-radius:10px;padding:12px;text-align:center;}
   .eqc-f{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--suave);border-top:1px solid var(--borde);padding-top:10px;}.eqc-f b{color:var(--texto);}
   .gt{padding:14px 16px;}.gt-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px;}.gt-h h3{margin:0;font-size:15px;color:var(--azul);}
@@ -292,8 +292,8 @@
   .gt-d{flex:1;display:grid;grid-template-columns:repeat(28,1fr);position:relative;height:34px;}
   .gt-d span{border-left:1px solid color-mix(in srgb,var(--borde) 60%,transparent);}.gt-d span.we{background:color-mix(in srgb,var(--gris) 80%,transparent);}
   .gt-cab .gt-d{height:24px;}.gt-cab .gt-d span{font-size:10.5px;color:var(--suave);display:flex;align-items:center;justify-content:center;border-left:none;}
-  .gt-cab .gt-d span.hoy{background:var(--verde);color:#fff;border-radius:6px;font-weight:800;}
-  .gt-bar{position:absolute;top:6px;height:22px;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:700;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18);}
+  .gt-cab .gt-d span.hoy{background:var(--azul);color:#fff;border-radius:6px;font-weight:800;}
+  .gt-bar{position:absolute;top:6px;height:22px;border:none;border-radius:6px;color:#fff;background:#3f5a73;font-size:11px;font-weight:700;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18);}
   .gt-bar:hover{filter:brightness(1.08);}
   table.eqtab td{vertical-align:middle;padding:12px 12px;}
   .eqtab th:first-child{width:32%;}
@@ -1849,7 +1849,7 @@ function renderEquipo(){
   var D=28, dias=[], d0=new Date(HOY); for(var k=0;k<D;k++){ var dd=new Date(d0); dd.setDate(d0.getDate()+k); dias.push(iso(dd)); }
   var cab='<div class="gt-row gt-cab"><div class="gt-n"></div><div class="gt-d">'+dias.map(function(ds,k){ var dt=new Date(ds+'T00:00:00'), w=dt.getDay(); return '<span class="'+(w===0||w===6?'we':'')+(k===0?' hoy':'')+'">'+(k===0||dt.getDate()===1||w===1?'<b>'+dt.getDate()+'</b>':dt.getDate())+'</span>'; }).join('')+'</div></div>';
   var gt=filas.map(function(x){ var bars=x.mias.filter(function(c){ return c.fin>=dias[0]&&c.ini<=dias[D-1]; }).map(function(c){ var a=Math.max(0,diasEntre(dias[0],c.ini)), b=Math.min(D-1,diasEntre(dias[0],c.fin));
-      return '<button class="gt-bar" data-abrir="'+esc(c.id)+'" data-sub="muestreo" style="left:calc('+a+' * 100% / '+D+');width:calc('+(b-a+1)+' * 100% / '+D+');background:'+(EST_COL[c.periodo]||'#15803d')+'" title="'+esc(MATRIZ[c.proyecto].nombre+' · '+periodoLabel(c)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):''))+'">'+esc(MATRIZ[c.proyecto].nombre)+'</button>'; }).join('');
+      return '<button class="gt-bar" data-abrir="'+esc(c.id)+'" data-sub="muestreo" style="left:calc('+a+' * 100% / '+D+');width:calc('+(b-a+1)+' * 100% / '+D+')" title="'+esc(MATRIZ[c.proyecto].nombre+' · '+periodoLabel(c)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):''))+'">'+esc(MATRIZ[c.proyecto].nombre)+'</button>'; }).join('');
     return '<div class="gt-row"><div class="gt-n"><span class="eqc-av sm '+ST[x.st][1]+'">'+esc(ini(x.n))+'</span>'+esc(x.n)+'</div><div class="gt-d gt-l">'+dias.map(function(ds){ var w=new Date(ds+'T00:00:00').getDay(); return '<span class="'+(w===0||w===6?'we':'')+'"></span>'; }).join('')+bars+'</div></div>'; }).join('');
   var mesTxt=MESES[new Date(dias[0]+'T00:00:00').getMonth()]+(dias[0].slice(5,7)!==dias[D-1].slice(5,7)?' – '+MESES[new Date(dias[D-1]+'T00:00:00').getMonth()]:'');
   document.getElementById('tc-equipo').innerHTML='<div class="bar-row"><div><div class="h1">Equipo de terreno</div><div class="sub">Dónde está cada persona hoy, cuándo sale a terreno y su carga del año.</div></div>'+
