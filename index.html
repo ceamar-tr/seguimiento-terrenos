@@ -826,6 +826,9 @@ function vista(){ CAMP=CAMP_ALL.filter(puedeVer); }
 function guardarCamp(){ if(!DEMO){ guardarCopia(); return; } try{ localStorage.setItem('ceamar_terreno_campanas',JSON.stringify(CAMP_ALL)); }catch(e){} }
 // Copia local (modo real): permite abrir la página sin señal con los últimos datos del usuario.
 function guardarCopia(){ if(DEMO||!USUARIO) return; try{ localStorage.setItem('ceamar_terreno_copia',JSON.stringify({usuario:USUARIO,personal:PERSONAL,campanas:CAMP_ALL,el:ahoraTxt()})); }catch(e){} }
+function copiaRapida(){ var k=null; try{ k=JSON.parse(localStorage.getItem('ceamar_terreno_copia')||'null'); }catch(e){}
+  if(!k||!k.usuario) return false;
+  fijarUsuario(k.usuario); if(k.personal&&k.personal.length) PERSONAL=k.personal; CAMP_ALL=(k.campanas||[]).filter(function(c){ return MATRIZ[c.proyecto]; }); vista(); pintarUsuario(); render(); return true; }
 function usarCopia(msg){ var k=null; try{ k=JSON.parse(localStorage.getItem('ceamar_terreno_copia')||'null'); }catch(e){}
   if(!k||!k.usuario){ pedirLogin(msg); return; }
   fijarUsuario(k.usuario); if(k.personal&&k.personal.length) PERSONAL=k.personal; CAMP_ALL=(k.campanas||[]).filter(function(c){ return MATRIZ[c.proyecto]; }); vista(); pintarUsuario(); render();
@@ -1860,7 +1863,10 @@ cargarMatriz().catch(function(){ toast('No se pudo leer la matriz en línea; se 
     pintarNota();
     if(DEMO){ cargarCamp(); var vc=''; try{ vc=localStorage.getItem('ceamar_terreno_ver_como')||''; }catch(e){}
       fijarUsuario(USUARIOS_PRUEBA.filter(function(u){return u.nombre===vc;})[0]||USUARIOS_PRUEBA[0]); pintarUsuario(); render(); return; }
-    if(SESION){ api('datos').then(function(r){ if(r.ok){ aplicarDatos(r); flush(); } else if(r.error==='sesion') pedirLogin(r.mensaje); else usarCopia('El servidor no respondió bien.'); }).catch(function(){ usarCopia('Sin conexión.'); }); }
+    // Muestra al tiro la última copia guardada en el equipo y la actualiza cuando responde el servidor (Apps Script tarda unos segundos).
+    if(SESION){ var vis=copiaRapida();
+      api('datos').then(function(r){ if(r.ok){ aplicarDatos(r); flush(); } else if(r.error==='sesion') pedirLogin(r.mensaje); else if(vis) toast('El servidor no respondió bien. Se muestran los datos guardados en este equipo.'); else usarCopia('El servidor no respondió bien.'); })
+        .catch(function(){ if(vis) toast('Sin conexión. Se muestran los datos guardados en este equipo; lo que marques se enviará al volver la señal.'); else usarCopia('Sin conexión.'); }); }
     else pedirLogin();
   });
 }
