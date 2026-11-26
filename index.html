@@ -1391,7 +1391,7 @@ function renderDocs(c,dro,dis){
           '<label class="dc-l dc-ruta">Ruta del escaneo<span class="ruta"><input class="inp" type="text" data-f="ruta" id="ruta-'+i+'"'+dis+' value="'+esc(d.ruta)+'" placeholder="\\\\SERVIDOR\\Terrenos\\2026\\..." aria-label="Ruta en el servidor de '+esc(d.n)+'"><button type="button" class="btn-s" data-act="copiar" title="Copiar ruta">Copiar</button></span></label></div></div>'; }).join('')+'</div></section>'; }).join('');
 }
 // ─── PLANILLAS DE DATOS DE TERRENO ──────────────────────
-var DIAM=['30','40','50','60'];
+var DIAM=['30','40','50','60','100'];
 var PLAN_DEF={
   ph:{t:'pH y Redox',cod:'RC_7.1.2_HPH',cols:[{k:'hora',l:'Hora',ty:'hora'},{k:'est',l:'Estación',ty:'est'},{k:'mu',l:'Muestra',ty:'txt'},{k:'ph',l:'pH',ty:'num',min:0,max:14},{k:'redox',l:'Redox (mV)',ty:'num',min:-1500,max:1500}]},
   hat:{t:'Cloro libre y turbidez',cod:'RC_7.1.2_HAT',cols:[{k:'hora',l:'Hora',ty:'hora'},{k:'est',l:'Estación',ty:'est'},{k:'mu',l:'Muestra',ty:'txt'},{k:'cl',l:'Cloro libre (mg/L)',ty:'num',min:0},{k:'tu',l:'Turbidez (NTU)',ty:'num',min:0}]},
