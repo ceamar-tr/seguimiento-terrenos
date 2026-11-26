@@ -1578,7 +1578,12 @@ var DIAM=['30','40','50','60','100'];
 var PLAN_DEF={
   ph:{t:'pH y Redox',cod:'RC_7.1.2_HPH',cols:[{k:'hora',l:'Hora',ty:'hora'},{k:'est',l:'Estación',ty:'est'},{k:'mu',l:'Muestra',ty:'txt'},{k:'ph',l:'pH',ty:'num',min:0,max:14},{k:'redox',l:'Redox (mV)',ty:'num',min:-1500,max:1500}]},
   hat:{t:'Cloro libre y turbidez',cod:'RC_7.1.2_HAT',cols:[{k:'hora',l:'Hora',ty:'hora'},{k:'est',l:'Estación',ty:'est'},{k:'mu',l:'Muestra',ty:'txt'},{k:'cl',l:'Cloro libre (mg/L)',ty:'num',min:0},{k:'tu',l:'Turbidez (NTU)',ty:'num',min:0}]},
-  secchi:{t:'Disco Secchi',sinInst:true,cols:[{k:'est',l:'Estación',ty:'est'},{k:'prof',l:'Profundidad de visibilidad (m)',ty:'num',min:0,max:100}]}
+  secchi:{t:'Disco Secchi',sinInst:true,cols:[{k:'est',l:'Estación',ty:'est'},{k:'prof',l:'Profundidad de visibilidad (m)',ty:'num',min:0,max:100}]},
+  // Ficha de observación de mamíferos marinos y aves (solo Quebrada Blanca II · PS-14), igual a la ficha en papel.
+  fauna:{t:'Ficha observación mamíferos marinos y aves',corto:'Ficha de fauna',sinInst:true,
+    hdrCampos:[{k:'observador',l:'Observador',ty:'txt'},{k:'iniLP',l:'Inicio · lobos y pingüinos',ty:'time'},{k:'finLP',l:'Fin · lobos y pingüinos',ty:'time'},{k:'iniCh',l:'Inicio · chungungos',ty:'time'},{k:'finCh',l:'Fin · chungungos',ty:'time'}],
+    cols:[{k:'esp',l:'Especie',ty:'sel',ops:['Lobo común','Lobo dos pelos','Pingüino','Chungungo']},{k:'lugar',l:'Lugar',ty:'lug'},{k:'ind',l:'Individuos',ty:'num',min:0},{k:'obs',l:'Observación',ty:'txt'}],
+    filas:(function(){ var o=[]; ['Lobo común','Lobo dos pelos','Pingüino','Chungungo'].forEach(function(e){ ['Islote Patache','Navegación','Islote Patillos'].forEach(function(l){ o.push({esp:e,lugar:l}); }); }); return o; })()}
 };
 // Cómo se identifican las muestras, según la matriz: réplicas (A, B…), día/noche si hay muestreo nocturno, y estrato si aplica.
 function muestrasMon(m){ var it=(m&&m.items)||[], n=1, noche=false, es=[];
@@ -1622,6 +1627,7 @@ function planillasDe(c,m){ if(!m) return []; var n=sinTilde(m.nombre+' '+m.cod).
   if(esZoo(m)) redesMon(c,m.cod).forEach(function(r){ out.push('f-'+r.red); });
   if(/sentina/.test(n)) out.push('f-Sentina');
   if(/descarga/.test(n)) out.push('f-Descarga');
+  if(/^TECK_QBII/.test(c.proyecto)&&/mamifero/.test(n)) out.push('fauna');
   return out; }
 function numv(v){ if(v==null||v==='') return NaN; return parseFloat(String(v).replace(',','.')); }
 function volFlujo(r,h){ var d=numv(r.diam), a=numv(r.fi), b=numv(r.ff), k=numv(h.k);
@@ -1640,6 +1646,7 @@ function getPlan(c,mon,pk,crear){ c.planillas=c.planillas||{}; var key=mon+'|'+p
   if(d.cols.some(function(x){return x.ty==='est';})&&ests.length) ests.forEach(function(e){
     ((cDn&&cDn.ops)||['']).forEach(function(dn){ ((cEs&&cEs.ops)||['']).forEach(function(es){ ((cMu&&cMu.def)||['']).forEach(function(mu){
       var r=nuevaFila(); r.est=e; if(mu) r.mu=mu; if(dn) r.dn=dn; if(es) r.estr=es; P.rows.push(r); }); }); }); });
+  else if(d.filas) d.filas.forEach(function(o){ var r=nuevaFila(); Object.keys(o).forEach(function(k){ r[k]=o[k]; }); P.rows.push(r); });
   else P.rows.push(nuevaFila());
   var rm=redesMon(c,mon).filter(function(x){return 'f-'+x.red===pk;})[0]; if(rm&&rm.diam){ var dd=String(rm.diam).replace(/[^0-9]/g,''); if(DIAM.indexOf(dd)>=0) P.rows.forEach(function(r){ r.diam=dd; }); }
   c.planillas[key]=P; return P; }
@@ -1653,6 +1660,7 @@ function celdaPlan(d,x,r,P,pk,dis){
   if(x.ty==='hora') return '<td data-l="'+esc(x.l)+'"><span class="pl-hora"><input class="inp" type="time" value="'+esc(v)+'"'+at+'><button type="button" class="lnk" data-pl-ahora="'+esc(pk)+'|'+esc(r.id)+'"'+dis+'>Ahora</button></span></td>';
   if(x.ty==='sel') return '<td data-l="'+esc(x.l)+'"><select class="sel"'+at+'><option value="">—</option>'+x.ops.map(function(o){return '<option'+(o===String(v)?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></td>';
   if(x.ty==='est') return '<td data-l="'+esc(x.l)+'"><input class="inp pl-est" type="text" value="'+esc(v)+'"'+at+' list="pl-ests"></td>';
+  if(x.ty==='lug') return '<td data-l="'+esc(x.l)+'"><input class="inp" type="text" value="'+esc(v)+'"'+at+' list="pl-lug"></td>';
   return '<td data-l="'+esc(x.l)+'"><input class="inp'+(x.ty==='num'?' pl-num':'')+bad+'" type="text"'+(x.ty==='num'?' inputmode="decimal"':'')+' value="'+esc(v)+'"'+at+(bad?' title="Valor fuera de rango"':'')+'></td>';
 }
 function renderPlanillas(c,m,ro){
@@ -1662,12 +1670,13 @@ function renderPlanillas(c,m,ro){
   var pk=S.plan, P=getPlan(c,m.cod,pk)||{hdr:{},rows:[]}, h=P.hdr||{}, d=defPlan(pk,h,m);
   if(!getPlan(c,m.cod,pk)){ P=getPlan(c,m.cod,pk,true); h=P.hdr; }
   var tabs='<div class="pl-tabs" role="tablist">'+pks.map(function(k){ var Pk=getPlan(c,m.cod,k), dk=defPlan(k,Pk&&Pk.hdr,m), n=filasLlenas(Pk,dk);
-    return '<button type="button" role="tab" data-plan="'+esc(k)+'" aria-selected="'+(k===pk)+'">'+esc(dk.t.replace('Flujómetro · ',''))+(dk.flujo?' <small>flujómetro</small>':'')+(n?' <span class="pl-n">'+n+'</span>':'')+(Pk&&Pk.hdr&&Pk.hdr.rev?' ✓':'')+'</button>'; }).join('')+'</div>';
+    return '<button type="button" role="tab" data-plan="'+esc(k)+'" aria-selected="'+(k===pk)+'">'+esc(dk.corto||dk.t.replace('Flujómetro · ',''))+(dk.flujo?' <small>flujómetro</small>':'')+(n?' <span class="pl-n">'+n+'</span>':'')+(Pk&&Pk.hdr&&Pk.hdr.rev?' ✓':'')+'</button>'; }).join('')+'</div>';
   var insp=respMon(c,m.cod).join(', ');
   var hdr='<div class="pl-hdr">'+
     (d.cod?'<div class="pl-cod">Registro '+esc(d.cod)+'</div>':'')+
-    '<div class="pl-hg"><div><span>Proyecto</span><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b></div><div><span>Fecha</span><b>'+esc(fmtD(S.fechaTrabajo||c.ini))+'</b></div><div><span>Inspector o técnico</span><b>'+(insp?esc(insp):'<em class="falta">elige «Realizado por» en el checklist</em>')+'</b></div></div>'+
+    '<div class="pl-hg"><div><span>Proyecto</span><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b></div><div><span>Fecha</span><b>'+esc(fmtD(S.fechaTrabajo||c.ini))+'</b></div>'+(d.hdrCampos?'':'<div><span>Inspector o técnico</span><b>'+(insp?esc(insp):'<em class="falta">elige «Realizado por» en el checklist</em>')+'</b></div>')+'</div>'+
     '<div class="pl-hf">'+(d.sinInst?'':'<label>Equipo<input class="inp" type="text" data-plh="'+esc(pk)+'" data-col="equipo" value="'+esc(h.equipo||'')+'"'+dis+' placeholder="Ej.: '+(d.flujo?'Flujómetro General Oceanics':'Multiparámetro HACH')+'"></label><label>N° de serie<input class="inp" type="text" data-plh="'+esc(pk)+'" data-col="serie" value="'+esc(h.serie||'')+'"'+dis+'></label>')+
+      (d.hdrCampos?d.hdrCampos.map(function(x){ return '<label>'+esc(x.l)+'<input class="inp" type="'+(x.ty==='time'?'time':'text')+'" data-plh="'+esc(pk)+'" data-col="'+x.k+'" value="'+esc(h[x.k]||'')+'"'+dis+(x.k==='observador'&&insp?' placeholder="'+esc(insp)+'"':'')+'></label>'; }).join(''):'')+
       (d.flujo?'<label>Constante del flujómetro (m por cuenta)<input class="inp" type="text" inputmode="decimal" data-plh="'+esc(pk)+'" data-col="k" value="'+esc(h.k||'')+'"'+dis+' placeholder="Ej.: 0,3"></label>':'')+
       '</div>'+(d.flujo&&!d.sinEst?'<div class="pl-hf pl-cfg">'+
         '<label>¿Dónde se pasó la red?<select class="sel" data-plh="'+esc(pk)+'" data-col="pts"'+dis+'><option value="est"'+(d.cfg.pts==='est'?' selected':'')+'>En las estaciones</option><option value="arr"'+(d.cfg.pts==='arr'?' selected':'')+'>Arrastres (sin coordenada)</option></select></label>'+
@@ -1675,7 +1684,7 @@ function renderPlanillas(c,m,ro){
         '<label>Muestras por '+(d.cfg.pts==='arr'?'arrastre':'estación')+'<select class="sel" data-plh="'+esc(pk)+'" data-col="mus"'+dis+'>'+Object.keys(MUS).map(function(k){ return '<option value="'+k+'"'+(d.cfg.mus===k?' selected':'')+'>'+esc(MUS[k].l)+'</option>'; }).join('')+'</select></label>'+
         '</div>'+(d.bocas?'<p class="sub pl-nota">Bongo: se anota una lectura por arrastre y vale para las dos bocas (A y B).</p>':'')+(d.cfg.pts==='arr'&&!d.cfg.arr.length?'<p class="sub pl-nota falta">Escribe los arrastres para armar la planilla.</p>':''):'')+'</div>';
   var ests=(m.estaciones||[]).filter(function(e){return e!=='GENERAL';});
-  var tabla='<datalist id="pl-ests">'+ests.map(function(e){return '<option value="'+esc(e)+'">';}).join('')+'</datalist><div class="pl-wrap"><table class="pl-t"><thead><tr>'+d.cols.map(function(x){return '<th>'+esc(x.l)+'</th>';}).join('')+(ro?'':'<th></th>')+'</tr></thead><tbody>'+
+  var tabla='<datalist id="pl-lug">'+['Islote Patache','Navegación','Islote Patillos'].map(function(e){return '<option value="'+e+'">';}).join('')+'</datalist><datalist id="pl-ests">'+ests.map(function(e){return '<option value="'+esc(e)+'">';}).join('')+'</datalist><div class="pl-wrap"><table class="pl-t"><thead><tr>'+d.cols.map(function(x){return '<th>'+esc(x.l)+'</th>';}).join('')+(ro?'':'<th></th>')+'</tr></thead><tbody>'+
     P.rows.map(function(r){ return '<tr>'+d.cols.map(function(x){ return celdaPlan(d,x,r,P,pk,dis); }).join('')+(ro?'':'<td class="pl-acc"><button type="button" class="lnk" data-pl-dup="'+esc(pk)+'|'+esc(r.id)+'" title="Duplicar fila">⧉</button><button type="button" class="lnk" data-pl-del="'+esc(pk)+'|'+esc(r.id)+'" title="Quitar fila">✕</button></td>')+'</tr>'; }).join('')+'</tbody></table></div>';
   var pie='<div class="pl-pie">'+(ro?'':'<button type="button" class="btn-s" data-pl-add="'+esc(pk)+'">＋ Agregar fila</button>')+
     '<button type="button" class="btn-p" data-pl-pdf="'+esc(pk)+'">Descargar PDF</button><button type="button" class="lnk" data-pl-csv="'+esc(pk)+'">Excel (CSV)</button>'+
@@ -1714,8 +1723,9 @@ function pdfPlanilla(c,mon,pk){
     doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(13,61,92);
     doc.text(pdfTxt(d.t),M,39);
     if(d.cod){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110); doc.text('Registro '+d.cod,W-M,39,{align:'right'}); }
-    var enc=respMon(c,mon).join(', ')||'—';
-    var info=[['Fecha',fmtD(S.fechaTrabajo||c.ini)],['Proyecto',pdfTxt(pr.nombre+(m?' · '+m.nombre:''))],['Nombre encargado',pdfTxt(enc)]];
+    var enc=(h.observador||'')||respMon(c,mon).join(', ')||'—';
+    var info=[['Fecha',fmtD(S.fechaTrabajo||c.ini)],['Proyecto',pdfTxt(pr.nombre+(m?' · '+m.nombre:''))],[d.hdrCampos?'Observador':'Nombre encargado',pdfTxt(enc)]];
+    if(d.hdrCampos) [['Lobos y pingüinos','iniLP','finLP'],['Chungungos','iniCh','finCh']].forEach(function(z){ if(h[z[1]]||h[z[2]]) info.push(['Horario · '+z[0],(h[z[1]]||'—')+' a '+(h[z[2]]||'—')]); });
     doc.autoTable({startY:44,margin:{left:M,right:M},theme:'plain',body:info,styles:{fontSize:10,cellPadding:1.6,textColor:[31,41,55]},columnStyles:{0:{fontStyle:'bold',cellWidth:42,textColor:[13,61,92]}}});
     var head=[orden.map(function(x){return pdfTxt(x.l);})], body;
     if(d.flujo&&!d.sinEst){ head=[[pdfTxt(d.cfg.pts==='arr'?'Arrastre':'Estación'),'Muestra','Volumen filtrado (m3)']]; body=[];
