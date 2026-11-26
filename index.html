@@ -1457,7 +1457,7 @@ function renderPlanillas(c,m,ro){
   var tabla='<datalist id="pl-ests">'+ests.map(function(e){return '<option value="'+esc(e)+'">';}).join('')+'</datalist><div class="pl-wrap"><table class="pl-t"><thead><tr>'+d.cols.map(function(x){return '<th>'+esc(x.l)+'</th>';}).join('')+(ro?'':'<th></th>')+'</tr></thead><tbody>'+
     P.rows.map(function(r){ return '<tr>'+d.cols.map(function(x){ return celdaPlan(d,x,r,P,pk,dis); }).join('')+(ro?'':'<td class="pl-acc"><button type="button" class="lnk" data-pl-dup="'+esc(pk)+'|'+esc(r.id)+'" title="Duplicar fila">⧉</button><button type="button" class="lnk" data-pl-del="'+esc(pk)+'|'+esc(r.id)+'" title="Quitar fila">✕</button></td>')+'</tr>'; }).join('')+'</tbody></table></div>';
   var pie='<div class="pl-pie">'+(ro?'':'<button type="button" class="btn-s" data-pl-add="'+esc(pk)+'">＋ Agregar fila</button>')+
-    '<button type="button" class="btn-s" data-pl-csv="'+esc(pk)+'">Descargar planilla</button>'+
+    '<button type="button" class="btn-p" data-pl-pdf="'+esc(pk)+'">Descargar PDF</button><button type="button" class="lnk" data-pl-csv="'+esc(pk)+'">Excel (CSV)</button>'+
     '<span class="pl-rev">'+(h.rev?'✓ Revisado por <b>'+esc(h.revPor||'')+'</b> · '+esc(cuando(h.revEl))+(esCoord()&&!ro?' <button type="button" class="lnk" data-pl-rev="'+esc(pk)+'">Quitar</button>':''):(esCoord()&&!ro?'<button type="button" class="btn-s" data-pl-rev="'+esc(pk)+'">Marcar revisado (Gerente Técnico)</button>':'<span class="sub">Sin revisión</span>'))+'</span></div>'+
     (d.flujo?'<p class="sub" style="margin-top:6px">Volumen filtrado (m³) = (final − inicial) × π × (diámetro/2)² × constante del flujómetro. La constante 0,3 viene de la planilla que usaban en CEAMAR; cámbiala si el flujómetro es otro.</p>':'');
   return tabs+hdr+tabla+pie;
@@ -1470,13 +1470,51 @@ function refrescarPlan(c,pk){ var P=getPlan(c,S.mon,pk), h=P.hdr||{}, d=defPlan(
       else if(x.ty==='num'){ var e=td.querySelector('input'); if(!e) return; var v=e.value, n=numv(v), bad=v!==''&&(isNaN(n)||(x.min!=null&&n<x.min)||(x.max!=null&&n>x.max)||(d.flujo&&x.k==='ff'&&numv(r.fi)>n)); e.classList.toggle('bad',!!bad); e.title=bad?'Valor fuera de rango':''; } }); });
   var tab=document.querySelector('.pl-tabs [data-plan="'+pk+'"]'); if(tab){ var n=filasLlenas(P,d), sp=tab.querySelector('.pl-n'); if(n&&!sp){ tab.insertAdjacentHTML('beforeend',' <span class="pl-n">'+n+'</span>'); } else if(sp){ if(n) sp.textContent=n; else sp.remove(); } }
 }
+// PDF de la planilla (jsPDF + autotable, en lib/; se cargan solo al pedir el PDF)
+function cargarScript(src){ return new Promise(function(ok,mal){ var s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=function(){ mal(new Error('No se pudo cargar '+src)); }; document.head.appendChild(s); }); }
+function libPDF(){ if(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable) return Promise.resolve(); return cargarScript('lib/jspdf.umd.min.js').then(function(){ return cargarScript('lib/jspdf.plugin.autotable.min.js'); }); }
+function imgData(src){ return new Promise(function(ok){ if(!src) return ok(null); fetch(src).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(b){ var fr=new FileReader(); fr.onload=function(){ var im=new Image(); im.onload=function(){ ok({d:fr.result,w:im.naturalWidth,h:im.naturalHeight,f:/png/i.test(b.type)?'PNG':'JPEG'}); }; im.onerror=function(){ ok(null); }; im.src=fr.result; }; fr.readAsDataURL(b); }).catch(function(){ ok(null); }); }); }
+function pdfTxt(v){ return String(v==null?'':v).replace(/³/g,'3').replace(/²/g,'^2').replace(/[−–]/g,'-').replace(/π/g,'pi').replace(/×/g,'x').replace(/[«»]/g,'"'); }
+function pdfPlanilla(c,mon,pk){
+  var P=getPlan(c,mon,pk,true), h=P.hdr||{}, d=defPlan(pk,h), pr=MATRIZ[c.proyecto], m=mOf(c,mon);
+  var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
+  var filas=P.rows.filter(function(r){ return orden.some(function(x){ return x.ty!=='est'&&x.ty!=='calc'&&x.k!=='diam'&&r[x.k]!=null&&r[x.k]!==''; }); });
+  if(!filas.length){ toast('La planilla aún no tiene datos'); return; }
+  toast('Preparando PDF…');
+  var cfg=CLIENTES[pr.cliente]||{};
+  Promise.all([libPDF(),imgData('logos/CEAMAR.jpg'),imgData(cfg.logo)]).then(function(res){
+    var L1=res[1], L2=res[2], J=window.jspdf.jsPDF, horiz=orden.length>6;
+    var doc=new J({orientation:horiz?'landscape':'portrait',unit:'mm',format:'a4'}), W=doc.internal.pageSize.getWidth(), M=14;
+    function logo(L,x,y,maxW,maxH,der){ if(!L) return; var r=Math.min(maxW/L.w,maxH/L.h), w=L.w*r, hh=L.h*r; doc.addImage(L.d,L.f,der?x-w:x,y+(maxH-hh)/2,w,hh); }
+    logo(L1,M,10,42,16,false); logo(L2,W-M,10,38,16,true);
+    if(!L2&&pr.cliente){ doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(13,61,92); doc.text(pr.cliente,W-M,20,{align:'right'}); }
+    doc.setDrawColor(26,92,46); doc.setLineWidth(.6); doc.line(M,30,W-M,30);
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(13,61,92);
+    doc.text(pdfTxt(d.t),M,39);
+    if(d.cod){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110); doc.text('Registro '+d.cod,W-M,39,{align:'right'}); }
+    var enc=respMon(c,mon).join(', ')||'—';
+    var info=[['Fecha',fmtD(S.fechaTrabajo||c.ini)],['Proyecto',pdfTxt(pr.nombre+(m?' · '+m.nombre:''))],['Nombre encargado',pdfTxt(enc)]];
+    doc.autoTable({startY:44,margin:{left:M,right:M},theme:'plain',body:info,styles:{fontSize:10,cellPadding:1.6,textColor:[31,41,55]},columnStyles:{0:{fontStyle:'bold',cellWidth:42,textColor:[13,61,92]}}});
+    var head=[orden.map(function(x){return pdfTxt(x.l);})];
+    var body=filas.map(function(r){ return orden.map(function(x){ var v=x.ty==='calc'?volFlujo(r,h):r[x.k]; return pdfTxt(v); }); });
+    doc.autoTable({startY:doc.lastAutoTable.finalY+4,margin:{left:M,right:M},head:head,body:body,theme:'grid',
+      headStyles:{fillColor:[26,92,46],textColor:255,fontStyle:'bold',fontSize:9,halign:'center'},bodyStyles:{fontSize:9.5,halign:'center',textColor:[31,41,55]},alternateRowStyles:{fillColor:[243,247,244]},styles:{lineColor:[210,214,220],lineWidth:.2}});
+    var y=doc.lastAutoTable.finalY+6; doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(90);
+    var notas=[]; if(d.flujo) notas.push('Volumen filtrado (m³) = (final − inicial) × π × (diámetro/2)² × '+(h.k||'constante')+' (constante del flujómetro).');
+    if(h.equipo||h.serie) notas.push('Equipo: '+(h.equipo||'—')+(h.serie?' · N° de serie: '+h.serie:''));
+    if(h.rev) notas.push('Revisado por '+(h.revPor||'')+' el '+cuando(h.revEl)+'.');
+    notas.forEach(function(t){ var ls=doc.splitTextToSize(pdfTxt(t),W-2*M); doc.text(ls,M,y); y+=ls.length*4.2; });
+    var n=doc.getNumberOfPages(), H=doc.internal.pageSize.getHeight();
+    for(var i=1;i<=n;i++){ doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(140); doc.text('CEAMAR · Seguimiento de Terrenos · generado el '+fmtD(HOY_S),M,H-8); doc.text('Página '+i+' de '+n,W-M,H-8,{align:'right'}); }
+    doc.save((d.cod||d.t).replace(/[^A-Za-z0-9_.-]+/g,'_')+'_'+c.id+'.pdf');
+  }).catch(function(e){ toast('No se pudo crear el PDF: '+e.message); });
+}
 function csvPlanilla(c,mon,pk){
   var P=getPlan(c,mon,pk,true), h=P.hdr||{}, d=defPlan(pk,h), q=function(v){ v=String(v==null?'':v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
-  var L=[['Registro',d.cod||d.t].map(q).join(';'),['Fecha',fmtD(S.fechaTrabajo||c.ini)].map(q).join(';'),['Proyecto',MATRIZ[c.proyecto].nombre].map(q).join(';'),['Equipo',h.equipo||''].map(q).join(';'),['N° de serie',h.serie||''].map(q).join(';'),['Inspector o técnico',respMon(c,mon).join(', ')].map(q).join(';')];
-  if(d.flujo) L.push(['Constante del flujómetro',h.k||''].map(q).join(';'));
-  if(h.rev) L.push(['Revisado por',(h.revPor||'')+' '+(h.revEl||'')].map(q).join(';'));
-  L.push(''); L.push(d.cols.map(function(x){return q(x.l);}).join(';'));
-  P.rows.forEach(function(r){ L.push(d.cols.map(function(x){ return q(x.ty==='calc'?volFlujo(r,h):r[x.k]); }).join(';')); });
+  var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
+  var L=[['Fecha',fmtD(S.fechaTrabajo||c.ini)].map(q).join(';'),['Proyecto',MATRIZ[c.proyecto].nombre].map(q).join(';'),['Nombre encargado',respMon(c,mon).join(', ')].map(q).join(';')];
+  L.push(''); L.push(orden.map(function(x){return q(x.l);}).join(';'));
+  P.rows.forEach(function(r){ if(!orden.some(function(x){ return x.ty!=='est'&&x.ty!=='calc'&&x.k!=='diam'&&r[x.k]; })) return; L.push(orden.map(function(x){ return q(x.ty==='calc'?volFlujo(r,h):r[x.k]); }).join(';')); });
   var blob=new Blob(['﻿'+L.join('\n')],{type:'text/csv;charset=utf-8'}), a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download=(d.cod||d.t).replace(/[^A-Za-z0-9_.-]+/g,'_')+'_'+c.id+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
 }
@@ -1663,6 +1701,7 @@ W.addEventListener('click',function(e){
   if(b.dataset.irplan){ S.vistaMon='datos'; S.plan=b.dataset.irplan; renderDetalle(); var pl=document.querySelector('.pl'); if(pl) pl.scrollIntoView({behavior:'smooth',block:'start'}); return; }
   if(b.dataset.vmon){ S.vistaMon=b.dataset.vmon; renderDetalle(); return; }
   if(b.dataset.plan){ S.plan=b.dataset.plan; renderDetalle(); return; }
+  if(b.dataset.plPdf){ pdfPlanilla(getC(S.cid),S.mon,b.dataset.plPdf); return; }
   if(b.dataset.plAdd||b.dataset.plDup||b.dataset.plDel||b.dataset.plRev||b.dataset.plAhora||b.dataset.plCsv){ var cp=getC(S.cid), x=(b.dataset.plAdd||b.dataset.plDup||b.dataset.plDel||b.dataset.plRev||b.dataset.plAhora||b.dataset.plCsv).split('|'), pkk=x[0], rid=x[1];
     if(b.dataset.plCsv){ csvPlanilla(cp,S.mon,pkk); return; }
     var PP=getPlan(cp,S.mon,pkk,true);
