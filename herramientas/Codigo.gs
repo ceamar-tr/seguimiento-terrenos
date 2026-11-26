@@ -24,6 +24,7 @@ function doPost(e) {
     if (!u) return json_({ ok: false, error: 'sesion', mensaje: 'La sesión expiró o no tienes acceso. Vuelve a iniciar sesión.' });
     if (p.accion === 'logout') { PropertiesService.getScriptProperties().deleteProperty('s_' + p.sesion); return json_({ ok: true }); }
     if (p.accion === 'datos') return json_(datos_(u));
+    if (p.accion === 'historial') return json_(historial_(u));
     var lock = LockService.getScriptLock(); lock.waitLock(20000);
     try { return json_(cambiar_(u, p.accion, p.datos || {})); }
     finally { lock.releaseLock(); }
@@ -133,12 +134,15 @@ function cambiar_(u, accion, d) {
     case 'tareas':
       c = campana_(d.campana); if (!c) return noExiste_();
       if (!puedeMarcar_(u, c)) return negado_();
+      // Guarda cada estación y deja en Cambios el estado anterior y el nuevo (así se ven las correcciones).
+      var chk = {}; leer_('Checklist').forEach(function (r) { chk[r.id_tarea] = r; });
       (accion === 'tarea' ? [d] : (d.lista || [])).forEach(function (t) {
-        actualizar_('Checklist', 'id_tarea', t.id, { estado: t.estado || '', fecha: t.fecha || '', hora: t.hora || '', motivo: t.motivo || '',
+        var f = chk[t.id], antes = f ? String(f.estado || '') : '';
+        if (f) actualizarFila_('Checklist', f._fila, { estado: t.estado || '', fecha: t.fecha || '', hora: t.hora || '', motivo: t.motivo || '',
           datos: t.datos ? JSON.stringify(t.datos) : '', actualizado_por: u.correo, actualizado_el: ahora_() });
+        registrar_(u, 'estación', d.campana, (t.estado || 'sin marcar') + (t.fecha ? ' (' + t.fecha + ')' : '') + (t.motivo ? ' · motivo: ' + t.motivo : ''),
+          { monitoreo: t.monitoreo || d.monitoreo || (f && f.monitoreo) || '', estacion: t.estacion || (f && f.estacion) || '', antes: antes || 'Sin marcar', despues: t.estado || 'Sin marcar' });
       });
-      registrar_(u, accion === 'tarea' ? 'marcar estación' : 'marcar varias', d.campana,
-        accion === 'tarea' ? d.monitoreo + ' ' + d.estacion + ': ' + (d.estado || 'sin marcar') + (d.fecha ? ' (' + d.fecha + ')' : '') : (d.lista || []).length + ' estaciones de ' + d.monitoreo);
       return { ok: true };
 
     case 'responsables':
@@ -289,7 +293,42 @@ function campana_(id) {
   if (c) c.equipo = c.equipo || '';
   return c;
 }
-function registrar_(u, accion, campana, detalle) { agregar_('Cambios', { fecha_hora: ahora_(), usuario: u.nombre + ' <' + u.correo + '>', accion: accion, id_campana: campana, detalle: detalle }); }
+// Cambios = historial permanente: solo se agregan filas; la página nunca borra ni edita esta hoja.
+function registrar_(u, accion, campana, detalle, extra) {
+  prepararCambios_();
+  var o = { fecha_hora: ahora_(), usuario: u.nombre + ' <' + u.correo + '>', accion: accion, id_campana: campana, detalle: detalle };
+  if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+  agregar_('Cambios', o);
+}
+function prepararCambios_() {
+  var pr = PropertiesService.getScriptProperties();
+  if (pr.getProperty('cambios_v2')) return;
+  asegurarHoja_('Cambios', ['fecha_hora', 'usuario', 'accion', 'id_campana', 'detalle']);
+  ['monitoreo', 'estacion', 'antes', 'despues'].forEach(function (c) { asegurarColumna_('Cambios', c); });
+  try { // protege la hoja: solo la dueña puede editarla o borrar filas
+    var h = hoja_('Cambios'), p = h.protect().setDescription('Historial de cambios: no se edita ni se borra');
+    var yo = Session.getEffectiveUser(); p.addEditor(yo);
+    p.removeEditors(p.getEditors().filter(function (e) { return e.getEmail() !== yo.getEmail(); }));
+    if (p.canDomainEdit()) p.setDomainEdit(false);
+  } catch (e) { }
+  pr.setProperty('cambios_v2', '1');
+}
+// Historial para la página: los últimos cambios de las campañas que el usuario puede ver.
+function historial_(u) {
+  if (!SpreadsheetApp.getActive().getSheetByName('Cambios')) return { ok: true, cambios: [] };
+  var camps = {}; leer_('Campañas').forEach(function (c) { camps[c.id_campana] = c; });
+  var nombres = {}; leer_('Usuarios').forEach(function (r) { if (r.correo) nombres[String(r.correo).trim().toLowerCase()] = String(r.nombre || '').trim(); });
+  var filas = leer_('Cambios').filter(function (r) {
+    var c = camps[r.id_campana]; if (!c) return u.rol !== 'Muestreador';
+    return puedeVer_(u, c);
+  });
+  filas = filas.slice(-600).reverse().map(function (r) {
+    var m = String(r.usuario || '').match(/^(.*?)\s*<(.+)>$/), nom = m ? (m[1] || nombres[m[2].toLowerCase()] || m[2]) : String(r.usuario || '');
+    return { el: texto_(r.fecha_hora), por: nom, accion: String(r.accion || ''), campana: String(r.id_campana || ''), detalle: String(r.detalle || ''),
+      mon: String(r.monitoreo || ''), est: String(r.estacion || ''), antes: String(r.antes || ''), despues: String(r.despues || '') };
+  });
+  return { ok: true, cambios: filas };
+}
 
 // ─── Utilidades ───────────────────────────────────────────
 function lista_(s) { return String(s || '').split(',').map(function (x) { return x.trim(); }).filter(String); }
