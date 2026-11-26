@@ -335,7 +335,8 @@ function lista_(s) { return String(s || '').split(',').map(function (x) { return
 function ahora_() { return Utilities.formatDate(new Date(), 'America/Santiago', 'yyyy-MM-dd HH:mm'); }
 function texto_(v) {
   if (!v) return '';
-  if (Object.prototype.toString.call(v) === '[object Date]') return Utilities.formatDate(v, 'America/Santiago', 'yyyy-MM-dd HH:mm');
+  // Las fechas que Sheets convirtió solas se leen en la zona horaria de la planilla (así vuelven a la hora en que se escribieron).
+  if (Object.prototype.toString.call(v) === '[object Date]') return Utilities.formatDate(v, SpreadsheetApp.getActive().getSpreadsheetTimeZone(), 'yyyy-MM-dd HH:mm');
   return String(v);
 }
 function fecha_(v) {
