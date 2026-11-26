@@ -1230,7 +1230,7 @@ function renderChecklist(c){
     (hayMarcas&&!rm.length?'<div class="warnline">Indica quién hizo este monitoreo</div>':'')+
     (esZoo(m)?(function(){ var rl=redesMon(c,m.cod), sel=rl.map(function(r){return r.red;}), faltaD=rl.filter(function(r){return !r.diam;}).map(function(r){return r.red;});
       return '<div class="ck-redes"><span>Redes usadas</span><div class="ck-chips">'+REDES.map(function(n){ var on=sel.indexOf(n)>=0; return '<button class="chip" data-red="'+esc(n)+'" aria-pressed="'+on+'">'+(on?'✓ ':'')+esc(n)+'</button>'; }).join('')+'</div>'+
-        (rl.length?'<div class="rd-l">'+rl.map(function(r){ var Pf=getPlan(c,m.cod,'f-'+r.red), nf=filasLlenas(Pf,defPlan('f-'+r.red,Pf&&Pf.hdr));
+        (rl.length?'<div class="rd-l">'+rl.map(function(r){ var Pf=getPlan(c,m.cod,'f-'+r.red), nf=filasLlenas(Pf,defPlan('f-'+r.red,Pf&&Pf.hdr,m));
           return '<div class="rd-i"><b>'+esc(r.red)+'</b><label>Diámetro <input class="inp" type="text" data-rdiam="'+esc(r.red)+'" value="'+esc(r.diam)+'" placeholder="ej. 60 cm" aria-label="Diámetro de la red '+esc(r.red)+'"></label><button type="button" class="btn-flujo" data-irplan="f-'+esc(r.red)+'">Flujómetro'+(nf?' · '+nf+(nf===1?' registro':' registros'):'')+' ›</button></div>'; }).join('')+'</div>':'')+
         (hayMarcas&&!rl.length?'<div class="warnline" style="margin-top:6px">Indica qué redes se usaron</div>':faltaD.length?'<div class="warnline" style="margin-top:6px">Falta el diámetro de '+esc(faltaD.join(', '))+'</div>':'')+'</div>'; })():'')+
     (esCTD(m)?bloqueClima(c,m,hayMarcas):'')+'</div>';
@@ -1239,7 +1239,7 @@ function renderChecklist(c){
   else if(S.lote&&S.lote.mon===m.cod) antes+='<div class="lote">'+S.lote.ids.length+' estaciones marcadas como realizadas el '+fmtD(S.lote.fecha)+'. <button class="lnk" id="lote-deshacer">Deshacer</button></div>';
   else if(S.confirmTodas===m.cod&&sinM.length) antes+='<div class="lote">¿Marcar '+(sinM.length===1?'la <b>1</b> estación restante':'las <b>'+sinM.length+'</b> estaciones restantes')+' de '+esc(m.nombre)+' como realizadas el <b>'+fmtD(S.fechaTrabajo)+'</b>? <button class="btn-p btn-sm" id="todas-si">Sí, marcar</button> <button class="btn-s btn-sm" id="todas-no">Cancelar</button></div>';
   else if(sinM.length) antes+='<div class="lote-btn"><button class="btn-todas" id="todas">✓ Marcar todas las restantes como realizadas <span class="n">'+sinM.length+'</span></button></div>';
-  var pks=planillasDe(c,m), nDat=pks.reduce(function(s,k){ var Pk=getPlan(c,m.cod,k); return s+filasLlenas(Pk,defPlan(k,Pk&&Pk.hdr)); },0);
+  var pks=planillasDe(c,m), nDat=pks.reduce(function(s,k){ var Pk=getPlan(c,m.cod,k); return s+filasLlenas(Pk,defPlan(k,Pk&&Pk.hdr,m)); },0);
   if(!pks.length&&!esZoo(m)) S.vistaMon='check';
   var vistaT=(pks.length||esZoo(m))?'<div class="ck-vista" role="tablist"><button type="button" role="tab" data-vmon="check" aria-selected="'+(S.vistaMon!=='datos')+'">Checklist</button><button type="button" role="tab" data-vmon="datos" aria-selected="'+(S.vistaMon==='datos')+'">Datos de terreno'+(nDat?' <span class="pl-n">'+nDat+'</span>':'')+'</button></div>':'';
   var main='<section class="ck-main"><div class="ck-head"><div><div class="ck-tit">'+esc(m.nombre)+tagAnual(m)+' <span class="ck-cnt">'+a.dn+'/'+a.ts.length+'</span></div><div class="sub">'+esc(resumenMon(m))+'</div></div>'+
@@ -1397,16 +1397,23 @@ var PLAN_DEF={
   hat:{t:'Cloro libre y turbidez',cod:'RC_7.1.2_HAT',cols:[{k:'hora',l:'Hora',ty:'hora'},{k:'est',l:'Estación',ty:'est'},{k:'mu',l:'Muestra',ty:'txt'},{k:'cl',l:'Cloro libre (mg/L)',ty:'num',min:0},{k:'tu',l:'Turbidez (NTU)',ty:'num',min:0}]},
   secchi:{t:'Disco Secchi',sinInst:true,cols:[{k:'est',l:'Estación',ty:'est'},{k:'prof',l:'Profundidad de visibilidad (m)',ty:'num',min:0,max:100}]}
 };
-function defFlujo(red,h){ h=h||{};
-  var sinEst=red==='Sentina'||red==='Descarga', nan=red==='Nansen', dos=nan&&h.lances==='2';
+// Cómo se identifican las muestras, según la matriz: réplicas (A, B…), día/noche si hay muestreo nocturno, y estrato si aplica.
+function muestrasMon(m){ var it=(m&&m.items)||[], n=1, noche=false, es=[];
+  it.forEach(function(x){ n=Math.max(n,x.n||1); if(x.noches>0) noche=true; if(x.estrato&&es.indexOf(x.estrato)<0) es.push(x.estrato); });
+  var rep=[]; for(var i=0;i<Math.min(n,8);i++) rep.push(String.fromCharCode(65+i));
+  return {rep:rep,noche:noche,es:es}; }
+function defFlujo(red,h,m){ h=h||{};
+  var sinEst=red==='Sentina'||red==='Descarga', nan=red==='Nansen', dos=nan&&h.lances==='2', M=muestrasMon(m);
   var cols=[];
   if(!sinEst) cols.push({k:'est',l:'Estación',ty:'est'});
-  cols.push(nan?{k:'mu',l:'Muestra',ty:'sel',ops:['A','B']}:sinEst?{k:'mu',l:'Muestra',ty:'txt'}:{k:'mu',l:'Muestra',ty:'sel',ops:['Día','Noche']});
+  if(sinEst) cols.push({k:'mu',l:'Muestra',ty:'txt'});
+  else { cols.push({k:'mu',l:'Muestra',ty:'sel',ops:M.rep.length>1?M.rep:['A','B'],def:M.rep.length>1?M.rep:['']}); if(M.noche) cols.push({k:'dn',l:'Día / noche',ty:'sel',ops:['Día','Noche']}); }
   if(dos) cols.push({k:'estr',l:'Estrato',ty:'sel',ops:['Fondo','Mitad']});
+  else if(!sinEst&&M.es.length) cols.push({k:'estr',l:'Estrato',ty:'sel',ops:M.es});
   cols.push({k:'diam',l:'Diámetro (cm)',ty:'sel',ops:DIAM},{k:'fi',l:'Flujómetro inicial',ty:'num',min:0},{k:'ff',l:'Flujómetro final',ty:'num',min:0},{k:'vol',l:'Volumen filtrado (m³)',ty:'calc'});
   return {t:'Flujómetro · '+red,flujo:true,red:red,cols:cols};
 }
-function defPlan(pk,h){ return pk.indexOf('f-')===0?defFlujo(pk.slice(2),h):PLAN_DEF[pk]; }
+function defPlan(pk,h,m){ return pk.indexOf('f-')===0?defFlujo(pk.slice(2),h,m):PLAN_DEF[pk]; }
 function planillasDe(c,m){ if(!m) return []; var n=sinTilde(m.nombre+' '+m.cod).toLowerCase(), out=[];
   if(/columna de agua|(^| )agua( |$)/.test(n)) out.push('ph','hat','secchi');
   if(esZoo(m)) redesMon(c,m.cod).forEach(function(r){ out.push('f-'+r.red); });
@@ -1420,9 +1427,12 @@ function volFlujo(r,h){ var d=numv(r.diam), a=numv(r.fi), b=numv(r.ff), k=numv(h
 function nuevaFila(){ return {id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}; }
 function getPlan(c,mon,pk,crear){ c.planillas=c.planillas||{}; var key=mon+'|'+pk, P=c.planillas[key];
   if(P||!crear) return P;
-  var m=mOf(c,mon), d=defPlan(pk,{}), ests=(m?m.estaciones:[]).filter(function(e){return e!=='GENERAL';});
+  var m=mOf(c,mon), d=defPlan(pk,{},m), ests=(m?m.estaciones:[]).filter(function(e){return e!=='GENERAL';});
   P={hdr:{},rows:[]}; if(d.flujo) P.hdr.k='0,3';
-  if(d.cols.some(function(x){return x.ty==='est';})&&ests.length) ests.forEach(function(e){ var r=nuevaFila(); r.est=e; P.rows.push(r); });
+  var cMu=d.flujo&&d.cols.filter(function(x){return x.k==='mu'&&x.ty==='sel';})[0], cDn=d.cols.filter(function(x){return x.k==='dn';})[0], cEs=d.cols.filter(function(x){return x.k==='estr';})[0];
+  if(d.cols.some(function(x){return x.ty==='est';})&&ests.length) ests.forEach(function(e){
+    ((cDn&&cDn.ops)||['']).forEach(function(dn){ ((cEs&&cEs.ops)||['']).forEach(function(es){ ((cMu&&cMu.def)||['']).forEach(function(mu){
+      var r=nuevaFila(); r.est=e; if(mu) r.mu=mu; if(dn) r.dn=dn; if(es) r.estr=es; P.rows.push(r); }); }); }); });
   else P.rows.push(nuevaFila());
   var rm=redesMon(c,mon).filter(function(x){return 'f-'+x.red===pk;})[0]; if(rm&&rm.diam){ var dd=String(rm.diam).replace(/[^0-9]/g,''); if(DIAM.indexOf(dd)>=0) P.rows.forEach(function(r){ r.diam=dd; }); }
   c.planillas[key]=P; return P; }
@@ -1442,9 +1452,9 @@ function renderPlanillas(c,m,ro){
   var pks=planillasDe(c,m), dis=ro?' disabled':'';
   if(!pks.length) return '<div class="pempty">Este monitoreo no tiene planillas de datos.'+(esZoo(m)?' Elige las redes usadas en el checklist para ver su flujómetro.':'')+'</div>';
   if(pks.indexOf(S.plan)<0) S.plan=pks[0];
-  var pk=S.plan, P=getPlan(c,m.cod,pk)||{hdr:{},rows:[]}, h=P.hdr||{}, d=defPlan(pk,h);
+  var pk=S.plan, P=getPlan(c,m.cod,pk)||{hdr:{},rows:[]}, h=P.hdr||{}, d=defPlan(pk,h,m);
   if(!getPlan(c,m.cod,pk)){ P=getPlan(c,m.cod,pk,true); h=P.hdr; }
-  var tabs='<div class="pl-tabs" role="tablist">'+pks.map(function(k){ var Pk=getPlan(c,m.cod,k), dk=defPlan(k,Pk&&Pk.hdr), n=filasLlenas(Pk,dk);
+  var tabs='<div class="pl-tabs" role="tablist">'+pks.map(function(k){ var Pk=getPlan(c,m.cod,k), dk=defPlan(k,Pk&&Pk.hdr,m), n=filasLlenas(Pk,dk);
     return '<button type="button" role="tab" data-plan="'+esc(k)+'" aria-selected="'+(k===pk)+'">'+esc(dk.t.replace('Flujómetro · ',''))+(dk.flujo?' <small>flujómetro</small>':'')+(n?' <span class="pl-n">'+n+'</span>':'')+(Pk&&Pk.hdr&&Pk.hdr.rev?' ✓':'')+'</button>'; }).join('')+'</div>';
   var insp=respMon(c,m.cod).join(', ');
   var hdr='<div class="pl-hdr">'+
@@ -1463,7 +1473,7 @@ function renderPlanillas(c,m,ro){
   return tabs+hdr+tabla+pie;
 }
 // Actualiza cálculos y validaciones sin redibujar (para no perder el foco al pasar de un casillero a otro).
-function refrescarPlan(c,pk){ var P=getPlan(c,S.mon,pk), h=P.hdr||{}, d=defPlan(pk,h);
+function refrescarPlan(c,pk){ var P=getPlan(c,S.mon,pk), h=P.hdr||{}, d=defPlan(pk,h,mOf(c,S.mon));
   document.querySelectorAll('.pl-t tbody tr').forEach(function(tr){ var inp=tr.querySelector('[data-row]'); if(!inp) return; var r=P.rows.filter(function(x){return x.id===inp.dataset.row;})[0]; if(!r) return;
     var tds=tr.children; d.cols.forEach(function(x,i){ var td=tds[i]; if(!td) return;
       if(x.ty==='calc'){ var vo=volFlujo(r,h); td.innerHTML=vo?(vo==='falta constante'?'<span class="sub">falta constante</span>':esc(vo)):'—'; }
@@ -1476,9 +1486,9 @@ function libPDF(){ if(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.a
 function imgData(src){ return new Promise(function(ok){ if(!src) return ok(null); fetch(src).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(b){ var fr=new FileReader(); fr.onload=function(){ var im=new Image(); im.onload=function(){ ok({d:fr.result,w:im.naturalWidth,h:im.naturalHeight,f:/png/i.test(b.type)?'PNG':'JPEG'}); }; im.onerror=function(){ ok(null); }; im.src=fr.result; }; fr.readAsDataURL(b); }).catch(function(){ ok(null); }); }); }
 function pdfTxt(v){ return String(v==null?'':v).replace(/³/g,'3').replace(/²/g,'^2').replace(/[−–]/g,'-').replace(/π/g,'pi').replace(/×/g,'x').replace(/[«»]/g,'"'); }
 function pdfPlanilla(c,mon,pk){
-  var P=getPlan(c,mon,pk,true), h=P.hdr||{}, d=defPlan(pk,h), pr=MATRIZ[c.proyecto], m=mOf(c,mon);
+  var P=getPlan(c,mon,pk,true), h=P.hdr||{}, m=mOf(c,mon), d=defPlan(pk,h,m), pr=MATRIZ[c.proyecto];
   var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
-  var filas=P.rows.filter(function(r){ return orden.some(function(x){ return x.ty!=='est'&&x.ty!=='calc'&&x.k!=='diam'&&r[x.k]!=null&&r[x.k]!==''; }); });
+  var filas=P.rows.filter(function(r){ return orden.some(function(x){ return (x.ty==='num'||x.ty==='txt'||x.ty==='hora')&&r[x.k]!=null&&r[x.k]!==''; }); });
   if(!filas.length){ toast('La planilla aún no tiene datos'); return; }
   toast('Preparando PDF…');
   var cfg=CLIENTES[pr.cliente]||{};
@@ -1510,11 +1520,11 @@ function pdfPlanilla(c,mon,pk){
   }).catch(function(e){ toast('No se pudo crear el PDF: '+e.message); });
 }
 function csvPlanilla(c,mon,pk){
-  var P=getPlan(c,mon,pk,true), h=P.hdr||{}, d=defPlan(pk,h), q=function(v){ v=String(v==null?'':v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  var P=getPlan(c,mon,pk,true), h=P.hdr||{}, d=defPlan(pk,h,mOf(c,mon)), q=function(v){ v=String(v==null?'':v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
   var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
   var L=[['Fecha',fmtD(S.fechaTrabajo||c.ini)].map(q).join(';'),['Proyecto',MATRIZ[c.proyecto].nombre].map(q).join(';'),['Nombre encargado',respMon(c,mon).join(', ')].map(q).join(';')];
   L.push(''); L.push(orden.map(function(x){return q(x.l);}).join(';'));
-  P.rows.forEach(function(r){ if(!orden.some(function(x){ return x.ty!=='est'&&x.ty!=='calc'&&x.k!=='diam'&&r[x.k]; })) return; L.push(orden.map(function(x){ return q(x.ty==='calc'?volFlujo(r,h):r[x.k]); }).join(';')); });
+  P.rows.forEach(function(r){ if(!orden.some(function(x){ return (x.ty==='num'||x.ty==='txt'||x.ty==='hora')&&r[x.k]; })) return; L.push(orden.map(function(x){ return q(x.ty==='calc'?volFlujo(r,h):r[x.k]); }).join(';')); });
   var blob=new Blob(['﻿'+L.join('\n')],{type:'text/csv;charset=utf-8'}), a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download=(d.cod||d.t).replace(/[^A-Za-z0-9_.-]+/g,'_')+'_'+c.id+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
 }
