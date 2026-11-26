@@ -322,6 +322,18 @@
   .ficha-b .st{border:none;box-shadow:none;}
   .ficha-b .st-name{display:none;}
   .tit-s{font-size:13px;font-weight:600;color:var(--suave);margin-left:6px;}
+  .est-cab{display:flex;align-items:center;gap:14px;margin-bottom:6px;--ec:#15803d;--eb:#e8f5ec;}
+  .est-cab.se-verano{--ec:#b45309;--eb:#fef6e0;}.est-cab.se-verano .est-ico{color:#d97706;}
+  .est-cab.se-otono{--ec:#9a3412;--eb:#fbede4;}
+  .est-cab.se-invierno{--ec:#1d4ed8;--eb:#e6eefc;}
+  .est-ico{width:54px;height:54px;border-radius:14px;background:var(--eb);color:var(--ec);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);}
+  .est-ico svg{width:30px;height:30px;}
+  .est-nom{font-family:'Montserrat','DM Sans',sans-serif;font-size:30px;font-weight:700;color:var(--ec);line-height:1.1;letter-spacing:-.2px;}
+  .est-nom span{font-weight:500;opacity:.85;}
+  .est-mes{font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--suave);margin-top:3px;}
+  [data-theme="dark"] .est-cab{--eb:rgba(255,255,255,.08);}
+  [data-theme="dark"] .est-cab.se-primavera{--ec:#6fcf8f;}[data-theme="dark"] .est-cab.se-verano{--ec:#f5c04a;}[data-theme="dark"] .est-cab.se-otono{--ec:#f0a070;}[data-theme="dark"] .est-cab.se-invierno{--ec:#8fb4ff;}
+  .temporada .ico-est{width:20px;height:20px;}
   .trim{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
   .mm{background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);padding:12px 12px 10px;}
   .mm-t{font-size:15px;font-weight:700;color:var(--azul);margin-bottom:8px;}
@@ -1054,6 +1066,16 @@ function renderAnio(){
 }
 // ─── CALENDARIO: ESTACIÓN (3 meses) ──────────────────────
 var ESTACIONES=['Verano','Otoño','Invierno','Primavera'];
+// Color e ícono de cada estación del año (trazos simples, mismo grosor).
+var EST_ICO={
+  Primavera:'<path d="M12 21v-8"/><path d="M12 13c0-4.4 3-7 7.5-7 0 4.4-3 7-7.5 7z"/><path d="M12 15.5c0-3.6-2.6-5.8-6.5-5.8 0 3.6 2.6 5.8 6.5 5.8z"/>',
+  Verano:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>',
+  'Otoño':'<path d="M5 19C5 10.7 10.7 5 19 5c0 8.3-5.7 14-14 14z"/><path d="M5 19l8.5-8.5"/><path d="M9.5 14.5h3.6M12.4 11.6V8"/>',
+  Invierno:'<path d="M12 2.5v19M3.8 7.25l16.4 9.5M3.8 16.75l16.4-9.5"/><path d="M9.5 4.2 12 6.5l2.5-2.3M9.5 19.8 12 17.5l2.5 2.3"/>'
+};
+function icoEst(per,cls){ var k=EST_ICO[per]?per:(EST_ICO[String(per).charAt(0).toUpperCase()+String(per).slice(1).toLowerCase()]?String(per).charAt(0).toUpperCase()+String(per).slice(1).toLowerCase():''); if(!k) return '';
+  return '<svg class="'+(cls||'ico-est')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+EST_ICO[k]+'</svg>'; }
+function clsEst(per){ return 'se-'+sinTilde(String(per).toLowerCase()).replace(/[^a-z]/g,''); }
 function miniMes(y,m){   // m: 0-11
   var first=new Date(y,m,1), lead=(first.getDay()+6)%7, n=new Date(y,m+1,0).getDate(), cel='';
   for(var i=0;i<lead;i++) cel+='<div class="md vacio"></div>';
@@ -1077,8 +1099,9 @@ function accesoTerreno(){
     return '<button class="et-card" data-abrir="'+esc(c.id)+'" data-sub="muestreo">'+logo(c)+'<span class="et-txt"><b>'+esc(MATRIZ[c.proyecto].nombre)+' · '+periodoLabel(c)+'</b><small>'+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+' · '+p.done+' de '+p.T+' estaciones</small><span class="pbar"><span class="pfill" style="width:'+p.pm+'%"></span></span></span><span class="et-pct">'+p.pm+'%<small>Abrir checklist ›</small></span></button>'; }).join('')+'</div>';
 }
 function renderCalendario(){
-  var tit = S.vista==='estacion' ? ESTACIONES[S.est[1]]+' '+S.est[0]+' <span class="tit-s">'+TEMP[ESTACIONES[S.est[1]]].map(function(m){return MESES[m-1].toLowerCase();}).join(' · ')+'</span>' : S.vista==='mes' ? MESES[S.ym[1]]+' '+S.ym[0] : 'Plan '+S.anio;
-  var html='<div class="bar-row"><div><div class="h1">'+tit+'</div><div class="sub">'+(S.vista==='estacion'?'Los tres meses de la estación. Toca una campaña para ver su grilla de estaciones.':S.vista==='mes'?'Terrenos por día. Toca uno para ver su grilla de estaciones.':'Periodos de cada proyecto según la matriz maestra. Toca «Programar» para crear la campaña.')+'</div></div>'+
+  var en=ESTACIONES[S.est[1]], meses=TEMP[en].map(function(m){return MESES[m-1];}), sub;
+  var tit = S.vista==='estacion' ? '<div class="est-cab '+clsEst(en)+'"><span class="est-ico">'+icoEst(en)+'</span><div><div class="est-nom">'+en+' <span>'+S.est[0]+'</span></div><div class="est-mes">'+meses.join(' · ')+'</div></div></div>' : '<div class="h1">'+(S.vista==='mes' ? MESES[S.ym[1]]+' '+S.ym[0] : 'Plan '+S.anio)+'</div>';
+  var html='<div class="bar-row"><div>'+tit+'<div class="sub">'+(S.vista==='estacion'?'Toca una campaña para abrirla y ver el avance de cada estación de muestreo.':S.vista==='mes'?'Terrenos por día. Toca uno para abrirlo y ver el avance de cada estación de muestreo.':'Periodos de cada proyecto según la matriz maestra. Toca «Programar» para crear la campaña.')+'</div></div>'+
     '<div class="spacer"></div><button class="arrow" data-nav="-1" aria-label="Anterior">‹</button><button class="arrow" data-nav="1" aria-label="Siguiente">›</button><button class="btn-s" data-nav="0">Hoy</button>'+
     '<div class="seg"><button data-vista="estacion" aria-pressed="'+(S.vista==='estacion')+'">Estación</button><button data-vista="mes" aria-pressed="'+(S.vista==='mes')+'">Mes</button><button data-vista="anio" aria-pressed="'+(S.vista==='anio')+'">Año · proyectos</button></div>'+
     (esCoord()?'<button class="btn-p" id="np-abrir">Programar campaña</button>':'')+'</div>';
@@ -1602,7 +1625,7 @@ function renderDetalle(){
   var c=getC(S.cid); if(!c) return; var p=prog(c), pr=MATRIZ[c.proyecto];
   var tcl='t-'+sinTilde(String(c.periodo).toLowerCase()).replace(/[^a-z]/g,'');
   var eq=(c.jefe?['<b>'+esc(c.jefe)+'</b> (jefe de terreno)']:[]).concat(c.equipo.filter(function(n){return n!==c.jefe;}).map(esc)).join(', ');
-  var h='<button class="volver" id="volver">← Volver</button><div class="dhead"><div class="dtop">'+logo(c)+'<div style="flex:1;min-width:0"><div class="dtit2"><span class="dnom">'+esc(pr.nombre)+'</span><span class="temporada '+tcl+'">'+esc(periodoLabel(c))+'</span>'+badge(c)+'</div>'+
+  var h='<button class="volver" id="volver">← Volver</button><div class="dhead"><div class="dtop">'+logo(c)+'<div style="flex:1;min-width:0"><div class="dtit2"><span class="dnom">'+esc(pr.nombre)+'</span><span class="temporada '+tcl+'">'+icoEst(c.periodo)+esc(periodoLabel(c))+'</span>'+badge(c)+'</div>'+
     '<div class="dinfo">'+
       '<div class="dwide"><div class="dk">Proyecto</div><div class="dv">'+((pr.nombres&&pr.nombres.length)?pr.nombres.map(esc).join('<br>'):esc(pr.nombre))+'</div></div>'+
       '<div><div class="dk">Cliente</div><div class="dv">'+esc(pr.cliente||'—')+'</div></div>'+
