@@ -1697,20 +1697,25 @@ function renderDetalle(){
 
 // ─── PENDIENTES Y EQUIPO ─────────────────────────────────
 function renderPendientes(){
-  var cards=CAMP.filter(function(c){return estadoCamp(c)!=='Programada';}).map(function(c){
+  // Todas las campañas abiertas, también las programadas (lo que falta hacer antes y durante el terreno).
+  var ORD={'En terreno':0,'Con pendientes':1,'Programada':2,'Completa':3};
+  var lista=CAMP.filter(function(c){ return c.estadoAdm!=='Cerrada'; }).sort(function(a,b){ var x=ORD[estadoCamp(a)]||0, y=ORD[estadoCamp(b)]||0; return x!==y?x-y:(a.ini<b.ini?-1:1); });
+  var cards=lista.map(function(c){
     var it=[], porMon={};
     c.tareas.forEach(function(t){
       var rm=respMon(c,t.mon), mio=esCoord()||rm.indexOf(usuario)>=0||(!rm.length&&c.equipo.indexOf(usuario)>=0); if(!mio) return;
       if((t.estado==='No realizado'||t.estado==='Parcial')&&!t.motivo.trim()) it.push('<button class="pit r" data-ir-est="'+esc(t.id)+'"><span>✕</span><span><b>'+esc(estNombre(t.est))+'</b> · '+esc(mOf(c,t.mon).nombre)+' · '+t.estado.toLowerCase()+' sin motivo</span></button>');
       if(!t.estado) porMon[t.mon]=(porMon[t.mon]||[]).concat(estNombre(t.est));
     });
-    Object.keys(porMon).forEach(function(k){ var l=porMon[k]; it.push('<button class="pit g" data-abrir="'+esc(c.id)+'" data-sub="muestreo"><span>○</span><span><b>'+esc(mOf(c,k).nombre)+'</b> · '+l.length+' sin marcar: '+esc(l.slice(0,6).join(', '))+(l.length>6?'…':'')+'</span></button>'); });
+    Object.keys(porMon).forEach(function(k){ var l=porMon[k], tot=c.tareas.filter(function(t){return t.mon===k;}).length, m=mOf(c,k);
+      var tx=l.length===tot?'sin hacer · '+tot+(tot>1?' estaciones':' estación'):'faltan '+l.length+' de '+tot+': '+esc(l.slice(0,5).join(', '))+(l.length>5?'…':'');
+      it.push('<button class="pit g" data-acamp="'+esc(c.id)+'" data-amon="'+esc(k)+'"><span>○</span><span><b>'+esc(m?m.nombre:k)+'</b> · '+tx+'</span></button>'); });
     c.docs.forEach(function(d){ if(!(esCoord()||d.resp===usuario||(!d.resp&&c.jefe===usuario))) return;
       if(d.estado!=='Completo') it.push('<button class="pit a" data-abrir="'+esc(c.id)+'" data-sub="documentos"><span>○</span><span><b>'+esc(d.n)+'</b> · pendiente</span></button>');
       else if(!d.ruta.trim()) it.push('<button class="pit a" data-abrir="'+esc(c.id)+'" data-sub="documentos"><span>○</span><span><b>'+esc(d.n)+'</b> · falta la ruta del servidor</span></button>'); });
-    return '<div class="pcard"><div class="pch">'+logo(c)+'<div class="pnom">'+esc(MATRIZ[c.proyecto].nombre)+'<div class="sub">'+periodoLabel(c)+'</div></div>'+(it.length?'<span class="pbadge">'+it.length+'</span>':'')+'</div><div class="plist">'+(it.length?it.join(''):'<div class="pempty">✓ Nada pendiente</div>')+'</div></div>';
+    return '<div class="pcard"><div class="pch">'+logo(c)+'<div class="pnom">'+esc(MATRIZ[c.proyecto].nombre)+badge(c)+'<div class="sub">'+periodoLabel(c)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+(estadoCamp(c)==='Programada'&&c.ini>=HOY_S?' · empieza '+diasHasta(c.ini):'')+'</div></div>'+(it.length?'<span class="pbadge">'+it.length+'</span>':'')+'</div><div class="plist">'+(it.length?it.join(''):'<div class="pempty">✓ Nada pendiente</div>')+'</div></div>';
   }).join('');
-  document.getElementById('tc-pendientes').innerHTML='<div class="bar-row"><div><div class="h1">Pendientes'+(esCoord()?'':' de '+esc(usuario))+'</div><div class="sub">Lo que falta registrar o completar en cada campaña.</div></div></div><div class="pgrid">'+cards+'</div>';
+  document.getElementById('tc-pendientes').innerHTML='<div class="bar-row"><div><div class="h1">Pendientes'+(esCoord()?'':' de '+esc(usuario))+'</div><div class="sub">Lo que falta registrar o completar en cada campaña.</div></div></div>'+(cards?'<div class="pgrid">'+cards+'</div>':'<div class="pempty" style="color:var(--suave)">No hay campañas abiertas. Cuando se programe una campaña, aquí aparecerá lo que falta por hacer en cada monitoreo y documento.</div>');
 }
 function logoMini(c){ var cfg=CLIENTES[MATRIZ[c.proyecto].cliente]||{}; return cfg.logo?'<img class="logo-mini" src="'+cfg.logo+'" alt="'+esc(MATRIZ[c.proyecto].cliente)+'" title="'+esc(MATRIZ[c.proyecto].cliente)+'">':''; }
 function diasHasta(f){ var d=Math.round((new Date(f+'T00:00:00')-new Date(HOY_S+'T00:00:00'))/864e5); return d===0?'hoy':d===1?'mañana':'en '+d+' días'; }
