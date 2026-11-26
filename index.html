@@ -1405,9 +1405,11 @@ function muestrasMon(m){ var it=(m&&m.items)||[], n=1, noche=false, es=[];
   var rep=[]; for(var i=0;i<Math.min(n,8);i++) rep.push(String.fromCharCode(65+i));
   return {rep:rep,noche:noche,es:es}; }
 // Muestras por punto: las define quien muestrea en la planilla de cada red (la matriz no siempre lo trae).
-var MUS={'1':{l:'Una sola',ops:['']},AB:{l:'A y B',ops:['A','B']},DN:{l:'Día y noche',ops:['Día','Noche']},SF:{l:'Superficie y fondo',ops:['Superficie','Fondo']},FM:{l:'Fondo y mitad',ops:['Fondo','Mitad']}};
+var MUS={'1':{l:'Una sola',ops:['']},AB:{l:'A y B',ops:['A','B']},DN:{l:'Día y noche',ops:['Día','Noche']},SF:{l:'Superficie y fondo',ops:['Superficie','Fondo']},FM:{l:'Fondo y mitad',ops:['Fondo','Mitad']},
+  DNAB:{l:'Día y noche · A y B',ops:['Día A','Día B','Noche A','Noche B']},DNSF:{l:'Día y noche · superficie y fondo',ops:['Día Superficie','Día Fondo','Noche Superficie','Noche Fondo']}};
 function musDef(red,m){ if(red==='Epi') return '1'; if(red==='Bongo') return 'AB'; var M=muestrasMon(m);
-  if(M.noche) return 'DN'; if(M.es.indexOf('Superficie')>=0) return 'SF'; if(M.rep.length>1) return 'AB'; return red==='Nansen'?'AB':'1'; }
+  var sf=M.es.indexOf('Superficie')>=0, ab=M.rep.length>1;
+  if(M.noche) return sf?'DNSF':ab?'DNAB':'DN'; if(sf) return 'SF'; if(ab) return 'AB'; return red==='Nansen'?'AB':'1'; }
 function cfgFlujo(red,h,m){ h=h||{}; return {pts:h.pts||((red==='Epi'||red==='Bongo')?'arr':'est'), mus:MUS[h.mus]?h.mus:(h.lances==='2'?'FM':musDef(red,m)), arr:String(h.arr||'').split(/[,;\n]+/).map(function(x){return x.trim();}).filter(Boolean)}; }
 function defFlujo(red,h,m){ h=h||{};
   var sinEst=red==='Sentina'||red==='Descarga', K=cfgFlujo(red,h,m), ops=MUS[K.mus].ops, bocas=red==='Bongo'&&K.mus==='AB';
