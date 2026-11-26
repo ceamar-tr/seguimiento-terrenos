@@ -675,7 +675,7 @@
   <section id="tc-equipo" class="tc"></section>
 </main>
 <div class="ov" id="ov"></div>
-<aside class="sp" id="sp" aria-label="Nueva campaña"></aside>
+<aside class="sp" id="sp" aria-label="Programar campaña"></aside>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="login" class="login" hidden><div class="login-card"><img src="logos/CEAMAR.jpg" alt="CEAMAR Estudios Ambientales" class="login-logo">
   <div class="login-t">Seguimiento de Terrenos</div><div class="login-s">Entra con tu cuenta de Google. Solo pueden ingresar las personas registradas por la administración.</div>
@@ -941,7 +941,7 @@ function renderAlertas(){
   CAMP.forEach(function(c){ var p=prog(c), e=estadoCamp(c); sm+=p.sinMotivo; if(e!=='Programada') docs+=p.dPend+p.dSinRuta; if(e==='En terreno') terr.push(MATRIZ[c.proyecto].corto); });
   planAnual(S.anio).forEach(function(r){ r.slots.forEach(function(x){ if(x.k==='sinr') sinReg++; if(x.k==='porp' && x.actual) porProg++; }); });
   var h=[];
-  if(sm) h.push('<div class="alerta alerta-rojo"><b>'+sm+'</b> estaciones no realizadas o parciales sin motivo</div>');
+  if(sm) h.push('<div class="alerta alerta-rojo"><b>'+sm+'</b> '+(sm===1?'estación no realizada o parcial sin motivo':'estaciones no realizadas o parciales sin motivo')+'</div>');
   if(docs) h.push('<div class="alerta alerta-amber"><b>'+docs+'</b> documentos pendientes o sin ruta del servidor</div>');
   if(sinReg) h.push('<div class="alerta alerta-rojo"><b>'+sinReg+'</b> campaña'+(sinReg>1?'s':'')+' del plan '+S.anio+' sin registro</div>');
   if(porProg && esCoord()) h.push('<div class="alerta alerta-amber"><b>'+porProg+'</b> campaña'+(porProg>1?'s':'')+' del periodo actual por programar</div>');
@@ -976,7 +976,7 @@ function renderMes(){
     if(!fuera && cs.length) agenda+='<div class="ag-dia'+(ds===HOY_S?' hoy':'')+'"><div class="ag-f">'+DIAS[(d.getDay()+6)%7]+' '+d.getDate()+' de '+MESES[m].toLowerCase()+(ds===HOY_S?' · hoy':'')+'</div>'+cs.map(function(c){return evento(c,ds);}).join('')+'</div>';
   }
   return franjaMes(y,m+1)+'<div class="cal"><div class="cal-head">'+DIAS.map(function(x){return '<div>'+x+'</div>';}).join('')+'</div><div class="cal-grid">'+celdas+'</div></div>'+
-    '<div class="agenda">'+(agenda||'<div class="pempty" style="color:var(--suave)">No hay terrenos este mes. Prográmalos desde «Año · proyectos» o con «＋ Nueva campaña».</div>')+'</div>';
+    '<div class="agenda">'+(agenda||'<div class="pempty" style="color:var(--suave)">No hay terrenos este mes. Prográmalos desde «Año · proyectos» o con «Programar campaña».</div>')+'</div>';
 }
 
 // ─── CALENDARIO: AÑO (seguimiento de proyectos) ──────────
@@ -1059,7 +1059,7 @@ function renderCalendario(){
   var html='<div class="bar-row"><div><div class="h1">'+tit+'</div><div class="sub">'+(S.vista==='estacion'?'Los tres meses de la estación. Toca una campaña para ver su grilla de estaciones.':S.vista==='mes'?'Terrenos por día. Toca uno para ver su grilla de estaciones.':'Periodos de cada proyecto según la matriz maestra. Toca «Programar» para crear la campaña.')+'</div></div>'+
     '<div class="spacer"></div><button class="arrow" data-nav="-1" aria-label="Anterior">‹</button><button class="arrow" data-nav="1" aria-label="Siguiente">›</button><button class="btn-s" data-nav="0">Hoy</button>'+
     '<div class="seg"><button data-vista="estacion" aria-pressed="'+(S.vista==='estacion')+'">Estación</button><button data-vista="mes" aria-pressed="'+(S.vista==='mes')+'">Mes</button><button data-vista="anio" aria-pressed="'+(S.vista==='anio')+'">Año · proyectos</button></div>'+
-    (esCoord()?'<button class="btn-p" id="np-abrir">＋ Nueva campaña</button>':'')+'</div>';
+    (esCoord()?'<button class="btn-p" id="np-abrir">Programar campaña</button>':'')+'</div>';
   html+='<div class="leyenda"><span><i class="sw e-terr"></i>En terreno</span><span><i class="sw e-prog"></i>Programada</span><span><i class="sw e-pend"></i>Con pendientes</span><span><i class="sw e-comp"></i>Completa</span>'+
     (S.vista==='anio'?'<span><i class="sw e-porp"></i>Por programar</span><span><i class="sw e-sinr"></i>Sin registro</span><span><i class="sw e-prev"></i>Antes del seguimiento</span>':'')+'</div>';
   html+=accesoTerreno();
@@ -1110,17 +1110,10 @@ function renderProyectos(){
       '<span class="proy-n" id="proy-n"></span></div><div id="proy-lista"></div></div>';
 }
 function renderCampanas(){
-  var act=0,tot=0,done=0,prob=0,docs=0;
-  CAMP.forEach(function(c){ var p=prog(c),e=estadoCamp(c); prob+=p.noReal+p.parcial; if(e==='Programada') return; act+=(e!=='Completa'?1:0); tot+=p.T; done+=p.done; docs+=p.dPend+p.dSinRuta; });
   var lista=CAMP.filter(function(c){ return S.filtro==='Todas'||estadoCamp(c)===S.filtro; }).sort(function(a,b){ return a.ini<b.ini?1:-1; });
-  var h='<div class="kgrid">'+
-    '<div class="kpi a"><div class="klabel">Campañas abiertas</div><div class="kval">'+act+'</div><div class="ksub">en terreno o con pendientes</div></div>'+
-    '<div class="kpi v"><div class="klabel">Estaciones listas</div><div class="kval">'+done+'</div><div class="ksub">de '+tot+' tareas iniciadas</div></div>'+
-    '<div class="kpi t"><div class="klabel">Sin marcar</div><div class="kval">'+(tot-done-prob)+'</div><div class="ksub">estaciones pendientes</div></div>'+
-    '<div class="kpi r"><div class="klabel">Con problema</div><div class="kval">'+prob+'</div><div class="ksub">no realizadas o parciales</div></div>'+
-    '<div class="kpi am"><div class="klabel">Documentos</div><div class="kval">'+docs+'</div><div class="ksub">pendientes o sin ruta</div></div></div>';
+  var h='';
   h+='<div class="bar-row"><div class="seg">'+['Todas','En terreno','Con pendientes','Programada','Completa'].map(function(f){return '<button data-filtro="'+f+'" aria-pressed="'+(S.filtro===f)+'">'+f+'</button>';}).join('')+'</div>'+
-    '<div class="spacer"></div>'+(esCoord()?'<button class="btn-p" id="np-abrir">＋ Nueva campaña</button>':'')+'</div>';
+    '<div class="spacer"></div>'+(esCoord()?'<button class="btn-p" id="np-abrir">Programar campaña</button>':'')+'</div>';
   h+='<div class="cgrid">'+(lista.length?lista.map(function(c){
     var p=prog(c), pr=MATRIZ[c.proyecto], e=estadoCamp(c), pills=[];
     if(e!=='Programada'&&p.sinMarcar) pills.push('<span class="pill p-gris">'+p.sinMarcar+' sin marcar</span>');
@@ -1671,7 +1664,7 @@ function renderNueva(){
   ms.forEach(function(m){ nT+=m.estaciones.length; nM+=m.estaciones.length*m.total; });
   var per=p.periodos.map(function(s){return '<option'+(draft.periodo===s?' selected':'')+'>'+esc(s)+'</option>';}).join('');
   var existe=getC(nuevaCampana(draft.proyecto,draft.anio,draft.periodo,draft.ini,draft.fin,draft.jefe,draft.equipo).id);
-  document.getElementById('sp').innerHTML='<div class="sph"><div class="spt">＋ Nueva campaña</div><div class="sub">El checklist por estación se genera desde la matriz maestra</div></div>'+
+  document.getElementById('sp').innerHTML='<div class="sph"><div class="spt">Programar campaña</div><div class="sub">Elige el proyecto y el periodo de la matriz maestra, las fechas y el equipo</div></div>'+
     '<form class="spb" id="f-nueva">'+
     '<label class="fl">Proyecto<select class="sel" id="n-proy">'+Object.keys(MATRIZ).map(function(k){return '<option value="'+k+'"'+(k===draft.proyecto?' selected':'')+'>'+esc(MATRIZ[k].nombre)+'</option>';}).join('')+'</select></label>'+
     '<div class="f2"><label class="fl">Año<input class="inp" id="n-anio" type="number" value="'+draft.anio+'"></label><label class="fl">Periodo<select class="sel" id="n-per">'+per+'</select></label></div>'+
@@ -1681,7 +1674,7 @@ function renderNueva(){
     '<div class="prev"><b>Monitoreos de '+esc(draft.periodo)+' según la matriz:</b><ul>'+ms.map(function(m){return '<li><b>'+esc(m.nombre)+'</b>'+(m.anual?' <span class="tag-anual">Anual · una vez al año</span>':'')+': '+(m.estaciones[0]==='GENERAL'?'sin estaciones (área general)':m.estaciones.length+' estaciones')+' · '+esc(resumenMon(m))+'</li>';}).join('')+'</ul>'+
       '<div><b>'+nT+'</b> estaciones a marcar (monitoreo × estación), <b>'+nM+'</b> muestras y mediciones en total, y <b>'+DOCS.length+'</b> documentos.</div>'+
       (existe?'<div class="warnline">Ya existe la campaña de '+esc(draft.periodo)+' '+draft.anio+' para este proyecto.</div>':'')+'</div>'+
-    '</form><div class="spf"><button class="btn-p" id="n-crear">Crear campaña</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>';
+    '</form><div class="spf"><button class="btn-p" id="n-crear">Programar campaña</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>';
 }
 
 // ─── NAVEGACIÓN Y RENDER ─────────────────────────────────
@@ -1856,7 +1849,7 @@ SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b
     if(getC(c.id)){ toast('Ya existe la campaña '+c.id); return; }
     c.estadoAdm='Abierta'; c.creadaPor=usuario; c.creadaEl=ahoraTxt(); CAMP_ALL.push(c); vista(); enviar('crearCampana',{id:c.id,proyecto:c.proyecto,nombreProyecto:MATRIZ[c.proyecto].nombre,anio:c.anio,periodo:c.periodo,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,
       tareas:c.tareas.map(function(t){return {id:t.id,mon:t.mon,est:t.est};}),docs:c.docs.map(function(d){return {n:d.n,t:d.t};})});
-    cerrarNueva(); abrir(c.id,'muestreo'); toast('Campaña creada: '+c.tareas.length+' tareas y '+c.docs.length+' documentos'); } });
+    cerrarNueva(); abrir(c.id,'muestreo'); toast('Campaña programada: '+c.tareas.length+' tareas y '+c.docs.length+' documentos'); } });
 
 // ─── INICIO ──────────────────────────────────────────────
 aplicarZoom(); pintarTema();
