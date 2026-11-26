@@ -40,9 +40,10 @@
   .top-in{max-width:1300px;margin:0 auto;padding:14px 22px 0;}
   .top-row{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;}
   .brand{display:flex;align-items:center;gap:12px;margin-right:auto;}
-  .brand-logo{background:#fff;border-radius:12px;padding:6px 14px;display:flex;align-items:center;flex-shrink:0;}
+  .brand-logo{background:#fff;border:none;border-radius:12px;padding:6px 14px;display:flex;align-items:center;flex-shrink:0;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+  .brand-logo:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.25);}
   .brand img{height:46px;width:auto;display:block;}
-  .brand-t{font-size:17px;font-weight:700;color:#fff;line-height:1.1;}
+  .brand-t{font-size:26px;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-.2px;}
   .brand-s{font-size:11px;color:rgba(255,255,255,0.65);margin-top:3px;}
   .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .pillbtn,.selu{border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.12);color:#fff;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;}
@@ -54,10 +55,10 @@
   .net i{width:8px;height:8px;border-radius:50%;background:#4caf50;}
   .net.off{color:#ffcc80;border-color:#ffcc80;}.net.off i{background:#ffb74d;}
   .net.demo i{background:#90caf9;}
-  .nav{display:flex;gap:2px;margin-top:10px;overflow-x:auto;}
-  .nav button{border:none;background:none;padding:10px 16px;font-weight:600;font-size:14px;color:rgba(255,255,255,0.7);border-bottom:3px solid transparent;white-space:nowrap;}
-  .nav button:hover{color:#fff;}
-  .nav button[aria-selected="true"]{color:#fff;border-bottom-color:#fff;font-weight:700;}
+  .nav{display:flex;gap:8px;margin-top:14px;padding-bottom:14px;overflow-x:auto;}
+  .nav button{border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.12);padding:9px 20px;border-radius:999px;font-weight:700;font-size:15px;color:#fff;white-space:nowrap;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s;}
+  .nav button:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px);}
+  .nav button[aria-selected="true"]{background:#fff;color:#1a5c2e;border-color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.2);}
 
   .wrap{max-width:1300px;margin:0 auto;padding:20px 22px 40px;}
   .tc{display:none;}.tc.on{display:block;}
@@ -617,10 +618,10 @@
     .top-row{gap:8px;}.ctl{width:100%;flex-wrap:nowrap;gap:6px;}
     .zoom{display:none;}.selu{flex:1;padding:6px 8px;}
     .net .lg{display:none;}.net .sh{display:inline;}
-    .nav button{padding:9px 12px;font-size:13px;}
+    .nav button{padding:8px 14px;font-size:13px;}.nav{gap:6px;padding-bottom:10px;}
     .demo-note{font-size:11px;padding:7px 10px;margin-bottom:12px;}
     .alerta{padding:7px 10px;font-size:11px;}.alerta b{font-size:13px;}
-    .brand-logo{padding:4px 8px;border-radius:9px;}.brand img{height:30px;}.brand-t{font-size:15px;}.brand-s{display:none;}
+    .brand-logo{padding:4px 8px;border-radius:9px;}.brand img{height:30px;}.brand-t{font-size:19px;}
     .wrap{padding:14px 12px 30px;}
     .kgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
     .kpi{padding:10px 12px;}.kval{font-size:22px;}
@@ -645,7 +646,7 @@
 <header class="top">
   <div class="top-in">
     <div class="top-row">
-      <div class="brand"><div class="brand-logo"><img src="logos/CEAMAR.jpg" alt="CEAMAR Estudios Ambientales"></div><div><div class="brand-t">Seguimiento de Terrenos</div><div class="brand-s">Muestreos por estación y plan de proyectos</div></div></div>
+      <div class="brand"><button type="button" class="brand-logo" id="ir-inicio" title="Ir al inicio (Campañas)" aria-label="Ir al inicio: Campañas"><img src="logos/CEAMAR.jpg" alt="CEAMAR Estudios Ambientales"></button><div class="brand-t">Seguimiento de Terrenos</div></div>
       <div class="ctl">
         <div id="user-area" class="user-area"></div>
         <button id="net" class="pillbtn net demo" title="Estado de la conexión"><i></i><span class="lg">Prueba</span><span class="sh">Prueba</span></button>
@@ -1710,6 +1711,7 @@ function guardarTarea(c,t){ t.por=usuario; t.el=ahoraTxt(); enviar('tarea',{camp
 function guardarDoc(c,d){ enviar('doc',{campana:c.id,documento:d.n,tipo:d.t,estado:d.estado,responsable:d.resp,fecha:d.fecha,ruta:d.ruta}); }
 
 // ─── EVENTOS ─────────────────────────────────────────────
+document.getElementById('ir-inicio').addEventListener('click',function(){ irTab('campanas'); window.scrollTo(0,0); });
 document.querySelector('.nav').addEventListener('click',function(e){ var b=e.target.closest('[data-tab]'); if(b) irTab(b.dataset.tab); });
 var UA=document.getElementById('user-area');
 UA.addEventListener('change',function(e){ if(e.target.id!=='ver-como') return; var u=USUARIOS_PRUEBA[+e.target.value]; fijarUsuario(u); try{localStorage.setItem('ceamar_terreno_ver_como',u.nombre);}catch(x){}
