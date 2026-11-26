@@ -166,6 +166,8 @@
   .ck-redes .rd-i b{font-size:13px;}
   .ck-redes .rd-i label{font-size:12px;color:var(--suave);display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-weight:600;margin:0;}
   .ck-redes .rd-i input{width:110px;padding:5px 8px;font-size:13px;}
+  .btn-flujo{border:none;background:var(--verde);color:#fff;font-weight:700;font-size:12.5px;padding:6px 12px;border-radius:16px;cursor:pointer;margin-left:4px;}
+  .btn-flujo:hover{background:#14532d;}
   .lote{flex-basis:100%;background:var(--card-bg);border:1px solid var(--borde);border-radius:8px;padding:8px 12px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .lote-btn{flex-basis:100%;margin:6px 0 18px;}
   .logo-txt{font-size:11px;font-weight:800;color:var(--azul);text-align:center;line-height:1.15;padding:4px;word-break:break-word;}
@@ -1228,7 +1230,8 @@ function renderChecklist(c){
     (hayMarcas&&!rm.length?'<div class="warnline">Indica quién hizo este monitoreo</div>':'')+
     (esZoo(m)?(function(){ var rl=redesMon(c,m.cod), sel=rl.map(function(r){return r.red;}), faltaD=rl.filter(function(r){return !r.diam;}).map(function(r){return r.red;});
       return '<div class="ck-redes"><span>Redes usadas</span><div class="ck-chips">'+REDES.map(function(n){ var on=sel.indexOf(n)>=0; return '<button class="chip" data-red="'+esc(n)+'" aria-pressed="'+on+'">'+(on?'✓ ':'')+esc(n)+'</button>'; }).join('')+'</div>'+
-        (rl.length?'<div class="rd-l">'+rl.map(function(r){ return '<div class="rd-i"><b>'+esc(r.red)+'</b><label>Diámetro <input class="inp" type="text" data-rdiam="'+esc(r.red)+'" value="'+esc(r.diam)+'" placeholder="ej. 60 cm" aria-label="Diámetro de la red '+esc(r.red)+'"></label></div>'; }).join('')+'</div>':'')+
+        (rl.length?'<div class="rd-l">'+rl.map(function(r){ var Pf=getPlan(c,m.cod,'f-'+r.red), nf=filasLlenas(Pf,defPlan('f-'+r.red,Pf&&Pf.hdr));
+          return '<div class="rd-i"><b>'+esc(r.red)+'</b><label>Diámetro <input class="inp" type="text" data-rdiam="'+esc(r.red)+'" value="'+esc(r.diam)+'" placeholder="ej. 60 cm" aria-label="Diámetro de la red '+esc(r.red)+'"></label><button type="button" class="btn-flujo" data-irplan="f-'+esc(r.red)+'">Flujómetro'+(nf?' · '+nf+(nf===1?' registro':' registros'):'')+' ›</button></div>'; }).join('')+'</div>':'')+
         (hayMarcas&&!rl.length?'<div class="warnline" style="margin-top:6px">Indica qué redes se usaron</div>':faltaD.length?'<div class="warnline" style="margin-top:6px">Falta el diámetro de '+esc(faltaD.join(', '))+'</div>':'')+'</div>'; })():'')+
     (esCTD(m)?bloqueClima(c,m,hayMarcas):'')+'</div>';
   var sinM=a.ts.filter(function(t){return !t.estado;});
@@ -1418,7 +1421,7 @@ function nuevaFila(){ return {id:'f'+Date.now().toString(36)+Math.random().toStr
 function getPlan(c,mon,pk,crear){ c.planillas=c.planillas||{}; var key=mon+'|'+pk, P=c.planillas[key];
   if(P||!crear) return P;
   var m=mOf(c,mon), d=defPlan(pk,{}), ests=(m?m.estaciones:[]).filter(function(e){return e!=='GENERAL';});
-  P={hdr:{},rows:[]};
+  P={hdr:{},rows:[]}; if(d.flujo) P.hdr.k='0,3';
   if(d.cols.some(function(x){return x.ty==='est';})&&ests.length) ests.forEach(function(e){ var r=nuevaFila(); r.est=e; P.rows.push(r); });
   else P.rows.push(nuevaFila());
   var rm=redesMon(c,mon).filter(function(x){return 'f-'+x.red===pk;})[0]; if(rm&&rm.diam){ var dd=String(rm.diam).replace(/[^0-9]/g,''); if(DIAM.indexOf(dd)>=0) P.rows.forEach(function(r){ r.diam=dd; }); }
@@ -1448,7 +1451,7 @@ function renderPlanillas(c,m,ro){
     (d.cod?'<div class="pl-cod">Registro '+esc(d.cod)+'</div>':'')+
     '<div class="pl-hg"><div><span>Proyecto</span><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b></div><div><span>Fecha</span><b>'+esc(fmtD(S.fechaTrabajo||c.ini))+'</b></div><div><span>Inspector o técnico</span><b>'+(insp?esc(insp):'<em class="falta">elige «Realizado por» en el checklist</em>')+'</b></div></div>'+
     '<div class="pl-hf">'+(d.sinInst?'':'<label>Equipo<input class="inp" type="text" data-plh="'+esc(pk)+'" data-col="equipo" value="'+esc(h.equipo||'')+'"'+dis+' placeholder="Ej.: '+(d.flujo?'Flujómetro General Oceanics':'Multiparámetro HACH')+'"></label><label>N° de serie<input class="inp" type="text" data-plh="'+esc(pk)+'" data-col="serie" value="'+esc(h.serie||'')+'"'+dis+'></label>')+
-      (d.flujo?'<label>Constante del flujómetro (m por cuenta)<input class="inp" type="text" inputmode="decimal" data-plh="'+esc(pk)+'" data-col="k" value="'+esc(h.k||'')+'"'+dis+' placeholder="Ej.: 0,026873"></label>':'')+
+      (d.flujo?'<label>Constante del flujómetro (m por cuenta)<input class="inp" type="text" inputmode="decimal" data-plh="'+esc(pk)+'" data-col="k" value="'+esc(h.k||'')+'"'+dis+' placeholder="Ej.: 0,3"></label>':'')+
       (d.red==='Nansen'?'<label>Lances por estación<select class="sel" data-plh="'+esc(pk)+'" data-col="lances"'+dis+'><option value="1"'+(h.lances!=='2'?' selected':'')+'>Uno (fondo)</option><option value="2"'+(h.lances==='2'?' selected':'')+'>Dos (fondo y mitad)</option></select></label>':'')+'</div></div>';
   var ests=(m.estaciones||[]).filter(function(e){return e!=='GENERAL';});
   var tabla='<datalist id="pl-ests">'+ests.map(function(e){return '<option value="'+esc(e)+'">';}).join('')+'</datalist><div class="pl-wrap"><table class="pl-t"><thead><tr>'+d.cols.map(function(x){return '<th>'+esc(x.l)+'</th>';}).join('')+(ro?'':'<th></th>')+'</tr></thead><tbody>'+
@@ -1456,7 +1459,7 @@ function renderPlanillas(c,m,ro){
   var pie='<div class="pl-pie">'+(ro?'':'<button type="button" class="btn-s" data-pl-add="'+esc(pk)+'">＋ Agregar fila</button>')+
     '<button type="button" class="btn-s" data-pl-csv="'+esc(pk)+'">Descargar planilla</button>'+
     '<span class="pl-rev">'+(h.rev?'✓ Revisado por <b>'+esc(h.revPor||'')+'</b> · '+esc(cuando(h.revEl))+(esCoord()&&!ro?' <button type="button" class="lnk" data-pl-rev="'+esc(pk)+'">Quitar</button>':''):(esCoord()&&!ro?'<button type="button" class="btn-s" data-pl-rev="'+esc(pk)+'">Marcar revisado (Gerente Técnico)</button>':'<span class="sub">Sin revisión</span>'))+'</span></div>'+
-    (d.flujo?'<p class="sub" style="margin-top:6px">Volumen filtrado = π × (diámetro/2)² × (final − inicial) × constante del flujómetro.</p>':'');
+    (d.flujo?'<p class="sub" style="margin-top:6px">Volumen filtrado (m³) = (final − inicial) × π × (diámetro/2)² × constante del flujómetro. La constante 0,3 viene de la planilla que usaban en CEAMAR; cámbiala si el flujómetro es otro.</p>':'');
   return tabs+hdr+tabla+pie;
 }
 // Actualiza cálculos y validaciones sin redibujar (para no perder el foco al pasar de un casillero a otro).
@@ -1657,6 +1660,7 @@ W.addEventListener('click',function(e){
   if(b.dataset.prog){ if(!esCoord()){ toast('Solo coordinación programa campañas'); return; } var pm=b.dataset.prog.split('|'); abrirNueva(pm[0],pm[1],+pm[2]||0); return; }
   if(b.dataset.irEst){ var cid=CAMP.filter(function(c){return c.tareas.some(function(t){return t.id===b.dataset.irEst;});})[0].id; abrir(cid,'muestreo',b.dataset.irEst); return; }
   if(b.dataset.abrir){ abrir(b.dataset.abrir,b.dataset.sub); return; }
+  if(b.dataset.irplan){ S.vistaMon='datos'; S.plan=b.dataset.irplan; renderDetalle(); var pl=document.querySelector('.pl'); if(pl) pl.scrollIntoView({behavior:'smooth',block:'start'}); return; }
   if(b.dataset.vmon){ S.vistaMon=b.dataset.vmon; renderDetalle(); return; }
   if(b.dataset.plan){ S.plan=b.dataset.plan; renderDetalle(); return; }
   if(b.dataset.plAdd||b.dataset.plDup||b.dataset.plDel||b.dataset.plRev||b.dataset.plAhora||b.dataset.plCsv){ var cp=getC(S.cid), x=(b.dataset.plAdd||b.dataset.plDup||b.dataset.plDel||b.dataset.plRev||b.dataset.plAhora||b.dataset.plCsv).split('|'), pkk=x[0], rid=x[1];
