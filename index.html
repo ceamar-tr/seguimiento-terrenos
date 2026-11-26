@@ -604,6 +604,24 @@
   .pit{display:flex;gap:8px;padding:7px 9px;border-radius:7px;font-size:12px;border:none;text-align:left;width:100%;color:var(--texto);}
   .pit.r{background:var(--rojo-s);}.pit.a{background:var(--amber-s);}.pit.g{background:var(--gris);}
   .pit b{color:var(--azul);}
+  .pd{display:flex;flex-direction:column;gap:8px;}
+  .pd-sec{border:1px solid var(--borde);border-radius:10px;background:var(--card-bg);overflow:hidden;}
+  .pd-sec>summary{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;list-style:none;font-size:13.5px;color:var(--azul);}
+  .pd-sec>summary::-webkit-details-marker,.pd-sub>summary::-webkit-details-marker{display:none;}
+  .pd-sec>summary::after,.pd-sub>summary::after{content:'›';margin-left:auto;font-size:18px;line-height:1;color:var(--suave);transition:transform .15s;}
+  .pd-sec[open]>summary::after,.pd-sub[open]>summary::after{transform:rotate(90deg);}
+  .pd-sec[open]>summary{border-bottom:1px solid var(--borde);background:var(--gris);}
+  .pd-ico svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;}
+  .pd-n{background:var(--azul-s);color:var(--azul-c);font-weight:700;font-size:11.5px;padding:1px 8px;border-radius:999px;}
+  .pd-body{padding:8px;display:flex;flex-direction:column;gap:6px;}
+  .pd-sub{border-radius:8px;background:var(--gris);}
+  .pd-sub>summary{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;list-style:none;font-size:12.5px;flex-wrap:wrap;}
+  .pd-sub>summary b{color:var(--azul);}
+  .pd-res{color:var(--suave);font-size:12px;}.pd-r{color:var(--rojo);font-weight:700;}
+  .pd-ests{display:flex;flex-wrap:wrap;gap:5px;padding:2px 10px 10px;}
+  .pd-est{border:1px solid var(--borde);background:var(--card-bg);border-radius:6px;padding:3px 8px;font-size:11.5px;font-weight:600;color:var(--texto);cursor:pointer;}
+  .pd-est:hover{border-color:var(--azul-c);color:var(--azul-c);}
+  .pd-est.r{background:var(--rojo-s);border-color:var(--rojo);color:var(--rojo);}
   .pempty{padding:10px;font-size:12px;color:var(--verde);text-align:center;}
   .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:14px;}
   .ecard{background:var(--card-bg);border-radius:var(--r);padding:16px;box-shadow:var(--sombra);border-top:3px solid var(--verde);}
@@ -1701,19 +1719,23 @@ function renderPendientes(){
   var ORD={'En terreno':0,'Con pendientes':1,'Programada':2,'Completa':3};
   var lista=CAMP.filter(function(c){ return c.estadoAdm!=='Cerrada'; }).sort(function(a,b){ var x=ORD[estadoCamp(a)]||0, y=ORD[estadoCamp(b)]||0; return x!==y?x-y:(a.ini<b.ini?-1:1); });
   var cards=lista.map(function(c){
-    var it=[], porMon={};
-    c.tareas.forEach(function(t){
-      var rm=respMon(c,t.mon), mio=esCoord()||rm.indexOf(usuario)>=0||(!rm.length&&c.equipo.indexOf(usuario)>=0); if(!mio) return;
-      if((t.estado==='No realizado'||t.estado==='Parcial')&&!t.motivo.trim()) it.push('<button class="pit r" data-ir-est="'+esc(t.id)+'"><span>✕</span><span><b>'+esc(estNombre(t.est))+'</b> · '+esc(mOf(c,t.mon).nombre)+' · '+t.estado.toLowerCase()+' sin motivo</span></button>');
-      if(!t.estado) porMon[t.mon]=(porMon[t.mon]||[]).concat(estNombre(t.est));
-    });
-    Object.keys(porMon).forEach(function(k){ var l=porMon[k], tot=c.tareas.filter(function(t){return t.mon===k;}).length, m=mOf(c,k);
-      var tx=l.length===tot?'sin hacer · '+tot+(tot>1?' estaciones':' estación'):'faltan '+l.length+' de '+tot+': '+esc(l.slice(0,5).join(', '))+(l.length>5?'…':'');
-      it.push('<button class="pit g" data-acamp="'+esc(c.id)+'" data-amon="'+esc(k)+'"><span>○</span><span><b>'+esc(m?m.nombre:k)+'</b> · '+tx+'</span></button>'); });
-    c.docs.forEach(function(d){ if(!(esCoord()||d.resp===usuario||(!d.resp&&c.jefe===usuario))) return;
-      if(d.estado!=='Completo') it.push('<button class="pit a" data-abrir="'+esc(c.id)+'" data-sub="documentos"><span>○</span><span><b>'+esc(d.n)+'</b> · pendiente</span></button>');
-      else if(!d.ruta.trim()) it.push('<button class="pit a" data-abrir="'+esc(c.id)+'" data-sub="documentos"><span>○</span><span><b>'+esc(d.n)+'</b> · falta la ruta del servidor</span></button>'); });
-    return '<div class="pcard"><div class="pch">'+logo(c)+'<div class="pnom">'+esc(MATRIZ[c.proyecto].nombre)+badge(c)+'<div class="sub">'+periodoLabel(c)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+(estadoCamp(c)==='Programada'&&c.ini>=HOY_S?' · empieza '+diasHasta(c.ini):'')+'</div></div>'+(it.length?'<span class="pbadge">'+it.length+'</span>':'')+'</div><div class="plist">'+(it.length?it.join(''):'<div class="pempty">✓ Nada pendiente</div>')+'</div></div>';
+    // Lista desplegable: Monitoreos › monitoreo › estaciones, y documentos por grupo (SSO, ISO, otros).
+    var mons=[], nMon=0, grupos={};
+    monsCamp(c).forEach(function(m){
+      var rm=respMon(c,m.cod), mio=esCoord()||rm.indexOf(usuario)>=0||(!rm.length&&c.equipo.indexOf(usuario)>=0); if(!mio) return;
+      var ts=c.tareas.filter(function(t){return t.mon===m.cod;}), sin=ts.filter(function(t){return !t.estado;}), mot=ts.filter(function(t){return (t.estado==='No realizado'||t.estado==='Parcial')&&!String(t.motivo||'').trim();});
+      if(!sin.length&&!mot.length) return; nMon++;
+      var res=(sin.length===ts.length?'sin hacer':'faltan '+sin.length+' de '+ts.length)+(mot.length?' · <span class="pd-r">'+mot.length+' sin motivo</span>':'');
+      var chips=mot.map(function(t){ return '<button class="pd-est r" data-ir-est="'+esc(t.id)+'" title="'+esc(t.estado)+' sin motivo">'+esc(estNombre(t.est))+' ✕</button>'; }).concat(sin.map(function(t){ return '<button class="pd-est" data-ir-est="'+esc(t.id)+'">'+esc(estNombre(t.est))+'</button>'; }));
+      var k=c.id+'|m|'+m.cod;
+      mons.push('<details class="pd-sub" data-pk="'+esc(k)+'"'+(S.pdOpen&&S.pdOpen[k]?' open':'')+'><summary><b>'+esc(m.nombre)+'</b><span class="pd-res">'+res+'</span></summary><div class="pd-ests">'+chips.join('')+'</div></details>'); });
+    c.docs.forEach(function(d){ if(!(esCoord()||d.resp===usuario||(!d.resp&&c.jefe===usuario))) return; var st=docEstado(d); if(st==='ok') return;
+      var g=DOC_G[d.t]?d.t:'Otro'; (grupos[g]=grupos[g]||[]).push('<button class="pit a" data-abrir="'+esc(c.id)+'" data-sub="documentos"><span>○</span><span><b>'+esc(d.n)+'</b> · '+(st==='ruta'?'falta la ruta del servidor':'pendiente')+'</span></button>'); });
+    var sec=function(k,ico,tit,n,cuerpo){ var key=c.id+'|'+k; return '<details class="pd-sec" data-pk="'+esc(key)+'"'+(S.pdOpen&&S.pdOpen[key]?' open':'')+'><summary><span class="pd-ico">'+ico+'</span><b>'+tit+'</b><span class="pd-n">'+n+'</span></summary><div class="pd-body">'+cuerpo+'</div></details>'; };
+    var html='', total=nMon;
+    if(nMon) html+=sec('mon','<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>','Monitoreos',nMon,mons.join(''));
+    Object.keys(DOC_G).forEach(function(g){ var l=grupos[g]; if(!l) return; total+=l.length; html+=sec('d'+g,DOC_G[g].ico,DOC_G[g].t,l.length,'<div class="plist">'+l.join('')+'</div>'); });
+    return '<div class="pcard"><div class="pch">'+logo(c)+'<div class="pnom">'+esc(MATRIZ[c.proyecto].nombre)+badge(c)+'<div class="sub">'+periodoLabel(c)+' · '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+(estadoCamp(c)==='Programada'&&c.ini>=HOY_S?' · empieza '+diasHasta(c.ini):'')+'</div></div>'+(total?'<span class="pbadge">'+total+'</span>':'')+'</div><div class="pd">'+(html||'<div class="pempty">✓ Nada pendiente</div>')+'</div></div>';
   }).join('');
   document.getElementById('tc-pendientes').innerHTML='<div class="bar-row"><div><div class="h1">Pendientes'+(esCoord()?'':' de '+esc(usuario))+'</div><div class="sub">Lo que falta registrar o completar en cada campaña.</div></div></div>'+(cards?'<div class="pgrid">'+cards+'</div>':'<div class="pempty" style="color:var(--suave)">No hay campañas abiertas. Cuando se programe una campaña, aquí aparecerá lo que falta por hacer en cada monitoreo y documento.</div>');
 }
@@ -1898,6 +1920,7 @@ W.addEventListener('click',function(e){
       try{ navigator.clipboard.writeText(inp.value).then(function(){toast('Ruta copiada');},function(){inp.select();toast('Selecciona y copia la ruta');}); }catch(x){ inp.select(); toast('Selecciona y copia la ruta'); } } }
 });
 W.addEventListener('toggle',function(e){ var g=e.target.closest&&e.target.closest('details[data-m]'); if(g) S.open[g.dataset.m]=g.open; },true);
+W.addEventListener('toggle',function(e){ var d=e.target; if(d.dataset&&d.dataset.pk){ S.pdOpen=S.pdOpen||{}; S.pdOpen[d.dataset.pk]=d.open; } },true);
 W.addEventListener('input',function(e){ if(e.target.id==='proy-q'){ S.pq=e.target.value; pintarProyectos(); return; }
   var el=e.target; if(el.tagName!=='INPUT'||!(el.dataset.pl||el.dataset.plh)) return; if(el.dataset.plh&&/^(arr)$/.test(el.dataset.col)) return;
   var c=getC(S.cid); if(!c) return; var pk=el.dataset.pl||el.dataset.plh, P=getPlan(c,S.mon,pk,true);
