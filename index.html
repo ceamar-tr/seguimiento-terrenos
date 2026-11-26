@@ -334,6 +334,38 @@
   .toca{border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;text-align:left;line-height:1.25;}
   button.toca{cursor:pointer;}
   .toca small{display:block;font-size:10.5px;font-weight:600;opacity:.85;}
+  .pcard3{display:flex;flex-direction:column;align-items:stretch;gap:12px;cursor:default;padding:18px;}
+  .pcard3>*{width:100%;}
+  .ccard.pcard3:hover{transform:none;box-shadow:var(--sombra);}
+  .pc-h{display:flex;gap:12px;align-items:center;}
+  .pc-h .logo{width:56px;height:56px;flex:0 0 auto;}
+  .pc-tt{min-width:0;}.pc-tt .cname{font-size:18px;line-height:1.2;}
+  .pc-sub{font-size:13px;color:var(--suave);margin-top:2px;}
+  .pc-stats{display:flex;gap:8px;flex-wrap:wrap;}
+  .pc-stats span{background:var(--gris);border-radius:20px;padding:4px 11px;font-size:12.5px;color:var(--texto);}
+  .pc-stats b{font-size:14px;color:var(--azul);}
+  .pc-stats .pc-frec{background:var(--verde-s);color:var(--verde);font-weight:700;}
+  .pc-mons{display:flex;flex-wrap:wrap;gap:5px;}
+  .pm{font-size:11.5px;padding:3px 9px;border-radius:12px;border:1px solid var(--borde);color:var(--texto);background:var(--card-bg);}
+  .pm-anual{border-color:#7c3aed;color:#7c3aed;font-weight:700;}
+  .pc-plan{border-top:1px solid var(--borde);padding-top:10px;}
+  .pc-lbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--suave);margin-bottom:7px;}
+  .pc-tl{display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:6px;}
+  .pt.e-prog .pt-i,.pt.e-terr .pt-i,.pt.e-pend .pt-i,.pt.e-comp .pt-i{display:none;}
+  .pt{display:flex;align-items:center;gap:6px;border-radius:10px;padding:7px 7px;text-align:left;border:1px solid transparent;font:inherit;line-height:1.2;}
+  button.pt{cursor:pointer;}button.pt:hover{filter:brightness(.97);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  .pt-i{width:18px;height:18px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:rgba(0,0,0,.06);}
+  .pt-t{min-width:0;}.pt-t b{display:block;font-size:12.5px;}.pt-t small{display:block;font-size:10.5px;opacity:.85;}
+  .pt.e-prev{background:var(--gris);color:var(--suave);}
+  .pt.e-porp{border:1.5px dashed var(--azul-c);color:var(--azul-c);background:transparent;}
+  .pt.e-porp .pt-i{background:var(--azul-c);color:#fff;}
+  .pt.e-sinr{border:1.5px dashed var(--rojo);color:var(--rojo);background:var(--rojo-s);}
+  .pt.e-sinr .pt-i{background:var(--rojo);color:#fff;}
+  .pt.pt-act{box-shadow:0 0 0 2px var(--verde-s);}
+  .pc-ley{text-transform:none;letter-spacing:0;font-weight:500;}
+  .pc-foot{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--suave);}
+  .pc-foot .av{width:26px;height:26px;font-size:10.5px;}
+  .pc-foot b{color:var(--texto);}
   .pcard2{display:flex;gap:14px;align-items:flex-start;cursor:default;}
   .ccard.pcard2:hover{transform:none;box-shadow:var(--sombra);}
   .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:16px;}
@@ -994,12 +1026,25 @@ function renderCalendario(){
 
 // ─── CAMPAÑAS ────────────────────────────────────────────
 function sinTilde(x){ return String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(); }
-function tarjetaProyecto(r,y){ var p=r.p, nEst=p.orden.length;
-  return '<div class="ccard pcard2">'+(CLIENTES[p.cliente]?'<div class="logo"><img src="'+CLIENTES[p.cliente].logo+'" alt="'+esc(p.cliente)+'"></div>':'<div class="logo"></div>')+'<div style="flex:1;min-width:0">'+
-    '<div class="cname">'+esc(p.nombre)+'</div><div class="cmeta">'+esc([p.cliente,p.region,p.comuna].filter(Boolean).join(' · '))+(p.responsable?' · Responsable: '+esc(p.responsable):'')+'</div>'+
-    p.informes.map(function(x){return '<div class="cmeta">'+esc(x)+'</div>';}).join('')+
-    '<div class="cmeta"><b>'+p.monitoreos.length+'</b> monitoreos ('+esc(p.monitoreos.map(function(m){return m.cod;}).join(', '))+') · <b>'+nEst+'</b> estaciones · '+esc(p.frecuencia)+'</div>'+
-    '<div class="tocas">'+r.slots.map(function(s){return slotBtn(r.pid,s,y,false);}).join('')+'</div></div></div>';
+function nEstProy(p){ var u={}; p.monitoreos.forEach(function(m){ m.estaciones.forEach(function(e){ if(e!=='GENERAL') u[e]=1; }); }); return Object.keys(u).length; }
+function tocaMini(pid,s,anio){
+  var st, cls, act='', ico='';
+  if(s.k==='camp'){ cls=ESTC[s.e]; st=s.e==='Completa'?'Completa':prog(s.c).pm+'% · '+s.e; ico=s.e==='Completa'?'✓':'●'; act=' data-abrir="'+esc(s.c.id)+'" data-sub="muestreo"'; }
+  else if(s.k==='previo'){ cls='e-prev'; st='Previo'; ico=''; }
+  else { cls=s.k==='sinr'?'e-sinr':'e-porp'; st=s.k==='sinr'?'Sin registro':'Programar'; ico=s.k==='sinr'?'!':'＋'; if(esCoord()) act=' data-prog="'+pid+'|'+esc(s.per)+'|'+anio+'"'; }
+  var tag=act?'button type="button"':'span';
+  return '<'+tag+' class="pt '+cls+(s.actual?' pt-act':'')+'"'+act+' title="'+esc(s.per+' '+anio+' · '+st+' · '+s.mons.map(function(m){return m.nombre;}).join(', '))+'">'+(ico?'<span class="pt-i">'+ico+'</span>':'')+'<span class="pt-t"><b>'+esc(s.per)+'</b><small>'+esc(st)+'</small></span></'+tag.split(' ')[0]+'>';
+}
+function tarjetaProyecto(r,y){ var p=r.p, nEst=nEstProy(p), cfg=CLIENTES[p.cliente];
+  var mons=p.monitoreos.map(function(m){ return '<span class="pm'+(m.anual?' pm-anual':'')+'">'+esc(m.nombre)+(m.anual?' · anual':'')+'</span>'; }).join('');
+  return '<div class="ccard pcard3" title="'+esc(p.nombres&&p.nombres.length?p.nombres.join(' / '):p.nombre)+'">'+
+    '<div class="pc-h">'+(cfg?'<div class="logo"><img src="'+cfg.logo+'" alt="'+esc(p.cliente)+'"></div>':'<div class="logo"><span class="logo-txt">'+esc(p.cliente)+'</span></div>')+
+      '<div class="pc-tt"><div class="cname">'+esc(p.nombre)+'</div><div class="pc-sub">'+esc([p.cliente,p.comuna||p.region].filter(Boolean).join(' · '))+'</div></div></div>'+
+    '<div class="pc-stats"><span><b>'+p.monitoreos.length+'</b> monitoreo'+(p.monitoreos.length!==1?'s':'')+'</span><span><b>'+nEst+'</b> estacion'+(nEst!==1?'es':'')+'</span><span class="pc-frec">'+esc(p.frecuencia||'—')+'</span></div>'+
+    '<div class="pc-mons">'+mons+'</div>'+
+    '<div class="pc-plan"><div class="pc-lbl">Campañas '+y+(r.slots.some(function(s){return s.k==='previo';})?' <span class="pc-ley">· «Previo» = antes de usar esta página</span>':'')+'</div><div class="pc-tl">'+r.slots.map(function(s){return tocaMini(r.pid,s,y);}).join('')+'</div></div>'+
+    (p.responsable?'<div class="pc-foot"><span class="av">'+esc(ini(p.responsable))+'</span><span>Responsable: <b>'+esc(p.responsable)+'</b></span></div>':'')+
+  '</div>';
 }
 function pintarProyectos(){
   var box=document.getElementById('proy-lista'); if(!box) return;
