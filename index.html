@@ -1075,7 +1075,8 @@ function renderAlertas(){
   if(docs) h.push('<div class="alerta alerta-amber"><b>'+docs+'</b> documentos pendientes o sin ruta del servidor</div>');
   if(sinReg) h.push('<div class="alerta alerta-rojo"><b>'+sinReg+'</b> campaña'+(sinReg>1?'s':'')+' del plan '+S.anio+' sin registro</div>');
   if(porProg && esCoord()) h.push('<div class="alerta alerta-amber"><b>'+porProg+'</b> campaña'+(porProg>1?'s':'')+' del periodo actual por programar</div>');
-  var al=document.getElementById('alertas'); al.innerHTML=h.join(''); al.hidden = !(S.tab==='calendario'||S.tab==='campanas');
+  // Avisos generales desactivados: distraían más que ayudar (lo pendiente está en la pestaña Pendientes).
+  var al=document.getElementById('alertas'); al.innerHTML=''; al.hidden=true;
 }
 
 // ─── CALENDARIO: MES ─────────────────────────────────────
