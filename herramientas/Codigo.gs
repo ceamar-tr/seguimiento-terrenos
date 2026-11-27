@@ -25,6 +25,8 @@ function doPost(e) {
     if (p.accion === 'logout') { PropertiesService.getScriptProperties().deleteProperty('s_' + p.sesion); return json_({ ok: true }); }
     if (p.accion === 'datos') return json_(datos_(u));
     if (p.accion === 'historial') return json_(historial_(u));
+    // La matriz de proyectos (archivo Matriz.gs) solo se entrega a usuarios con sesión válida.
+    if (p.accion === 'matriz') return json_({ ok: true, matriz: MATRIZ_DATOS_, ver: MATRIZ_VER_ });
     var lock = LockService.getScriptLock(); lock.waitLock(20000);
     try { return json_(cambiar_(u, p.accion, p.datos || {})); }
     finally { lock.releaseLock(); }
@@ -104,7 +106,7 @@ function datos_(u) {
       })
     };
   });
-  return { ok: true, usuario: u, personal: personal, campanas: visibles };
+  return { ok: true, usuario: u, personal: personal, campanas: visibles, matrizVer: typeof MATRIZ_VER_ !== 'undefined' ? MATRIZ_VER_ : '' };
 }
 
 // ─── Cambios ──────────────────────────────────────────────
