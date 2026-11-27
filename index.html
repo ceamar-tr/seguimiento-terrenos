@@ -671,6 +671,7 @@
   .hi-ds.ok{background:var(--verde-s);color:var(--verde);}.hi-ds.ruta{background:var(--amber-s);color:var(--amber);}
   .hi-dn{flex:1;min-width:0;}.hi-dn small{display:block;color:var(--suave);font-size:11.5px;}
   .hi-ruta{display:block;font-size:11px;color:var(--azul-c);word-break:break-all;margin-top:2px;}
+  .hi-datos{grid-column:1/-1;}.hi-datos .hi-doc{gap:10px;}
   .hi-acc{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;}
   @media(max-width:860px){ .hi-body{grid-template-columns:1fr;} .hi-c>summary{flex-wrap:wrap;} }
   .pd-sec{border:1px solid var(--borde);border-radius:10px;background:var(--card-bg);overflow:hidden;}
@@ -1504,6 +1505,11 @@ function renderHistorial(){
     '<div class="hfil"><select class="sel" id="h-proy" aria-label="Proyecto"><option value="">Todos los proyectos</option>'+proys+'</select><select class="sel" id="h-anio" aria-label="Año"><option value="">Todos los años</option>'+anios.sort().reverse().map(function(a){return '<option'+(String(a)===fa?' selected':'')+'>'+a+'</option>';}).join('')+'</select></div></div>'+htmlActividad(fp,fa)+htmlBit(fp,fa);
 }
 // ─── HISTÓRICO: campañas listas o de periodos pasados ───
+// Planillas con datos de una campaña, con sus botones de descarga (para todos los roles, también Consulta).
+function htmlDescargas(c){ var it=[];
+  monsCamp(c).forEach(function(m){ planillasDe(c,m).forEach(function(pk){ var P=getPlan(c,m.cod,pk); if(!P) return; var d=defPlan(pk,P.hdr,m), n=filasLlenas(P,d); if(!n) return;
+    it.push('<div class="hi-doc"><span class="hi-dn"><b>'+esc(d.t)+'</b><small>'+esc(m.nombre)+' · '+n+' registro'+(n>1?'s':'')+'</small></span><button type="button" class="btn-p btn-sm" data-hpdf="'+esc(c.id+'|'+m.cod+'|'+pk)+'">PDF</button><button type="button" class="btn-s btn-sm" data-hcsv="'+esc(c.id+'|'+m.cod+'|'+pk)+'">Excel</button></div>'); }); });
+  return '<div class="hi-sec hi-datos"><h4>Datos de terreno</h4>'+(it.length?it.join(''):'<div class="sub">Esta campaña no tiene planillas con datos.</div>')+'</div>'; }
 function terminada(c){ return c.estadoAdm==='Cerrada'||prog(c).pm===100||c.fin<HOY_S; }
 function renderHistorico(){
   var fp=S.hiProy||'', fa=S.hiAnio||'', fe=S.hiPer||'', anios=[], base=CAMP.filter(terminada);
@@ -1530,7 +1536,7 @@ function renderHistorico(){
           (d.ruta&&d.ruta!==gl?'<code class="hi-ruta">'+esc(d.ruta)+'</code>':'')+'</span>'+(d.ruta&&d.ruta!==gl?'<button type="button" class="btn-s btn-sm" data-copiar="'+esc(d.ruta)+'">Copiar ruta</button>':'')+'</div>'; }).join('')+'</div>'; }).join('');
     return '<details class="hi-c" data-pk="'+esc(k)+'"'+(S.pdOpen&&S.pdOpen[k]?' open':'')+'><summary>'+logo(c)+'<div class="hi-tt"><div class="hi-nom">'+esc(pr.nombre)+' <span class="temporada '+('t-'+sinTilde(String(c.periodo).toLowerCase()).replace(/[^a-z]/g,''))+'">'+icoEst(c.periodo)+esc(periodoLabel(c))+'</span></div>'+
       '<div class="sub">'+(ex?'Ejecutada '+fmtD(ex.ini)+(ex.fin!==ex.ini?' al '+fmtD(ex.fin):'')+' · '+ex.dias+' día'+(ex.dias>1?'s':'')+' en terreno':'Programada '+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+' · sin registros')+' · '+monsCamp(c).length+' monitoreos · documentos '+p.pd+' %</div></div>'+est+'</summary>'+
-      '<div class="hi-body"><div class="hi-sec"><h4>Monitoreos y fechas</h4>'+mons+'</div><div class="hi-sec"><h4>Documentos</h4>'+docs+'</div>'+
+      '<div class="hi-body"><div class="hi-sec"><h4>Monitoreos y fechas</h4>'+mons+'</div><div class="hi-sec"><h4>Documentos</h4>'+docs+'</div>'+htmlDescargas(c)+
       '<div class="hi-acc"><button class="btn-s btn-sm" data-abrir="'+esc(c.id)+'" data-sub="registro">Ver registro de ejecución</button><button class="btn-s btn-sm" data-abrir="'+esc(c.id)+'" data-sub="muestreo">Abrir campaña</button></div></div></details>'; }).join('')+'</div>';
   document.getElementById('tc-historico').innerHTML=h;
 }
@@ -1710,7 +1716,7 @@ function renderPlanillas(c,m,ro){
   var insp=respMon(c,m.cod).join(', ');
   var hdr='<div class="pl-hdr">'+
     (d.cod?'<div class="pl-cod">Registro '+esc(d.cod)+'</div>':'')+
-    '<div class="pl-hg"><div><span>Proyecto</span><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b></div><div><span>Fecha</span><b>'+esc(fmtD(S.fechaTrabajo||c.ini))+'</b></div>'+(d.hdrCampos?'':'<div><span>Inspector o técnico</span><b>'+(insp?esc(insp):'<em class="falta">elige «Realizado por» en el checklist</em>')+'</b></div>')+'</div>'+
+    '<div class="pl-hg"><div><span>Proyecto</span><b>'+esc(MATRIZ[c.proyecto].nombre)+'</b></div><div><span>Fecha</span><b>'+esc(fmtD((S.cid===c.id&&S.fechaTrabajo)||c.ini))+'</b></div>'+(d.hdrCampos?'':'<div><span>Inspector o técnico</span><b>'+(insp?esc(insp):'<em class="falta">elige «Realizado por» en el checklist</em>')+'</b></div>')+'</div>'+
     '<div class="pl-hf">'+(d.sinInst?'':'<label>Equipo<input class="inp" type="text" data-plh="'+esc(pk)+'" data-col="equipo" value="'+esc(h.equipo||'')+'"'+dis+' placeholder="Ej.: '+(d.flujo?'Flujómetro General Oceanics':'Multiparámetro HACH')+'"></label><label>N° de serie<input class="inp" type="text" data-plh="'+esc(pk)+'" data-col="serie" value="'+esc(h.serie||'')+'"'+dis+'></label>')+
       (d.hdrCampos?d.hdrCampos.map(function(x){ return '<label>'+esc(x.l)+'<input class="inp" type="'+(x.ty==='time'?'time':'text')+'" data-plh="'+esc(pk)+'" data-col="'+x.k+'" value="'+esc(h[x.k]||'')+'"'+dis+(x.k==='observador'&&insp?' placeholder="'+esc(insp)+'"':'')+'></label>'; }).join(''):'')+
       (d.flujo?'<label>Constante del flujómetro (m por cuenta)<input class="inp" type="text" inputmode="decimal" data-plh="'+esc(pk)+'" data-col="k" value="'+esc(h.k||'')+'"'+dis+' placeholder="Ej.: 0,3"></label>':'')+
@@ -1747,7 +1753,7 @@ function pdfTxt(v){ return String(v==null?'':v).replace(/³/g,'3').replace(/²/g
 // Ficha de observación de fauna (QB2 · PS-14) con el mismo formato que la ficha en papel (OMA_01_20).
 function pdfFauna(c,mon,P,h,LOGO){
   var J=window.jspdf.jsPDF, doc=new J({orientation:'portrait',unit:'mm',format:'letter'}), W=doc.internal.pageSize.getWidth(), M=14, X0=27, X1=W-27;
-  var LUG=['Islote Patache','Navegación','Islote Patillos'], fecha=fmtD(S.fechaTrabajo||c.ini), obsv=pdfTxt(h.observador||respMon(c,mon).join(', ')||'');
+  var LUG=['Islote Patache','Navegación','Islote Patillos'], fecha=fmtD((S.cid===c.id&&S.fechaTrabajo)||c.ini), obsv=pdfTxt(h.observador||respMon(c,mon).join(', ')||'');
   P.rows.forEach(function(r){ if(r.lugar&&LUG.indexOf(r.lugar)<0) LUG.push(r.lugar); });
   var negro=[0,0,0], line={lineColor:negro,lineWidth:.25};
   function cabecera(){ var y=6, hh=18; doc.setDrawColor(0); doc.setLineWidth(.3);
@@ -1815,7 +1821,7 @@ function pdfPlanilla(c,mon,pk){
     doc.text(pdfTxt(d.t),M,39);
     if(d.cod){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(110); doc.text('Registro '+d.cod,W-M,39,{align:'right'}); }
     var enc=(h.observador||'')||respMon(c,mon).join(', ')||'—';
-    var info=[['Fecha',fmtD(S.fechaTrabajo||c.ini)],['Proyecto',pdfTxt(pr.nombre+(m?' · '+m.nombre:''))],[d.hdrCampos?'Observador':'Nombre encargado',pdfTxt(enc)]];
+    var info=[['Fecha',fmtD((S.cid===c.id&&S.fechaTrabajo)||c.ini)],['Proyecto',pdfTxt(pr.nombre+(m?' · '+m.nombre:''))],[d.hdrCampos?'Observador':'Nombre encargado',pdfTxt(enc)]];
     if(d.hdrCampos) [['Lobos y pingüinos','iniLP','finLP'],['Chungungos','iniCh','finCh']].forEach(function(z){ if(h[z[1]]||h[z[2]]) info.push(['Horario · '+z[0],(h[z[1]]||'—')+' a '+(h[z[2]]||'—')]); });
     doc.autoTable({startY:44,margin:{left:M,right:M},theme:'plain',body:info,styles:{fontSize:10,cellPadding:1.6,textColor:[31,41,55]},columnStyles:{0:{fontStyle:'bold',cellWidth:42,textColor:[13,61,92]}}});
     var head=[orden.map(function(x){return pdfTxt(x.l);})], body;
@@ -1838,7 +1844,7 @@ function pdfPlanilla(c,mon,pk){
 function csvPlanilla(c,mon,pk){
   var P=getPlan(c,mon,pk,true), h=P.hdr||{}, d=defPlan(pk,h,mOf(c,mon)), q=function(v){ v=String(v==null?'':v); return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
   var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
-  var L=[['Fecha',fmtD(S.fechaTrabajo||c.ini)].map(q).join(';'),['Proyecto',MATRIZ[c.proyecto].nombre].map(q).join(';'),['Nombre encargado',respMon(c,mon).join(', ')].map(q).join(';')];
+  var L=[['Fecha',fmtD((S.cid===c.id&&S.fechaTrabajo)||c.ini)].map(q).join(';'),['Proyecto',MATRIZ[c.proyecto].nombre].map(q).join(';'),['Nombre encargado',respMon(c,mon).join(', ')].map(q).join(';')];
   L.push(''); L.push(orden.map(function(x){return q(x.l);}).join(';'));
   P.rows.forEach(function(r){ if(!orden.some(function(x){ return (x.ty==='num'||x.ty==='txt'||x.ty==='hora')&&r[x.k]; })) return; L.push(orden.map(function(x){ return q(x.ty==='calc'?volFlujo(r,h):r[x.k]); }).join(';')); });
   var blob=new Blob(['﻿'+L.join('\n')],{type:'text/csv;charset=utf-8'}), a=document.createElement('a');
@@ -2085,6 +2091,7 @@ W.addEventListener('click',function(e){
   if(b.dataset.cpDoc){ S.sub='documentos'; S.chip=null; S.docG=b.dataset.cpDoc; renderDetalle(); return; }
   if(b.dataset.acamp){ abrir(b.dataset.acamp,'muestreo'); if(b.dataset.amon){ S.mon=b.dataset.amon; renderDetalle(); } return; }
   if(b.id==='act-mas'){ S.actTodo=!S.actTodo; renderHistorial(); return; }
+  if(b.dataset.hpdf||b.dataset.hcsv){ var hx=(b.dataset.hpdf||b.dataset.hcsv).split('|'), hc=getC(hx[0]); if(!hc) return; if(b.dataset.hpdf) pdfPlanilla(hc,hx[1],hx[2]); else csvPlanilla(hc,hx[1],hx[2]); return; }
   if(b.dataset.copiar){ var tx=b.dataset.copiar; (navigator.clipboard?navigator.clipboard.writeText(tx):Promise.reject()).then(function(){ toast('Ruta copiada'); },function(){ toast(tx); }); return; }
   if(b.id==='bit-mas'){ S.bitTodo=!S.bitTodo; renderHistorial(); return; }
   if(b.dataset.bitf){ S.bitSoloCorr=b.dataset.bitf==='1'; renderHistorial(); return; }
