@@ -178,6 +178,34 @@
   .lote{flex-basis:100%;background:var(--card-bg);border:1px solid var(--borde);border-radius:8px;padding:8px 12px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .lote-btn{flex-basis:100%;margin:6px 0 18px;}
   .logo-txt{font-size:11px;font-weight:800;color:var(--azul);text-align:center;line-height:1.15;padding:4px;word-break:break-word;}
+  /* Programar campaña: salidas y monitoreos */
+  .pg-sec{margin:16px 0 4px;}
+  .pg-st{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;}
+  .pg-st b{font-size:14.5px;}
+  .pg-sal{display:flex;flex-direction:column;gap:8px;}
+  .pg-salr{display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:8px;align-items:end;padding:10px;border:1px solid var(--borde);border-radius:10px;background:var(--card-bg);position:relative;}
+  .pg-salr .fl{margin:0;}
+  .pg-tag{grid-column:1/-1;font-size:12px;font-weight:800;color:var(--verde);text-transform:uppercase;letter-spacing:.4px;}
+  .pg-x{border:none;background:none;color:var(--suave);font-size:16px;cursor:pointer;padding:8px;align-self:center;}
+  .pg-x:hover{color:#b3261e;}
+  .pg-tabla{border:1px solid var(--borde);border-radius:10px;overflow:hidden;background:var(--card-bg);}
+  .pg-head,.pg-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,.9fr) 2fr;gap:10px;padding:9px 12px;align-items:center;}
+  .pg-head{background:var(--gris);font-size:11px;font-weight:800;color:var(--suave);text-transform:uppercase;letter-spacing:.4px;}
+  .pg-row{border-top:1px solid var(--borde);}
+  .pg-row.pg-off .pg-mon b{color:var(--suave);}
+  .pg-mon{display:flex;flex-direction:column;}
+  .pg-mon small{font-size:11.5px;color:var(--suave);}
+  .pg-pers{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+  .pg-p{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;background:var(--verde-s,#eef6ef);color:var(--verde);border-radius:999px;padding:4px 6px 4px 11px;font-size:12.5px;font-weight:700;}
+  .pg-p button{border:none;background:none;color:inherit;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.7;}
+  .pg-p button:hover{opacity:1;}
+  .pg-add{width:auto;min-width:120px;max-width:170px;font-size:12.5px;padding:5px 8px;height:auto;}
+  .pg-add.pg-falta{border-color:#e0a2a0;color:#b3261e;}
+  .pg-todos{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--suave);}
+  .pg-todos .sel{width:auto;min-width:170px;font-size:12.5px;padding:5px 8px;height:auto;}
+  .pg-fuera{margin-top:8px;}
+  @media (max-width:760px){ .pg-salr{grid-template-columns:1fr 1fr;} .pg-jefe{grid-column:1/-1;} .pg-x{position:absolute;top:2px;right:2px;}
+    .pg-head{display:none;} .pg-row{grid-template-columns:1fr;gap:6px;} }
   /* Partes del muestreo */
   .tr-cab{margin:14px 0 6px;font-size:15px;}
   .tramo{border:1px solid var(--borde);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--card-bg);}
@@ -788,6 +816,7 @@
   .ov.on{display:block;}
   .sp{position:fixed;top:0;right:-520px;width:480px;max-width:100vw;height:100%;background:var(--card-bg);box-shadow:-6px 0 32px rgba(0,0,0,0.18);z-index:501;display:flex;flex-direction:column;transition:right .3s,visibility 0s .3s;visibility:hidden;}
   .sp.on{right:0;visibility:visible;transition:right .3s;}
+  @media (min-width:761px){ .sp.ancho{width:760px;right:-800px;} .sp.ancho.on{right:0;} }
   .sph{padding:18px 20px 14px;border-bottom:1px solid var(--borde);}
   .spt{font-size:15px;font-weight:700;color:var(--azul);}
   .spb{flex:1;overflow-y:auto;padding:16px 20px;display:grid;gap:14px;align-content:start;}
@@ -2274,7 +2303,7 @@ function renderDetalle(){
       '<div><div class="dk">Cliente</div><div class="dv">'+esc(pr.cliente||'—')+'</div></div>'+
       '<div><div class="dk">Comuna</div><div class="dv">'+esc(pr.comuna||pr.region||'—')+'</div></div>'+
       '<div><div class="dk">Fechas</div><div class="dv">'+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+'</div></div>'+
-      (c.tramos&&c.tramos.length?'<div class="dwide"><div class="dk">Partes del muestreo</div><div class="dv">'+htmlPartes(c)+'</div></div>':'<div class="dwide"><div class="dk">Equipo</div><div class="dv">'+eq+(esCoord()&&c.estadoAdm!=='Cerrada'?' <button type="button" class="lnk" data-partes="'+esc(c.id)+'">Programar por partes</button>':'')+'</div></div>')+
+      (c.tramos&&c.tramos.length?'<div class="dwide"><div class="dk">'+(c.tramos.length>1?'Salidas a terreno':'Programación')+'</div><div class="dv">'+htmlPartes(c)+'</div></div>':'<div class="dwide"><div class="dk">Equipo</div><div class="dv">'+eq+(esCoord()&&c.estadoAdm!=='Cerrada'?' <button type="button" class="lnk" data-partes="'+esc(c.id)+'">Editar programación</button>':'')+'</div></div>')+
     '</div></div></div>'+
     '<div class="dprogs">'+prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'</div>'+
     '<div class="cfoot">'+chipB('sinMarcar',p.sinMarcar,'sin marcar','p-gris')+chipB('noReal',p.noReal,p.noReal===1?'no realizada':'no realizadas','p-rojo')+chipB('parcial',p.parcial,p.parcial===1?'parcial':'parciales','p-amber')+chipB('sinMotivo',p.sinMotivo,'sin motivo','p-rojo')+chipB('dPend',p.dPend,'docs. pendientes','p-amber')+chipB('dSinRuta',p.dSinRuta,'sin ruta','p-amber')+'</div>'+
@@ -2373,7 +2402,7 @@ function perPorDefecto(p,y){ var mh=HOY.getMonth()+1;
 function abrirNueva(pid,per,anio){
   pid=pid||Object.keys(MATRIZ)[0]; if(!pid){ toast('La matriz no tiene proyectos'); return; }
   var p=MATRIZ[pid], y=anio||(S.vista==='anio'?S.anio:HOY.getFullYear()); per=per||perPorDefecto(p,y);
-  draft={modo:'nueva',proyecto:pid,anio:y,periodo:per}; draftReset(); S.spReset=true;
+  draft={modo:'nueva',proyecto:pid,anio:y,periodo:per}; draftReset(); S.spReset=true; document.getElementById('sp').classList.add('ancho');
   renderNueva(); document.getElementById('sp').classList.add('on'); document.getElementById('ov').classList.add('on');
 }
 function draftReset(){ var p=MATRIZ[draft.proyecto], d1=fechaSugerida(draft.periodo,draft.anio), jefe=PERSONAL.indexOf(p.responsable)>=0?p.responsable:PERSONAL[0];
@@ -2381,48 +2410,56 @@ function draftReset(){ var p=MATRIZ[draft.proyecto], d1=fechaSugerida(draft.peri
 // Programar (o reprogramar) las partes de una campaña ya creada.
 function abrirPartes(cid){ var c=getC(cid); if(!c) return;
   draft={modo:'editar',cid:c.id,proyecto:c.proyecto,anio:c.anio,periodo:c.periodo,tramos:JSON.parse(JSON.stringify(c.tramos&&c.tramos.length?c.tramos:tramosDe(c))),resp:JSON.parse(JSON.stringify(c.monResp||{}))};
-  S.spReset=true; renderNueva(); document.getElementById('sp').classList.add('on'); document.getElementById('ov').classList.add('on'); }
-function cerrarNueva(){ document.getElementById('sp').classList.remove('on'); document.getElementById('ov').classList.remove('on'); }
+  S.spReset=true; document.getElementById('sp').classList.add('ancho'); renderNueva(); document.getElementById('sp').classList.add('on'); document.getElementById('ov').classList.add('on'); }
+function cerrarNueva(){ document.getElementById('sp').classList.remove('on'); setTimeout(function(){ if(!document.getElementById('sp').classList.contains('on')) document.getElementById('sp').classList.remove('ancho'); },350); document.getElementById('ov').classList.remove('on'); }
+function salidaTxt(t){ if(!t||!t.ini) return 'sin fechas'; var a=t.ini, b=t.fin||t.ini, d=function(x){ return +x.slice(8,10); }, m=function(x){ return MES3[+x.slice(5,7)-1].toLowerCase(); };
+  if(a===b) return d(a)+' '+m(a); if(a.slice(0,7)===b.slice(0,7)) return d(a)+'–'+d(b)+' '+m(b); return d(a)+' '+m(a)+' – '+d(b)+' '+m(b); }
 function renderNueva(){
   var stp=S.spReset?0:((document.querySelector('#sp .spb')||{}).scrollTop||0); S.spReset=false;
-  var ed=draft.modo==='editar', p=MATRIZ[draft.proyecto], ms=monsDe(draft.proyecto,draft.periodo), nT=0, nM=0;
-  if(ed){ var cE=getC(draft.cid); ms=monsCamp(cE); }
+  var ed=draft.modo==='editar', p=MATRIZ[draft.proyecto], ms=ed?monsCamp(getC(draft.cid)):monsDe(draft.proyecto,draft.periodo), nT=0, nM=0;
   ms.forEach(function(m){ nT+=m.estaciones.length; nM+=m.estaciones.length*m.total; });
+  var fuera=ed?[]:p.monitoreos.filter(function(m){ return ms.indexOf(m)<0; });
   var asig={}; draft.tramos.forEach(function(t,i){ t.mons.forEach(function(k){ asig[k]=i; }); });
-  var libres=ms.filter(function(m){ return asig[m.cod]==null; });
   var per=p.periodos.map(function(s){return '<option'+(draft.periodo===s?' selected':'')+'>'+esc(s)+'</option>';}).join('');
-  var existe=!ed&&getC(nuevaCampana(draft.proyecto,draft.anio,draft.periodo,'','','',[]).id), dis=ed?' disabled':'';
-  var partes=draft.tramos.map(function(t,i){
-    return '<div class="tramo"><div class="tramo-h"><b>Parte '+(i+1)+'</b>'+(draft.tramos.length>1?'<button type="button" class="lnk" data-tr-quitar="'+i+'">Quitar parte</button>':'')+'</div>'+
-      '<div class="f2"><label class="fl">Inicio<input class="inp" type="date" data-tr="'+i+'" data-k="ini" value="'+esc(t.ini)+'"></label><label class="fl">Término<input class="inp" type="date" data-tr="'+i+'" data-k="fin" value="'+esc(t.fin)+'"></label></div>'+
-      '<label class="fl">Jefe de terreno<select class="sel" data-tr="'+i+'" data-k="jefe"><option value="">— elegir —</option>'+PERSONAL.map(function(n){return '<option'+(n===t.jefe?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>'+
-      '<div class="fl">Monitoreos de esta parte<div class="tr-mons">'+ms.map(function(m){ var en=asig[m.cod], on=en===i, otro=en!=null&&en!==i;
-        return '<label class="'+(otro?'tr-otro':'')+'"><input type="checkbox" class="chk" data-tr="'+i+'" data-mon="'+esc(m.cod)+'"'+(on?' checked':'')+(otro?' disabled':'')+'>'+esc(m.nombre)+(otro?' <small>(parte '+(en+1)+')</small>':'')+'</label>'; }).join('')+'</div></div>'+
-      (t.mons.length>1?'<div class="tr-resp tr-todos"><div class="tr-rt">Asignar a todos los monitoreos de esta parte <span class="sub">(luego puedes ajustar cada uno)</span></div><div class="tr-chips">'+PERSONAL.map(function(n){ var on=t.mons.every(function(k){ return (draft.resp[k]||[]).indexOf(n)>=0; }); return '<button type="button" class="chip" aria-pressed="'+on+'" data-tr-todos="'+i+'|'+esc(n)+'">'+esc(n)+'</button>'; }).join('')+'</div></div>':'')+
-      t.mons.map(function(k){ var m=ms.filter(function(x){ return x.cod===k; })[0]||{nombre:k}, sel=draft.resp[k]||[];
-        return '<div class="tr-resp"><div class="tr-rt">'+esc(m.nombre)+' · <span class="'+(sel.length?'sub':'falta')+'">'+(sel.length?sel.length+' persona'+(sel.length>1?'s':''):'elige 1 o más personas')+'</span></div><div class="tr-chips">'+
-          PERSONAL.map(function(n){ var on=sel.indexOf(n)>=0; return '<button type="button" class="chip" aria-pressed="'+on+'" data-tr-resp="'+esc(k)+'|'+esc(n)+'">'+esc(n)+'</button>'; }).join('')+'</div></div>'; }).join('')+'</div>'; }).join('');
-  document.getElementById('sp').innerHTML='<div class="sph"><div class="spt">'+(ed?'Partes del muestreo':'Programar campaña')+'</div><div class="sub">'+(ed?esc(p.nombre)+' · '+esc(draft.periodo)+' '+draft.anio+'. Agrega o ajusta las partes: fechas, monitoreos, jefe de terreno y personas por monitoreo.':'Elige el proyecto y el periodo de la matriz. El muestreo puede hacerse por partes: cada una con sus fechas, monitoreos, jefe de terreno y personas por monitoreo.')+'</div></div>'+
+  var existe=!ed&&getC(nuevaCampana(draft.proyecto,draft.anio,draft.periodo,'','','',[]).id), dis=ed?' disabled':'', varias=draft.tramos.length>1;
+  var opsPers=function(excl){ return PERSONAL.filter(function(n){ return excl.indexOf(n)<0; }).map(function(n){ return '<option>'+esc(n)+'</option>'; }).join(''); };
+  // Salidas a terreno: fechas y jefe de terreno
+  var sal='<div class="pg-sec"><div class="pg-st"><b>Salidas a terreno</b><span class="sub">Si el muestreo se hace en distintas fechas, agrega una salida por cada viaje.</span></div>'+
+    '<div class="pg-sal">'+draft.tramos.map(function(t,i){
+      return '<div class="pg-salr">'+(varias?'<span class="pg-tag">'+esc(salidaTxt(t))+'</span>':'')+
+        '<label class="fl">Inicio<input class="inp" type="date" data-tr="'+i+'" data-k="ini" value="'+esc(t.ini)+'"></label>'+
+        '<label class="fl">Término<input class="inp" type="date" data-tr="'+i+'" data-k="fin" value="'+esc(t.fin)+'"></label>'+
+        '<label class="fl pg-jefe">Jefe de terreno<select class="sel" data-tr="'+i+'" data-k="jefe"><option value="">— elegir —</option>'+PERSONAL.map(function(n){return '<option'+(n===t.jefe?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>'+
+        (varias?'<button type="button" class="pg-x" data-tr-quitar="'+i+'" title="Quitar esta salida" aria-label="Quitar la salida del '+esc(salidaTxt(t))+'">✕</button>':'')+'</div>'; }).join('')+
+    '</div><button type="button" class="lnk" id="tr-agregar">+ Agregar otra salida</button></div>';
+  // Monitoreos: a qué salida van y quiénes los hacen
+  var filas=ms.map(function(m){ var k=m.cod, i=asig[k], sel=draft.resp[k]||[], prog=i!=null;
+    return '<div class="pg-row'+(prog?'':' pg-off')+'"><div class="pg-mon"><b>'+esc(m.nombre)+'</b><small>'+(m.estaciones[0]==='GENERAL'?'Área general':m.estaciones.length+' estaciones')+(m.anual?' · anual':'')+'</small></div>'+
+      ('<div class="pg-cel"><select class="sel" data-mon-sal="'+esc(k)+'" aria-label="Salida de '+esc(m.nombre)+'"><option value="">Sin programar aún</option>'+draft.tramos.map(function(t,j){ return '<option value="'+j+'"'+(i===j?' selected':'')+'>'+esc(salidaTxt(t))+'</option>'; }).join('')+'</select></div>')+
+      '<div class="pg-cel pg-pers">'+(prog?sel.map(function(n){ return '<span class="pg-p">'+esc(n)+'<button type="button" data-mon-quitar="'+esc(k)+'|'+esc(n)+'" aria-label="Quitar a '+esc(n)+'">✕</button></span>'; }).join('')+
+        (sel.length<PERSONAL.length?'<select class="sel pg-add'+(sel.length?'':' pg-falta')+'" data-mon-add="'+esc(k)+'" aria-label="Agregar persona a '+esc(m.nombre)+'"><option value="">'+(sel.length?'+ Agregar':'Asignar personas…')+'</option>'+opsPers(sel)+'</select>':''):'<span class="sub">Se programa después</span>')+'</div></div>'; }).join('');
+  var tabla='<div class="pg-sec"><div class="pg-st"><b>Monitoreos de '+esc(draft.periodo)+' '+draft.anio+'</b><span class="sub">'+'Elige en qué salida se hace cada monitoreo y quiénes lo realizan (1 o más personas). Lo que no se haga ahora puede quedar «Sin programar aún».'+'</span></div>'+
+    '<div class="pg-tabla"><div class="pg-head"><span>Monitoreo</span><span>Salida</span><span>Personas</span></div>'+filas+'</div>'+
+    '<div class="pg-todos"><span>Asignar a todos los monitoreos programados:</span><select class="sel" id="pg-todos"><option value="">Elegir persona…</option>'+opsPers([])+'</select></div>'+
+    (fuera.length?'<div class="sub pg-fuera">No corresponden en '+esc(draft.periodo)+' según la matriz: '+fuera.map(function(m){ return esc(m.nombre)+(m.periodos.length?' ('+esc(m.periodos.join(', '))+')':''); }).join(', ')+'.</div>':'')+'</div>';
+  document.getElementById('sp').innerHTML='<div class="sph"><div class="spt">'+(ed?'Programación de la campaña':'Programar campaña')+'</div><div class="sub">'+(ed?esc(p.nombre)+' · '+esc(draft.periodo)+' '+draft.anio:'Proyecto y periodo según la matriz maestra, fechas de terreno y personas por monitoreo.')+'</div></div>'+
     '<form class="spb" id="f-nueva">'+
     '<label class="fl">Proyecto<select class="sel" id="n-proy"'+dis+'>'+Object.keys(MATRIZ).map(function(k){return '<option value="'+k+'"'+(k===draft.proyecto?' selected':'')+'>'+esc(MATRIZ[k].nombre)+'</option>';}).join('')+'</select></label>'+
     '<div class="f2"><label class="fl">Año<input class="inp" id="n-anio" type="number" value="'+draft.anio+'"'+dis+'></label><label class="fl">Periodo<select class="sel" id="n-per"'+dis+'>'+per+'</select></label></div>'+
-    '<div class="tr-cab"><b>Partes del muestreo</b></div>'+partes+
-    (libres.length?'<div class="tr-libres"><b>Sin programar aún:</b> '+libres.map(function(m){ return esc(m.nombre); }).join(', ')+'. Agrégalos a una parte ahora o prográmalos después desde la campaña.</div>':'')+
-    (libres.length?'<button type="button" class="btn-s btn-sm" id="tr-agregar">+ Agregar otra parte</button>':'')+
-    (ed?'':'<div class="prev"><b>Monitoreos de '+esc(draft.periodo)+' según la matriz:</b><ul>'+ms.map(function(m){return '<li><b>'+esc(m.nombre)+'</b>'+(m.anual?' <span class="tag-anual">Anual · una vez al año</span>':'')+': '+(m.estaciones[0]==='GENERAL'?'sin estaciones (área general)':m.estaciones.length+' estaciones')+' · '+esc(resumenMon(m))+'</li>';}).join('')+'</ul>'+
-      '<div><b>'+nT+'</b> estaciones a marcar (monitoreo × estación), <b>'+nM+'</b> muestras y mediciones en total, y <b>'+DOCS.length+'</b> documentos.</div>'+
-      (existe?'<div class="warnline">Ya existe la campaña de '+esc(draft.periodo)+' '+draft.anio+' para este proyecto: para agregar partes ábrela y usa «Partes del muestreo».</div>':'')+'</div>')+
-    '</form><div class="spf"><button class="btn-p" id="n-crear">'+(ed?'Guardar partes':'Programar campaña')+'</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>';
+    sal+tabla+
+    (ed?'':'<div class="prev"><b>'+nT+'</b> estaciones a marcar, <b>'+nM+'</b> muestras y mediciones y <b>'+DOCS.length+'</b> documentos.'+
+      (existe?'<div class="warnline">Ya existe la campaña de '+esc(draft.periodo)+' '+draft.anio+' para este proyecto: para agregar salidas ábrela y usa «Editar programación».</div>':'')+'</div>')+
+    '</form><div class="spf"><button class="btn-p" id="n-crear">'+(ed?'Guardar programación':'Programar campaña')+'</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>';
   var nb=document.querySelector('#sp .spb'); if(nb) nb.scrollTop=stp;
 }
-function validarPartes(){ var ts=draft.tramos;
-  if(!ts.length) return 'Agrega al menos una parte';
-  for(var i=0;i<ts.length;i++){ var t=ts[i], n='La parte '+(i+1);
-    if(!t.mons.length) return n+' no tiene monitoreos';
+function validarPartes(){ var ts=draft.tramos, ms=monsDe(draft.proyecto,draft.periodo), nom=function(k){ var m=ms.filter(function(x){ return x.cod===k; })[0]; return m?m.nombre:k; }, varias=ts.length>1;
+  if(!ts.length) return 'Agrega al menos una salida a terreno';
+  for(var i=0;i<ts.length;i++){ var t=ts[i], n=varias?'La salida del '+salidaTxt(t):'La salida';
     if(!t.ini||!t.fin) return n+' no tiene fechas';
     if(t.fin<t.ini) return n+': la fecha de término es anterior a la de inicio';
     if(!t.jefe) return n+' no tiene jefe de terreno';
-    for(var j=0;j<t.mons.length;j++){ if(!(draft.resp[t.mons[j]]||[]).length){ var m=monsDe(draft.proyecto,draft.periodo).filter(function(x){ return x.cod===t.mons[j]; })[0]; return n+': elige al menos una persona para '+(m?m.nombre:t.mons[j]); } } }
+    if(!t.mons.length) return n+' no tiene monitoreos asignados';
+    for(var j=0;j<t.mons.length;j++) if(!(draft.resp[t.mons[j]]||[]).length) return 'Falta asignar personas a '+nom(t.mons[j]); }
   return ''; }
 
 // ─── NAVEGACIÓN Y RENDER ─────────────────────────────────
@@ -2457,9 +2494,9 @@ function recalcCamp(c){ if(!c.tramos||!c.tramos.length) return; var ts=c.tramos,
   c.ini=ts.map(function(t){return t.ini;}).sort()[0]; c.fin=ts.map(function(t){return t.fin;}).sort().slice(-1)[0]; c.jefe=ts.slice().sort(function(a,b){ return a.ini<b.ini?-1:1; })[0].jefe;
   ts.forEach(function(t){ genteTramo(c,t).forEach(function(n){ if(eq.indexOf(n)<0) eq.push(n); }); }); c.equipo=eq; }
 function htmlPartes(c){ var mn=function(k){ var m=mOf(c,k); return m?m.nombre:k; };
-  return '<div class="partes">'+c.tramos.map(function(t,i){ return '<div class="parte"><b>Parte '+(i+1)+'</b> · '+rangoTxt(t.ini,t.fin)+' · jefe de terreno <b>'+esc(t.jefe)+'</b><div class="parte-m">'+t.mons.map(function(k){ var r=respMon(c,k); return '<span><b>'+esc(mn(k))+'</b>'+(r.length?': '+r.map(esc).join(', '):' <em class="falta">sin personas</em>')+'</span>'; }).join('')+'</div></div>'; }).join('')+
+  return '<div class="partes">'+c.tramos.map(function(t,i){ return '<div class="parte"><b>'+esc(rangoTxt(t.ini,t.fin))+'</b> · jefe de terreno <b>'+esc(t.jefe)+'</b><div class="parte-m">'+t.mons.map(function(k){ var r=respMon(c,k); return '<span><b>'+esc(mn(k))+'</b>'+(r.length?': '+r.map(esc).join(', '):' <em class="falta">sin personas</em>')+'</span>'; }).join('')+'</div></div>'; }).join('')+
     (sinProgramar(c).length?'<div class="parte parte-libre"><b>Sin programar aún:</b> '+sinProgramar(c).map(function(k){ return esc(mn(k)); }).join(', ')+'</div>':'')+
-    (esCoord()&&c.estadoAdm!=='Cerrada'?'<button type="button" class="btn-s btn-sm" data-partes="'+esc(c.id)+'">'+(sinProgramar(c).length?'Programar otra parte':'Editar partes')+'</button>':'')+'</div>'; }
+    (esCoord()&&c.estadoAdm!=='Cerrada'?'<button type="button" class="btn-s btn-sm" data-partes="'+esc(c.id)+'">'+(sinProgramar(c).length?'Programar lo pendiente':'Editar programación')+'</button>':'')+'</div>'; }
 function rangoTxt(a,b){ return a===b?fmtD(a):fmtD(a)+' al '+fmtD(b); }
 
 function fechaTrabajoDef(c){ return HOY_S<c.ini?c.ini:HOY_S>c.fin?c.fin:HOY_S; }
@@ -2621,15 +2658,15 @@ SP.addEventListener('change',function(e){ var el=e.target;
   if(el.id==='n-proy'){ draft.proyecto=el.value; draft.periodo=perPorDefecto(MATRIZ[el.value],draft.anio); draftReset(); }
   if(el.id==='n-per'){ draft.periodo=el.value; draftReset(); } if(el.id==='n-anio'){ draft.anio=+el.value; draftReset(); }
   if(el.dataset.tr!=null&&el.dataset.k){ var t=draft.tramos[+el.dataset.tr]; t[el.dataset.k]=el.value; if(el.dataset.k==='ini'&&(!t.fin||t.fin<el.value)) t.fin=el.value; }
-  if(el.dataset.tr!=null&&el.dataset.mon){ var t2=draft.tramos[+el.dataset.tr], k=el.dataset.mon; t2.mons=t2.mons.filter(function(x){ return x!==k; }); if(el.checked) t2.mons.push(k);
-    var orden=monsDe(draft.proyecto,draft.periodo).map(function(m){ return m.cod; }); t2.mons.sort(function(a,b){ return orden.indexOf(a)-orden.indexOf(b); }); }
+  if(el.dataset.monSal!=null){ var k=el.dataset.monSal; draft.tramos.forEach(function(t){ t.mons=t.mons.filter(function(x){ return x!==k; }); });
+    if(el.value!==''){ var t2=draft.tramos[+el.value], orden=monsDe(draft.proyecto,draft.periodo).map(function(m){ return m.cod; }); t2.mons.push(k); t2.mons.sort(function(a,b){ return orden.indexOf(a)-orden.indexOf(b); }); } }
+  if(el.dataset.monAdd&&el.value){ var l=(draft.resp[el.dataset.monAdd]||[]).slice(); if(l.indexOf(el.value)<0) l.push(el.value); draft.resp[el.dataset.monAdd]=l; }
+  if(el.id==='pg-todos'&&el.value){ var n=el.value; draft.tramos.forEach(function(t){ t.mons.forEach(function(k2){ var l2=(draft.resp[k2]||[]).slice(); if(l2.indexOf(n)<0) l2.push(n); draft.resp[k2]=l2; }); }); }
   renderNueva(); });
 SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return;
   if(b.id==='n-cancelar'){ cerrarNueva(); return; }
-  if(b.dataset.trResp){ var q=b.dataset.trResp.split('|'), l=(draft.resp[q[0]]||[]).slice(), i=l.indexOf(q[1]); if(i>=0) l.splice(i,1); else l.push(q[1]); draft.resp[q[0]]=l; var st0=SP.querySelector('.spb').scrollTop; renderNueva(); SP.querySelector('.spb').scrollTop=st0; return; }
-  if(b.dataset.trTodos){ var q2=b.dataset.trTodos.split('|'), t3=draft.tramos[+q2[0]], todos=t3.mons.every(function(k){ return (draft.resp[k]||[]).indexOf(q2[1])>=0; });
-    t3.mons.forEach(function(k){ var l2=(draft.resp[k]||[]).filter(function(x){ return x!==q2[1]; }); if(!todos) l2.push(q2[1]); draft.resp[k]=l2; }); var st=SP.querySelector('.spb').scrollTop; renderNueva(); SP.querySelector('.spb').scrollTop=st; return; }
-  if(b.id==='tr-agregar'){ var u=draft.tramos[draft.tramos.length-1], d=new Date((u.fin||u.ini)+'T12:00:00'); d.setDate(d.getDate()+1); draft.tramos.push({ini:iso(d),fin:iso(d),mons:[],jefe:u.jefe}); renderNueva(); SP.querySelector('.spb').scrollTop=1e5; return; }
+  if(b.dataset.monQuitar){ var q=b.dataset.monQuitar.split('|'); draft.resp[q[0]]=(draft.resp[q[0]]||[]).filter(function(x){ return x!==q[1]; }); renderNueva(); return; }
+  if(b.id==='tr-agregar'){ var u=draft.tramos[draft.tramos.length-1], d=new Date((u.fin||u.ini)+'T12:00:00'); d.setDate(d.getDate()+1); draft.tramos.push({ini:iso(d),fin:iso(d),mons:[],jefe:u.jefe}); renderNueva(); return; }
   if(b.dataset.trQuitar!=null){ draft.tramos.splice(+b.dataset.trQuitar,1); renderNueva(); return; }
   if(b.id==='n-crear'){
     if(!draft.periodo){ toast('Este proyecto no tiene periodos en la matriz'); return; }
@@ -2638,9 +2675,9 @@ SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b
     if(draft.modo==='editar'){ var c=getC(draft.cid), antes=JSON.parse(JSON.stringify(c.monResp||{}));
       c.tramos=tr; c.monResp=c.monResp||{}; asig.forEach(function(k){ c.monResp[k]=(draft.resp[k]||[]).slice(); }); recalcCamp(c);
       asig.forEach(function(k){ if(JSON.stringify(antes[k]||[])!==JSON.stringify(c.monResp[k])) enviar('responsables',{campana:c.id,monitoreo:k,responsables:c.monResp[k].join(', ')}); });
-      enviar('editarCampana',{campana:c.id,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,tramos:c.tramos}); vista(); cerrarNueva(); renderDetalle(); toast('Partes guardadas: '+tr.length+' parte'+(tr.length>1?'s':'')); return; }
+      enviar('editarCampana',{campana:c.id,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,tramos:c.tramos}); vista(); cerrarNueva(); renderDetalle(); toast('Programación guardada'); return; }
     var c=nuevaCampana(draft.proyecto,draft.anio,draft.periodo,'','','',[]);
-    if(getC(c.id)){ toast('Ya existe la campaña '+c.id+'. Ábrela para agregar partes.'); return; }
+    if(getC(c.id)){ toast('Ya existe la campaña '+c.id+'. Ábrela para agregar salidas.'); return; }
     c.tramos=tr; c.monResp={}; asig.forEach(function(k){ c.monResp[k]=(draft.resp[k]||[]).slice(); }); recalcCamp(c);
     c.estadoAdm='Abierta'; c.creadaPor=usuario; c.creadaEl=ahoraTxt(); CAMP_ALL.push(c); vista(); enviar('crearCampana',{id:c.id,proyecto:c.proyecto,nombreProyecto:MATRIZ[c.proyecto].nombre,anio:c.anio,periodo:c.periodo,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,tramos:c.tramos,resp:c.monResp,
       tareas:c.tareas.map(function(t){return {id:t.id,mon:t.mon,est:t.est};}),docs:c.docs.map(function(d){return {n:d.n,t:d.t};})});
