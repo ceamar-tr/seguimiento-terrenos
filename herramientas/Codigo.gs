@@ -182,11 +182,65 @@ function cambiar_(u, accion, d) {
       c = campana_(d.campana); if (!c) return noExiste_();
       if (!puedeMarcar_(u, c)) return negado_();
       asegurarHoja_('Planillas', ['id_campana', 'clave', 'monitoreo', 'planilla', 'datos', 'actualizado_por', 'actualizado_el']);
-      var vp = { datos: String(d.datos || ''), actualizado_por: u.correo, actualizado_el: ahora_() };
+      var vp = { datos: sinFirma_(d.datos), actualizado_por: u.correo, actualizado_el: ahora_() };
       var fp = leer_('Planillas').filter(function (r) { return r.id_campana === d.campana && r.clave === d.clave; })[0];
+      if (fp && firmaDe_(fp.datos)) return { ok: false, error: 'firmado', mensaje: 'Ese registro ya está firmado y no se puede modificar.' };
       if (fp) actualizarFila_('Planillas', fp._fila, vp);
       else { vp.id_campana = d.campana; vp.clave = d.clave; vp.monitoreo = String(d.clave).split('|')[0]; vp.planilla = String(d.clave).split('|')[1] || ''; agregarVarias_('Planillas', [vp]); }
       registrar_(u, 'planilla', d.campana, d.clave);
+      return { ok: true };
+
+    // ── Firma de registros SSO con código personal de 6 dígitos ──
+    case 'pinEstado':
+      return { ok: true, tiene: !!PropertiesService.getScriptProperties().getProperty('pin_' + u.correo) };
+
+    case 'crearPin':
+      if (!/^\d{6}$/.test(String(d.pin || ''))) return { ok: false, error: 'pin', mensaje: 'El código debe tener 6 números.' };
+      var props = PropertiesService.getScriptProperties();
+      if (props.getProperty('pin_' + u.correo)) return { ok: false, error: 'pin', mensaje: 'Ya tienes un código de firma. Si lo olvidaste, pide al Administrador que lo reinicie.' };
+      var sal = Utilities.getUuid();
+      props.setProperty('pin_' + u.correo, JSON.stringify({ sal: sal, h: hex_(sal + String(d.pin)), el: ahora_() }));
+      registrar_(u, 'código de firma', '', 'creó su código de firma');
+      return { ok: true };
+
+    case 'firmar':
+      c = campana_(d.campana); if (!c) return noExiste_();
+      if (!puedeMarcar_(u, c)) return negado_();
+      if (String(d.clave).indexOf('SSO|sso-') !== 0) return { ok: false, error: 'Solo se firman registros SSO' };
+      var malo = pinMalo_(u, d.pin); if (malo) return malo;
+      var R; try { R = JSON.parse(d.datos); } catch (e) { return { ok: false, error: 'Datos no válidos' }; }
+      var m = String(d.clave).match(/^SSO\|sso-fatiga-\d{4}-\d{2}-\d{2}-(.+)$/);
+      if (m && m[1] !== slug_(u.nombre)) return { ok: false, error: 'permiso', mensaje: 'La ficha de fatiga solo la puede firmar la persona evaluada.' };
+      asegurarHoja_('Planillas', ['id_campana', 'clave', 'monitoreo', 'planilla', 'datos', 'actualizado_por', 'actualizado_el']);
+      var ff = leer_('Planillas').filter(function (r) { return r.id_campana === d.campana && r.clave === d.clave; })[0];
+      if (ff && firmaDe_(ff.datos)) return { ok: false, error: 'firmado', mensaje: 'Ese registro ya estaba firmado.' };
+      delete R.firma;
+      R.firma = { por: u.nombre, correo: u.correo, el: ahora_(), cod: hex_(JSON.stringify(R.hdr || {}) + '|' + d.clave + '|' + u.correo).slice(0, 10).toUpperCase() };
+      var vf = { datos: JSON.stringify(R), actualizado_por: u.correo, actualizado_el: ahora_() };
+      if (ff) actualizarFila_('Planillas', ff._fila, vf);
+      else { vf.id_campana = d.campana; vf.clave = d.clave; vf.monitoreo = 'SSO'; vf.planilla = String(d.clave).split('|')[1]; agregarVarias_('Planillas', [vf]); }
+      protegerPlanillas_();
+      registrar_(u, 'firmar registro', d.campana, d.clave + ' · verificación ' + R.firma.cod);
+      return { ok: true, R: R };
+
+    case 'anularFirma':
+      if (u.rol !== 'Administrador') return negado_();
+      if (String(d.motivo || '').trim().length < 5) return { ok: false, error: 'motivo', mensaje: 'Indica el motivo de la anulación.' };
+      var fa = leer_('Planillas').filter(function (r) { return r.id_campana === d.campana && r.clave === d.clave; })[0];
+      var Ra = fa ? JSON.parse(fa.datos) : null;
+      if (!Ra || !Ra.firma) return { ok: false, error: 'Ese registro no está firmado' };
+      Ra.anulaciones = (Ra.anulaciones || []).concat([{ firma: Ra.firma, por: u.nombre, el: ahora_(), motivo: String(d.motivo).trim() }]);
+      delete Ra.firma;
+      actualizarFila_('Planillas', fa._fila, { datos: JSON.stringify(Ra), actualizado_por: u.correo, actualizado_el: ahora_() });
+      registrar_(u, 'anular firma', d.campana, d.clave + ' · motivo: ' + String(d.motivo).trim());
+      return { ok: true, R: Ra };
+
+    case 'reiniciarPin':
+      if (u.rol !== 'Administrador') return negado_();
+      var fu = leer_('Usuarios').filter(function (r) { return String(r.nombre).trim() === String(d.nombre || '').trim(); })[0];
+      if (!fu) return { ok: false, error: 'No encontré a esa persona en la hoja Usuarios' };
+      PropertiesService.getScriptProperties().deleteProperty('pin_' + String(fu.correo).trim().toLowerCase());
+      registrar_(u, 'reiniciar código', '', String(d.nombre));
       return { ok: true };
 
     case 'doc':
@@ -302,6 +356,33 @@ function registrar_(u, accion, campana, detalle, extra) {
   if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
   agregar_('Cambios', o);
 }
+// ─── Firma de registros ───────────────────────────────────
+function hex_(s) { return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8).map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join(''); }
+function slug_(n) { return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
+function firmaDe_(datos) { try { return (JSON.parse(datos) || {}).firma || null; } catch (e) { return null; } }
+function sinFirma_(datos) { try { var o = JSON.parse(datos); if (o && o.firma) { delete o.firma; return JSON.stringify(o); } } catch (e) { } return String(datos || ''); }
+// Revisa el código; tras 5 intentos fallidos se bloquea 15 minutos.
+function pinMalo_(u, pin) {
+  var raw = PropertiesService.getScriptProperties().getProperty('pin_' + u.correo);
+  if (!raw) return { ok: false, error: 'pin', mensaje: 'Aún no tienes código de firma.' };
+  var cache = CacheService.getScriptCache(), k = 'pinf_' + u.correo, n = Number(cache.get(k) || 0);
+  if (n >= 5) return { ok: false, error: 'pin', mensaje: 'Demasiados intentos. Espera 15 minutos e inténtalo de nuevo.' };
+  var o = JSON.parse(raw);
+  if (hex_(o.sal + String(pin || '')) !== o.h) { cache.put(k, String(n + 1), 900); return { ok: false, error: 'pin', mensaje: 'Código incorrecto' + (n + 1 >= 5 ? '. Bloqueado por 15 minutos.' : ' (te quedan ' + (4 - n) + ' intentos).') }; }
+  cache.remove(k); return null;
+}
+// Al primer registro firmado, la hoja Planillas queda protegida: solo la dueña (y la página) pueden escribir en ella.
+function protegerPlanillas_() {
+  var pr = PropertiesService.getScriptProperties(); if (pr.getProperty('planillas_prot')) return;
+  try {
+    var h = hoja_('Planillas'), p = h.protect().setDescription('Registros de terreno y firmas: no se editan a mano');
+    var yo = Session.getEffectiveUser(); p.addEditor(yo);
+    p.removeEditors(p.getEditors().filter(function (e) { return e.getEmail() !== yo.getEmail(); }));
+    if (p.canDomainEdit()) p.setDomainEdit(false);
+  } catch (e) { }
+  pr.setProperty('planillas_prot', '1');
+}
+
 function prepararCambios_() {
   var pr = PropertiesService.getScriptProperties();
   if (pr.getProperty('cambios_v2')) return;
