@@ -1392,6 +1392,9 @@ function renderChecklist(c){
   else if(sinM.length) antes+='<div class="lote-btn"><button class="btn-todas" id="todas">✓ Marcar todas las restantes como realizadas <span class="n">'+sinM.length+'</span></button></div>';
   var pks=planillasDe(c,m), nDat=pks.reduce(function(s,k){ var Pk=getPlan(c,m.cod,k); return s+filasLlenas(Pk,defPlan(k,Pk&&Pk.hdr,m)); },0);
   if(!pks.length&&!esZoo(m)) S.vistaMon='check';
+  // Consulta: al abrir un monitoreo con planillas llenas, mostrar directo los datos de terreno.
+  if(ro&&nDat&&S.monVisto!==c.id+'|'+m.cod){ S.vistaMon='datos'; } S.monVisto=c.id+'|'+m.cod;
+  if(ro&&pks.length&&S.vistaMon!=='datos') antes=antes.replace(/<\/div>$/,' <button type="button" class="lnk" data-vmon="datos">Ver y descargar los datos de terreno ›</button></div>');
   var vistaT=(pks.length||esZoo(m))?'<div class="ck-vista" role="tablist"><button type="button" role="tab" data-vmon="check" aria-selected="'+(S.vistaMon!=='datos')+'">Checklist</button><button type="button" role="tab" data-vmon="datos" aria-selected="'+(S.vistaMon==='datos')+'">Datos de terreno'+(nDat?' <span class="pl-n">'+nDat+'</span>':'')+'</button></div>':'';
   var main='<section class="ck-main"><div class="ck-head"><div><div class="ck-tit">'+esc(m.nombre)+tagAnual(m)+' <span class="ck-cnt">'+a.dn+'/'+a.ts.length+'</span></div><div class="sub">'+esc(resumenMon(m))+'</div></div>'+
     (S.vistaMon==='datos'?'':'<div class="seg"><button data-verpend="0" aria-pressed="'+!S.verPend+'">Todas</button><button data-verpend="1" aria-pressed="'+!!S.verPend+'">Pendientes ('+a.falta.length+')</button></div>')+'</div>'+vistaT+
