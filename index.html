@@ -601,6 +601,16 @@
   .dg-ctl .ruta{display:flex;gap:6px;}.dg-ctl .ruta .inp{flex:1;min-width:0;}.dg-ctl a.btn-s{text-decoration:none;display:inline-flex;align-items:center;}
   .dg-todas{margin:0 0 12px;}
   .dg-ctl .ruta .btn-s,.dg-ctl .ruta .inp{text-transform:none;letter-spacing:normal;font-weight:600;}.dg-ctl .ruta .inp{font-weight:400;}
+  @media(max-width:760px){
+    .top.mini .top-row{display:none;} .top.mini .nav{margin-top:8px;padding-bottom:8px;}
+    .nav{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);scrollbar-width:none;}
+    .nav::-webkit-scrollbar{display:none;}
+    .seg{display:flex;flex-wrap:wrap;border-radius:14px;max-width:100%;}.seg button{flex:1 1 auto;}
+    .gd{left:12px;right:auto;bottom:12px;font-size:12.5px;padding:8px 12px;}
+    #toast{bottom:64px !important;}
+    .bit-it{grid-template-columns:32px 1fr;}.bit-it .act-cu{grid-column:2;font-size:11px;}
+    .dtit2 .dinfo .dwide{font-size:13px;}
+  }
   @media(max-width:760px){ .dg-ctl{grid-template-columns:1fr;margin-left:0;min-width:0;flex:1 1 100%;order:3;} }
   .dg-t{font-size:17px;font-weight:800;color:var(--dg);}
   .dg-n{margin-left:auto;font-weight:800;font-size:13px;padding:4px 12px;border-radius:14px;background:var(--dg-s);color:var(--dg);font-variant-numeric:tabular-nums;}
@@ -2180,6 +2190,10 @@ SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b
 aplicarZoom(); pintarTema();
 function altoTop(){ var t=document.querySelector('.top'); if(t) document.documentElement.style.setProperty('--top-h',t.offsetHeight+'px'); }
 altoTop(); window.addEventListener('resize',altoTop);
+// En celular, al bajar se esconde la fila del logo y quedan solo las pestañas (más espacio para trabajar).
+(function(){ var t=document.querySelector('.top'), mq=window.matchMedia('(max-width:760px)'), mini=false;
+  function rev(){ var m=mq.matches&&window.scrollY>60; if(m!==mini){ mini=m; t.classList.toggle('mini',m); altoTop(); } }
+  window.addEventListener('scroll',rev,{passive:true}); mq.addEventListener&&mq.addEventListener('change',rev); })();
 cargarMatriz().catch(function(){ toast('No se pudo leer la matriz en línea; se usa la copia exportada'); CONFIG.MATRIZ_ID=''; return cargarMatriz(); })
   .then(function(){
     pintarNota();
