@@ -178,6 +178,23 @@
   .lote{flex-basis:100%;background:var(--card-bg);border:1px solid var(--borde);border-radius:8px;padding:8px 12px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
   .lote-btn{flex-basis:100%;margin:6px 0 18px;}
   .logo-txt{font-size:11px;font-weight:800;color:var(--azul);text-align:center;line-height:1.15;padding:4px;word-break:break-word;}
+  /* Partes del muestreo */
+  .tr-cab{margin:14px 0 6px;font-size:15px;}
+  .tramo{border:1px solid var(--borde);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:var(--card-bg);}
+  .tramo-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .tr-mons{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:4px;}
+  .tr-mons label{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;}
+  .tr-mons .tr-otro{opacity:.5;}
+  .tr-todos{background:var(--verde-s,#eef6ef);border-radius:10px;padding:8px;border-top:none !important;}
+  .tr-resp{margin-top:8px;padding-top:8px;border-top:1px dashed var(--borde);}
+  .tr-rt{font-size:13px;font-weight:700;margin-bottom:5px;}
+  .tr-rt .falta,.parte .falta{color:#b3261e;font-weight:700;font-style:normal;}
+  .tr-chips{display:flex;flex-wrap:wrap;gap:5px;}
+  .tr-libres{font-size:13px;margin:6px 0 10px;padding:8px 10px;border-radius:10px;background:var(--amber-s,#fff7e6);}
+  .partes{display:flex;flex-direction:column;gap:6px;align-items:flex-start;}
+  .parte{font-size:13.5px;}
+  .parte-m{display:flex;flex-direction:column;gap:2px;margin:3px 0 0 12px;font-size:13px;}
+  .parte-libre{color:var(--suave);}
   /* Registros SSO */
   .sso-sec{font-size:15px;margin:16px 0 8px;}
   .sso-sec .sub{font-weight:600;}
@@ -195,6 +212,12 @@
   .btn-p.sso-rojo{background:#b3261e;border-color:#b3261e;}
   .sso-anulada{margin:4px 0;}
   .eqc-pin{margin-top:6px;font-size:12px;}
+  .sso-pfs{border-style:solid;}
+  .sso-pf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;border-top:1px solid var(--borde);}
+  .sso-pfn{flex:1;min-width:160px;font-weight:700;font-size:13.5px;}
+  .sso-pf .sso-pin{margin:0;}
+  .sso-pf .sso-pin input{width:120px;font-size:18px;}
+  .sso-acred{margin:-4px 0 10px;}
   .sso-dias{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;}
   .sso-dias button{flex:0 0 auto;border:1px solid var(--borde);background:var(--card-bg);border-radius:12px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;color:var(--texto);cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.2;}
   .sso-dias button small{font-size:11px;font-weight:600;color:var(--suave);}
@@ -1367,8 +1390,7 @@ function renderCampanas(){
 
 // ─── DETALLE: GRILLA ESTACIÓN × DÍA ──────────────────────
 function diasCampana(c){
-  var out=[], d=new Date(c.ini+'T00:00:00'), f=new Date(c.fin+'T00:00:00');
-  while(d<=f){ out.push(iso(d)); d.setDate(d.getDate()+1); }
+  var out=[]; tramosDe(c).forEach(function(t){ diasRango(t.ini,t.fin).forEach(function(d){ if(out.indexOf(d)<0) out.push(d); }); });
   c.tareas.forEach(function(t){ if(t.fecha&&out.indexOf(t.fecha)<0) out.push(t.fecha); });
   return out.sort();
 }
@@ -1552,9 +1574,9 @@ function cargarBit(forzar){ if(DEMO){ if(!S.bit){ try{ S.bit=JSON.parse(localSto
   if(S.bitCargando||(!forzar&&S.bitT&&Date.now()-S.bitT<60000)) return; S.bitCargando=true;
   api('historial').then(function(r){ S.bitCargando=false; if(r.ok){ S.bit=r.cambios||[]; S.bitT=Date.now(); S.bitErr=''; } else S.bitErr=r.mensaje||r.error||'error'; if(S.tab==='historial') renderHistorial(); })
     .catch(function(){ S.bitCargando=false; S.bitErr='sin conexión'; if(S.tab==='historial') renderHistorial(); }); }
-var BIT_ACC={'firmar registro':'firmó','anular firma':'anuló la firma de','código de firma':'creó su código de firma','reiniciar código':'reinició el código de firma de','crear campaña':'programó la campaña','editar campaña':'editó la campaña','eliminar campaña':'eliminó la campaña','cerrar campaña':'cerró la campaña','reabrir campaña':'reabrió la campaña','planilla':'editó la planilla','documento':'actualizó un documento','redes':'registró las redes','responsables':'asignó responsables','condiciones':'registró las condiciones del día','marcar estación':'marcó una estación','marcar varias':'marcó varias estaciones'};
+var BIT_ACC={'firmar registro':'firmó','firma participante':'registró la firma de un participante en','anular firma':'anuló la firma de','código de firma':'creó su código de firma','reiniciar código':'reinició el código de firma de','crear campaña':'programó la campaña','editar campaña':'editó la campaña','eliminar campaña':'eliminó la campaña','cerrar campaña':'cerró la campaña','reabrir campaña':'reabrió la campaña','planilla':'editó la planilla','documento':'actualizó un documento','redes':'registró las redes','responsables':'asignó responsables','condiciones':'registró las condiciones del día','marcar estación':'marcó una estación','marcar varias':'marcó varias estaciones'};
 function ssoBitTxt(cl){ var m=String(cl).match(/sso-([a-z]+)-(\d{4}-\d{2}-\d{2})(?:-([a-z0-9_]+))?/); if(!m) return String(cl); return ((SSO_DEF[m[1]]||{}).t||m[1])+' del '+fmtD(m[2])+(m[3]?' · '+m[3].split('_').map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1); }).join(' '):''); }
-function bitDetalle(e,c){ if(/sso-/.test(String(e.detalle))&&(e.accion==='planilla'||e.accion==='firmar registro'||e.accion==='anular firma')){ var dt=String(e.detalle), extra=dt.indexOf(' · ')>0?dt.slice(dt.indexOf(' · ')):''; return 'Registro SSO: '+ssoBitTxt(dt.split(' · ')[0])+extra; }
+function bitDetalle(e,c){ if(/sso-/.test(String(e.detalle))&&(e.accion==='planilla'||e.accion==='firmar registro'||e.accion==='anular firma'||e.accion==='firma participante')){ var dt=String(e.detalle), extra=dt.indexOf(' · ')>0?dt.slice(dt.indexOf(' · ')):''; return 'Registro SSO: '+ssoBitTxt(dt.split(' · ')[0])+extra; }
   if(e.accion==='planilla'){ var x=String(e.detalle).split('|'), m=c?mOf(c,x[0]):null, d=x[1]?defPlan(x[1],{},m):null; return (d?d.t:x[1]||'')+(m?' · '+m.nombre:''); }
   if(/^(redes|responsables|condiciones)$/.test(e.accion)){ var i=String(e.detalle).indexOf(':'), m2=c&&i>0?mOf(c,e.detalle.slice(0,i)):null; return m2?m2.nombre+e.detalle.slice(i):e.detalle; }
   return e.detalle; }
@@ -1880,23 +1902,38 @@ var SSO_EQ=['charla','art','vehiculo','embarcacion'];
 function ssoSlug(n){ return String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
 function ssoClave(t,f,per){ return 'SSO|sso-'+t+'-'+f+(per?'-'+ssoSlug(per):''); }
 function ssoGet(c,t,f,per){ return (c.planillas||{})[ssoClave(t,f,per)]; }
-function ssoPersonas(c){ var o=[]; [c.jefe].concat(c.equipo||[]).forEach(function(n){ if(n&&o.indexOf(n)<0) o.push(n); }); var i=o.indexOf(usuario); if(i>0){ o.splice(i,1); o.unshift(usuario); } return o; }
-function ssoUnidades(c){ return SSO_EQ.map(function(t){ return {t:t}; }).concat(ssoPersonas(c).map(function(n){ return {t:'fatiga',per:n}; })); }
+// Los registros SSO aplican solo a parámetros acreditados: columna de agua, sedimentos, corrientes lagrangianas y deriva litoral.
+var SSO_ACRED=/columna de agua|sediment|lagrang|deriva/;
+function esAcred(m){ return !!m&&SSO_ACRED.test(sinTilde(m.nombre)); }
+function ssoTramos(c){ return tramosDe(c).filter(function(t){ return t.mons.some(function(k){ return esAcred(mOf(c,k)); }); }); }
+function ssoDias(c){ var o=[]; ssoTramos(c).forEach(function(t){ diasRango(t.ini,t.fin).forEach(function(d){ if(o.indexOf(d)<0) o.push(d); }); }); return o.sort(); }
+function ssoMonsDia(c,f){ var o=[]; ssoTramos(c).forEach(function(t){ if(t.ini<=f&&f<=t.fin) t.mons.forEach(function(k){ if(esAcred(mOf(c,k))&&o.indexOf(k)<0) o.push(k); }); }); return o; }
+// Personas del día: jefe de terreno y personas asignadas a los monitoreos acreditados de las partes que se hacen ese día.
+function ssoPersonasDia(c,f){ var o=[]; ssoTramos(c).forEach(function(t){ if(t.ini<=f&&f<=t.fin){ var ac=t.mons.filter(function(k){ return esAcred(mOf(c,k)); }); genteTramo(c,t,ac).forEach(function(n){ if(o.indexOf(n)<0) o.push(n); }); } });
+  if(!o.length) [c.jefe].concat(c.equipo||[]).forEach(function(n){ if(n&&o.indexOf(n)<0) o.push(n); });
+  var i=o.indexOf(usuario); if(i>0){ o.splice(i,1); o.unshift(usuario); } return o; }
+function ssoUnidades(c,f){ return SSO_EQ.map(function(t){ return {t:t}; }).concat(ssoPersonasDia(c,f).map(function(n){ return {t:'fatiga',per:n}; })); }
 function ssoId(u){ return u.t+(u.per?':'+u.per:''); }
 function ssoDeId(id){ var i=id.indexOf(':'); return i<0?{t:id}:{t:id.slice(0,i),per:id.slice(i+1)}; }
 function ssoItemsDe(t){ var o=[]; (SSO_DEF[t].grupos||[]).forEach(function(g){ g.items.forEach(function(it){ o.push(it); }); }); return o; }
 // Estado: firmado · na (no aplica) · ok (completo, falta firmar) · parcial · vacio
-function ssoEstado(R,t){ if(!R) return {e:'vacio',falta:0}; if(R.firma) return {e:'firmado',falta:0}; if(R.na) return {e:'na',falta:0}; var h=R.hdr||{}, d=SSO_DEF[t], falta=0;
+function ssoEstado(R,t){ if(!R) return {e:'vacio',falta:0}; if(R.firma) return {e:'firmado',falta:0,ff:ssoFaltanFirmas(R,t)}; if(R.na) return {e:'na',falta:0}; var h=R.hdr||{}, d=SSO_DEF[t], falta=0;
   ssoItemsDe(t).forEach(function(it){ if(!h[it[0]]) falta++; }); (d.req||[]).forEach(function(k){ if(!String(h[k]||'').trim()) falta++; });
   if(t==='charla'&&!String(h.a1_nombre||'').trim()) falta++;
   var algo=Object.keys(h).some(function(k){ return String(h[k]||'').trim(); });
   return {e:falta?(algo?'parcial':'vacio'):'ok',falta:falta}; }
-function ssoListo(R,t){ var e=ssoEstado(R,t).e; return e==='firmado'||e==='na'; }
+function ssoPartes(t,h){ h=h||{}; var o=[];
+  if(t==='charla') for(var i=1;i<=5;i++) o.push({p:'a'+i,n:h['a'+i+'_nombre']});
+  if(t==='art') for(var j=1;j<=7;j++) o.push({p:'i'+j,n:h['i'+j+'_nombre']});
+  if(t==='fatiga') o.push({p:'evaluador',n:h.evaluador});
+  return o.filter(function(x){ return String(x.n||'').trim(); }); }
+function ssoFaltanFirmas(R,t){ return R&&R.firma?ssoPartes(t,R.hdr).filter(function(x){ return !(R.firmas||{})[x.p]; }).length:0; }
+function ssoListo(R,t){ var e=ssoEstado(R,t).e; return (e==='firmado'&&!ssoFaltanFirmas(R,t))||e==='na'; }
 function ssoPuedeEditar(c,u,R){ if(R&&R.firma) return false; if(!puedeMarcar(c)) return false; return u.t!=='fatiga'||u.per===usuario||esCoord(); }
 function ssoPuedeFirmar(c,u,R){ if(!R||R.firma||R.na||!puedeMarcar(c)||ssoEstado(R,u.t).e!=='ok') return false; return u.t!=='fatiga'||u.per===usuario; }
 function ssoUltimo(t,k){ var best=null; (CAMP||[]).forEach(function(o){ Object.keys(o.planillas||{}).forEach(function(key){ if(key.indexOf('SSO|sso-'+t+'-')!==0) return; var R=o.planillas[key]; if(R&&R.hdr&&R.hdr[k]&&(!best||String(R.el||'')>best.el)) best={v:R.hdr[k],el:String(R.el||'')}; }); }); return best?best.v:''; }
 function ssoRut(nombre){ if(!nombre) return ''; var r=''; (CAMP||[]).forEach(function(o){ Object.keys(o.planillas||{}).forEach(function(key){ if(key.indexOf('SSO|sso-art-')!==0) return; var h=(o.planillas[key]||{}).hdr||{}; for(var i=1;i<=7;i++) if(h['i'+i+'_nombre']===nombre&&h['i'+i+'_rut']) r=h['i'+i+'_rut']; }); }); return r; }
-function ssoNuevo(c,u,f){ var pr=MATRIZ[c.proyecto], h={}, gente=ssoPersonas(c), t=u.t;
+function ssoNuevo(c,u,f){ var pr=MATRIZ[c.proyecto], h={}, gente=ssoPersonasDia(c,f), t=u.t;
   if(t==='fatiga'){ h.nombre=u.per; h.tarea='Monitoreo '+pr.nombre; h.lugar=pr.comuna||''; h.evaluador=c.jefe&&c.jefe!==u.per?c.jefe:''; }
   if(t==='charla'){ h.rel_nombre=c.jefe||usuario; gente.forEach(function(n,i){ if(i<5) h['a'+(i+1)+'_nombre']=n; }); }
   if(t==='art'){ h.actividad='Monitoreo '+pr.nombre; h.proyecto=pr.nombre; h.ejecutado=usuario; h.area=pr.comuna||''; gente.forEach(function(n,i){ if(i<7){ h['i'+(i+1)+'_nombre']=n; h['i'+(i+1)+'_rut']=ssoRut(n); } }); }
@@ -1907,7 +1944,7 @@ function ssoGuardar(c,u,f,R){ if(R.firma) return; var key=ssoClave(u.t,f,u.per);
   var j=JSON.stringify([R.hdr,R.na||false]), dk=c.id+'|'+key; S.plUlt=S.plUlt||{}; if(S.plUlt[dk]===j) return; S.plUlt[dk]=j;
   enviar('planilla',{campana:c.id,clave:key,datos:JSON.stringify(R)}); }
 // Día anterior de la campaña con el mismo registro llenado (para copiar lo que se repite: vehículo, embarcación, secuencia del ART…).
-function ssoPrevio(c,u,f){ var ds=diasCampana(c), i=ds.indexOf(f); for(var j=i-1;j>=0;j--){ var R=ssoGet(c,u.t,ds[j],u.per); if(R&&!R.na&&ssoEstado(R,u.t).e!=='vacio') return {f:ds[j],R:R}; } return null; }
+function ssoPrevio(c,u,f){ var ds=ssoDias(c), i=ds.indexOf(f); for(var j=i-1;j>=0;j--){ var R=ssoGet(c,u.t,ds[j],u.per); if(R&&!R.na&&ssoEstado(R,u.t).e!=='vacio') return {f:ds[j],R:R}; } return null; }
 
 function ssoCampo(k,x,h,dis){ var v=h[k]==null?'':h[k], at=' data-sso-c="'+k+'"'+dis;
   if(x.ty==='area') return '<label class="'+(x.ancho?'sso-ancho':'')+'">'+esc(x.l)+'<textarea class="inp" rows="3"'+at+'>'+esc(v)+'</textarea></label>';
@@ -1935,14 +1972,21 @@ function ssoForm(c,u,f,R,ro,nuevo){ var t=u.t, d=SSO_DEF[t], h=R.hdr||{}, dis=ro
   if(d.pie) out+='<div class="pl-hf sso-hf">'+d.pie.map(function(x){ return ssoCampo(x.k,x,h,dis); }).join('')+'</div>';
   out+='<datalist id="sso-gente">'+PERSONAL.map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>';
   if(!R.firma) out+=ssoBloqueFirma(c,u,R);
+  else { var ps=ssoPartes(t,h); if(ps.length) out+='<div class="sso-firmar sso-pfs"><b>'+(t==='charla'?'Firmas de los asistentes':t==='art'?'Firmas de los integrantes':'Firma del evaluador')+'</b><p class="sub">Cada persona firma con su propio código (puede ser en este mismo celular). Quien no tenga cuenta en la página firma en papel.</p>'+
+    ps.map(function(x){ var F=(R.firmas||{})[x.p];
+      return '<div class="sso-pf"><span class="sso-pfn">'+esc(x.n)+'</span>'+(F?'<span class="badge e-comp">✓ Firmó el '+ssoFirmaTxt(F)+' · '+esc(F.cod)+'</span>':
+        !puedeMarcar(c)?'<span class="sub">Pendiente</span>':S.ssoParte===x.p?'<span class="sso-pin"><input class="inp" id="sso-ppin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••" aria-label="Código de '+esc(x.n)+'"><button type="button" class="btn-p btn-sm" data-sso-pfirmar="'+x.p+'">Firmar</button><button type="button" class="lnk" data-sso-parte="-">Cancelar</button></span>':
+        '<button type="button" class="btn-s btn-sm" data-sso-parte="'+x.p+'">Firmar con su código</button>')+'</div>'; }).join('')+'</div>'; }
   return out; }
 // Firma: el usuario confirma con su código personal de 6 dígitos; firmado, el registro queda bloqueado (también en el servidor).
+function ssoCrearPin(){ return '<div class="sso-firmar"><b>Tu código de firma</b><p class="sub">Aún no tienes código. Créalo una vez (6 números, personal): con él firmas tus registros y los de la charla o el ART en que participes.</p><div class="sso-pin"><label>Crea tu código<input class="inp" id="sso-npin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></label><label>Repítelo<input class="inp" id="sso-npin2" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></label><button type="button" class="btn-p" data-sso-crearpin="1">Crear mi código</button></div></div>'; }
 function ssoBloqueFirma(c,u,R){ var st=ssoEstado(R,u.t);
   if(!puedeMarcar(c)) return '';
   if(u.t==='fatiga'&&u.per!==usuario) return '<div class="sso-firmar"><b>Firma</b><p class="sub">Esta ficha la firma '+esc(u.per)+' con su propio código.</p></div>';
   if(st.e!=='ok') return '<div class="sso-firmar off"><b>Firma</b><p class="sub">Cuando esté todo completo podrás firmar'+(st.falta?' (faltan '+st.falta+')':'')+'.</p></div>';
   if(S.pinTiene===undefined){ ssoPinEstado(); return '<div class="sso-firmar"><b>Firma</b><p class="sub">Revisando tu código de firma…</p></div>'; }
   var nuevo=S.pinTiene===false;
+  if(nuevo) return '<div class="sso-firmar off"><b>Firma</b><p class="sub">Todo listo para firmar. Primero crea tu código de firma (arriba, en «Tu código de firma»).</p></div>';
   return '<div class="sso-firmar"><b>Firmar registro</b><p>Al firmar confirmas que los datos ingresados son correctos. <b>Después no se podrán modificar.</b></p>'+
     (nuevo?'<p class="sub">Aún no tienes código de firma. Crea uno de 6 números: es personal, no lo compartas.</p>':'')+
     '<div class="sso-pin"><label>'+(nuevo?'Crea tu código':'Tu código de firma')+'<input class="inp" id="sso-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></label>'+
@@ -1958,7 +2002,10 @@ function apiS(accion,datos){ if(!DEMO) return api(accion,datos);
   else if(accion==='crearPin'){ if(pins[usuario]) r={ok:false,mensaje:'Ya tienes un código.'}; else { pins[usuario]=hsh('s'+datos.pin); localStorage.setItem('demo_pins',JSON.stringify(pins)); } }
   else if(accion==='reiniciarPin'){ delete pins[datos.nombre]; localStorage.setItem('demo_pins',JSON.stringify(pins)); }
   else if(accion==='firmar'){ if(pins[usuario]!==hsh('s'+datos.pin)) r={ok:false,mensaje:'Código incorrecto.'}; else { var R=JSON.parse(datos.datos); R.firma={por:usuario,el:new Date().toISOString().slice(0,10)+' '+ahoraTxt().slice(-5),cod:hsh(JSON.stringify(R.hdr||{}))+'AB'}; r.R=R; } }
-  else if(accion==='anularFirma'){ var c=getC(datos.campana), R2=JSON.parse(JSON.stringify(c.planillas[datos.clave])); R2.anulaciones=(R2.anulaciones||[]).concat([{firma:R2.firma,por:usuario,el:R2.firma.el,motivo:datos.motivo}]); delete R2.firma; r.R=R2; }
+  else if(accion==='anularFirma'){ var c=getC(datos.campana), R2=JSON.parse(JSON.stringify(c.planillas[datos.clave])); R2.anulaciones=(R2.anulaciones||[]).concat([{firma:R2.firma,firmas:R2.firmas||{},por:usuario,el:R2.firma.el,motivo:datos.motivo}]); delete R2.firma; delete R2.firmas; r.R=R2; }
+  else if(accion==='firmarParte'){ var c3=getC(datos.campana), R3=JSON.parse(JSON.stringify(c3.planillas[datos.clave])), h3=R3.hdr||{}, nom=datos.parte==='evaluador'?h3.evaluador:h3[datos.parte+'_nombre'];
+    if(!R3.firma) r={ok:false,mensaje:'Primero se firma el registro.'}; else if(!pins[nom]) r={ok:false,mensaje:nom+' aún no tiene código de firma: debe crearlo entrando con su cuenta.'}; else if(pins[nom]!==hsh('s'+datos.pin)) r={ok:false,mensaje:'Código incorrecto.'};
+    else { R3.firmas=R3.firmas||{}; R3.firmas[datos.parte]={por:nom,el:new Date().toISOString().slice(0,10)+' '+ahoraTxt().slice(-5),cod:hsh(nom+datos.parte)+'PF'}; r.R=R3; } }
   bitLocal(accion,datos||{}); return Promise.resolve(r); }
 function ssoFirmar(c,u,f){ var pin=(document.getElementById('sso-pin')||{}).value||'', p2=(document.getElementById('sso-pin2')||{}).value||'', nuevo=S.pinTiene===false;
   if(!/^\d{6}$/.test(pin)){ toast('El código debe tener 6 números'); return; }
@@ -1975,7 +2022,7 @@ function ssoAnular(c,u,f){ var mot=((document.getElementById('sso-motivo')||{}).
   var key=ssoClave(u.t,f,u.per); apiS('anularFirma',{campana:c.id,clave:key,motivo:mot}).then(function(r){ if(!r.ok) throw r; c.planillas[key]=r.R; S.ssoAnular=false; guardarCamp(); toast('Firma anulada. Queda registrado en Actividad.'); ssoPintar(); })
   .catch(function(e){ toast((e&&e.mensaje)||'No se pudo anular la firma'); }); }
 
-function ssoPill(st){ return st.e==='firmado'?'<span class="badge e-comp">✓ Firmado</span>':st.e==='ok'?'<span class="badge e-pend">Falta firmar</span>':st.e==='na'?'<span class="badge sso-na">No aplica</span>':st.e==='parcial'?'<span class="badge e-pend">Falta'+(st.falta?' '+st.falta:'')+'</span>':'<span class="badge sso-vacio">Sin llenar</span>'; }
+function ssoPill(st){ return st.e==='firmado'?(st.ff?'<span class="badge e-pend">✓ Firmado · '+(st.ff>1?'faltan ':'falta ')+st.ff+' firma'+(st.ff>1?'s':'')+'</span>':'<span class="badge e-comp">✓ Firmado</span>'):st.e==='ok'?'<span class="badge e-pend">Falta firmar</span>':st.e==='na'?'<span class="badge sso-na">No aplica</span>':st.e==='parcial'?'<span class="badge e-pend">Falta'+(st.falta?' '+st.falta:'')+'</span>':'<span class="badge sso-vacio">Sin llenar</span>'; }
 function ssoCard(c,u,f){ var d=SSO_DEF[u.t], R=ssoGet(c,u.t,f,u.per), st=ssoEstado(R,u.t), id=ssoId(u), ab=S.ssoAb===id, ro=!ssoPuedeEditar(c,u,R), puede=puedeMarcar(c)&&(u.t!=='fatiga'||u.per===usuario||esCoord());
   return '<div class="sso-c'+(ab?' abierto':'')+'"><div class="sso-ch"><button type="button" class="sso-tit" data-sso-ab="'+esc(id)+'" aria-expanded="'+ab+'"><b>'+esc(u.per?u.per+(u.per===usuario?' (tú)':''):d.t)+'</b><small>'+esc(u.per?d.cod:d.cod)+'</small></button>'+ssoPill(st)+
     '<span class="sso-acc">'+(st.e!=='vacio'&&st.e!=='na'?'<button type="button" class="btn-s btn-sm" data-sso-pdf="'+esc(id)+'">PDF</button>':'')+
@@ -1983,28 +2030,40 @@ function ssoCard(c,u,f){ var d=SSO_DEF[u.t], R=ssoGet(c,u.t,f,u.per), st=ssoEsta
     '<button type="button" class="btn-p btn-sm" data-sso-ab="'+esc(id)+'">'+(ab?'Cerrar':ro?'Ver':st.e==='vacio'?'Llenar':st.e==='ok'?'Firmar':'Abrir')+'</button></span></div>'+
     (ab&&!(R&&R.na)?'<div class="sso-b">'+(ro&&!R?'<p class="sub">Aún no se llena.</p>':ssoForm(c,u,f,R||ssoNuevo(c,u,f),ro,!R))+'</div>':'')+'</div>'; }
 function htmlSSO(c){
-  var dias=diasCampana(c); if(!S.ssoDia||dias.indexOf(S.ssoDia)<0) S.ssoDia=dias.indexOf(S.fechaTrabajo)>=0?S.fechaTrabajo:(dias.indexOf(HOY_S)>=0?HOY_S:dias[0]);
-  var f=S.ssoDia, U=ssoUnidades(c), out='<div class="sso-dias" role="tablist">'+dias.map(function(d){ var ok=U.filter(function(u){ return ssoListo(ssoGet(c,u.t,d,u.per),u.t); }).length;
+  var dias=ssoDias(c); if(!S.ssoDia||dias.indexOf(S.ssoDia)<0) S.ssoDia=dias.indexOf(S.fechaTrabajo)>=0?S.fechaTrabajo:(dias.indexOf(HOY_S)>=0?HOY_S:dias[0]);
+  var f=S.ssoDia, out='<div class="sso-dias" role="tablist">'+dias.map(function(d){ var U=ssoUnidades(c,d), ok=U.filter(function(u){ return ssoListo(ssoGet(c,u.t,d,u.per),u.t); }).length;
     return '<button type="button" role="tab" aria-selected="'+(d===f)+'" data-sso-dia="'+d+'">'+esc(DIAS[(new Date(d+'T12:00:00').getDay()+6)%7])+' '+d.slice(8,10)+'-'+d.slice(5,7)+'<small>'+ok+'/'+U.length+'</small></button>'; }).join('')+'</div>';
+  out+='<div class="sub sso-acred">Parámetros acreditados este día: <b>'+ssoMonsDia(c,f).map(function(k){ return esc((mOf(c,k)||{}).nombre||k); }).join(', ')+'</b></div>';
   if(!puedeMarcar(c)) out+='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.</div>';
+  else if(S.pinTiene===false) out+=ssoCrearPin();
+  else if(S.pinTiene===undefined) ssoPinEstado();
   out+='<div class="sso-cab"><span class="sub">Se guardan solos mientras escribes. Al terminar, cada registro se firma con el código personal y queda bloqueado.</span><button type="button" class="btn-s btn-sm" data-sso-pdfdia="1">Descargar los del día (PDF)</button></div>';
   out+='<h3 class="sso-sec">Del equipo <span class="sub">· 1 por día</span></h3>'+SSO_EQ.map(function(t){ return ssoCard(c,{t:t},f); }).join('');
-  out+='<h3 class="sso-sec">'+esc(SSO_DEF.fatiga.t)+' <span class="sub">· 1 por persona al día</span></h3>'+ssoPersonas(c).map(function(n){ return ssoCard(c,{t:'fatiga',per:n},f); }).join('');
+  out+='<h3 class="sso-sec">'+esc(SSO_DEF.fatiga.t)+' <span class="sub">· 1 por persona al día</span></h3>'+ssoPersonasDia(c,f).map(function(n){ return ssoCard(c,{t:'fatiga',per:n},f); }).join('');
   return out; }
 function ssoPintar(){ var c=getC(S.cid), el=document.getElementById('sso-box'); if(!el||!c) return; el.innerHTML=htmlSSO(c); }
 function ssoActual(crear){ var c=getC(S.cid), f=S.ssoDia; if(!c||!S.ssoAb||!f) return null; var u=ssoDeId(S.ssoAb), key=ssoClave(u.t,f,u.per), R=(c.planillas||{})[key];
   if(!R&&crear){ R=ssoNuevo(c,u,f); c.planillas=c.planillas||{}; c.planillas[key]=R; } return R?{c:c,u:u,f:f,R:R}:null; }
-document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-sso-dia],[data-sso-ab],[data-sso-r],[data-sso-todo],[data-sso-na],[data-sso-pdf],[data-sso-pdfdia],[data-sso-fila],[data-sso-copiar],[data-sso-ahora],[data-sso-firmar],[data-sso-anular],[data-pinreset]'); if(!b) return;
+document.addEventListener('click',function(e){ var bp=e.target.closest&&e.target.closest('[data-partes]'); if(bp){ abrirPartes(bp.dataset.partes); return; } });
+document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-sso-dia],[data-sso-ab],[data-sso-r],[data-sso-todo],[data-sso-na],[data-sso-pdf],[data-sso-pdfdia],[data-sso-fila],[data-sso-copiar],[data-sso-ahora],[data-sso-firmar],[data-sso-anular],[data-pinreset],[data-sso-crearpin],[data-sso-parte],[data-sso-pfirmar]'); if(!b) return;
   var ds=b.dataset;
   if(ds.pinreset){ apiS('reiniciarPin',{nombre:ds.pinreset}).then(function(r){ toast(r.ok?'Código de firma de '+ds.pinreset+' reiniciado: creará uno nuevo al firmar.':(r.mensaje||'No se pudo reiniciar')); }); return; }
   var c=getC(S.cid); if(!c) return;
-  if(ds.ssoDia){ S.ssoDia=ds.ssoDia; S.ssoAnular=false; ssoPintar(); return; }
-  if(ds.ssoAb){ S.ssoAb=S.ssoAb===ds.ssoAb?null:ds.ssoAb; S.ssoAnular=false; ssoPintar(); var cc=document.querySelector('.sso-c.abierto'); if(cc&&S.ssoAb) cc.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+  if(ds.ssoCrearpin){ var np=(document.getElementById('sso-npin')||{}).value||'', np2=(document.getElementById('sso-npin2')||{}).value||'';
+    if(!/^\d{6}$/.test(np)){ toast('El código debe tener 6 números'); return; } if(np!==np2){ toast('Los dos códigos no coinciden'); return; }
+    apiS('crearPin',{pin:np}).then(function(r){ if(!r.ok) throw r; S.pinTiene=true; toast('Listo: ya tienes tu código de firma'); ssoPintar(); }).catch(function(e){ toast((e&&e.mensaje)||'No se pudo crear el código. Revisa la señal.'); }); return; }
+  if(ds.ssoDia){ S.ssoDia=ds.ssoDia; S.ssoAnular=false; S.ssoParte=null; ssoPintar(); return; }
+  if(ds.ssoAb){ S.ssoAb=S.ssoAb===ds.ssoAb?null:ds.ssoAb; S.ssoAnular=false; S.ssoParte=null; ssoPintar(); var cc=document.querySelector('.sso-c.abierto'); if(cc&&S.ssoAb) cc.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
   if(ds.ssoPdf){ pdfSSO(c,[ssoDeId(ds.ssoPdf)],S.ssoDia); return; }
-  if(ds.ssoPdfdia){ var us=ssoUnidades(c).filter(function(u){ var e=ssoEstado(ssoGet(c,u.t,S.ssoDia,u.per),u.t).e; return e!=='vacio'&&e!=='na'; }); if(!us.length){ toast('Aún no hay registros llenados este día'); return; } pdfSSO(c,us,S.ssoDia); return; }
+  if(ds.ssoPdfdia){ var us=ssoUnidades(c,S.ssoDia).filter(function(u){ var e=ssoEstado(ssoGet(c,u.t,S.ssoDia,u.per),u.t).e; return e!=='vacio'&&e!=='na'; }); if(!us.length){ toast('Aún no hay registros llenados este día'); return; } pdfSSO(c,us,S.ssoDia); return; }
   if(ds.ssoNa){ var u0=ssoDeId(ds.ssoNa), R0=ssoGet(c,u0.t,S.ssoDia,u0.per)||ssoNuevo(c,u0,S.ssoDia); if(!ssoPuedeEditar(c,u0,R0)) return; R0.na=!R0.na; if(R0.na&&S.ssoAb===ds.ssoNa) S.ssoAb=null; ssoGuardar(c,u0,S.ssoDia,R0); ssoPintar(); return; }
   var A=ssoActual(true); if(!A) return;
   if(ds.ssoFirmar){ ssoFirmar(A.c,A.u,A.f); return; }
+  if(ds.ssoParte){ S.ssoParte=ds.ssoParte==='-'?null:ds.ssoParte; ssoPintar(); var pi=document.getElementById('sso-ppin'); if(pi) pi.focus(); return; }
+  if(ds.ssoPfirmar){ var pp=(document.getElementById('sso-ppin')||{}).value||''; if(!/^\d{6}$/.test(pp)){ toast('El código debe tener 6 números'); return; }
+    if(!DEMO&&!hayRed()){ toast('Para firmar necesitas señal.'); return; }
+    var kq=ssoClave(A.u.t,A.f,A.u.per); toast('Firmando…'); apiS('firmarParte',{campana:A.c.id,clave:kq,parte:ds.ssoPfirmar,pin:pp}).then(function(r){ if(!r.ok) throw r; A.c.planillas[kq]=r.R; S.ssoParte=null; guardarCamp(); toast('Firma registrada ✓'); ssoPintar(); })
+      .catch(function(e){ toast((e&&e.mensaje)||'No se pudo firmar. Revisa la señal.'); }); return; }
   if(ds.ssoAnular){ if(ds.ssoAnular==='2') ssoAnular(A.c,A.u,A.f); else { S.ssoAnular=ds.ssoAnular==='1'; ssoPintar(); } return; }
   if(!ssoPuedeEditar(c,A.u,A.R)) return; var h=A.R.hdr=A.R.hdr||{};
   if(ds.ssoR){ var p=ds.ssoR.split('|'); h[p[0]]=h[p[0]]===p[1]?'':p[1]; }
@@ -2031,6 +2090,7 @@ function ssoValores(c,t,f,R){ var h=R.hdr||{}, v={}, pr=MATRIZ[c.proyecto];
   if(t==='embarcacion'){ v.proyecto=pr.nombre; v.fecha=fmtD(f); v.patron_fecha=h.patron_nombre?fmtD(f):''; v.supervisor_fecha=h.supervisor_nombre?fmtD(f):'';
     var ob=String(h.obs||'').replace(/\s*\n\s*/g,' · '), corte=ob.length>105?ob.lastIndexOf(' ',105):-1; v.obs1=corte>0?ob.slice(0,corte):ob; v.obs2=corte>0?ob.slice(corte+1):''; }
   var kf=t==='embarcacion'?'patron_firma':'firma'; v[kf]=R.firma?ssoTxtFirma(R.firma):'BORRADOR · sin firmar';
+  Object.keys(R.firmas||{}).forEach(function(p){ var F=R.firmas[p]; v[p+'_firma']='Firmado electrónicamente\n'+ssoFirmaTxt(F)+' · '+F.cod; });
   return v; }
 function pdfSSO(c,unidades,f){
   toast('Preparando PDF…');
@@ -2040,11 +2100,12 @@ function pdfSSO(c,unidades,f){
       unidades.forEach(function(u){ var t=u.t; cadena=cadena.then(function(){ return (tpls[t]||fetch('lib/sso/'+t+'.pdf').then(function(r){ return r.arrayBuffer(); }).then(function(buf){ return PL.PDFDocument.load(buf); })).then(function(tpl){ tpls[t]=Promise.resolve(tpl);
         var hojas=[];
         if(t==='fatiga'){ // una hoja por cada 4 días (Día 1 … Día 4) de esa persona
-          var ds=diasCampana(c).filter(function(d){ var R=ssoGet(c,t,d,u.per); return R&&!R.na&&ssoEstado(R,t).e!=='vacio'; }), i0=Math.floor(Math.max(0,ds.indexOf(f))/4)*4, grupos=[];
+          var ds=ssoDias(c).filter(function(d){ var R=ssoGet(c,t,d,u.per); return R&&!R.na&&ssoEstado(R,t).e!=='vacio'; }), i0=Math.floor(Math.max(0,ds.indexOf(f))/4)*4, grupos=[];
           if(unidades.length>1) grupos=[ds.slice(i0,i0+4)]; else for(var i=0;i<ds.length;i+=4) grupos.push(ds.slice(i,i+4));
           grupos.forEach(function(g){ if(!g.length) return; var v=ssoValores(c,t,g[0],ssoGet(c,t,g[0],u.per)); v.fini=fmtD(g[0]); v.ffin=fmtD(g[g.length-1]);
             Object.keys(v).forEach(function(k){ if(/=/.test(k)) delete v[k]; });
-            var firmas=[]; g.forEach(function(d,j){ var R=ssoGet(c,t,d,u.per), h=R.hdr||{}; ssoItemsDe(t).forEach(function(it){ if(h[it[0]]) v[it[0]+'='+h[it[0]]+'@'+(j+1)]=true; }); firmas.push('Día '+(j+1)+': '+(R.firma?ssoFirmaTxt(R.firma)+' · '+R.firma.cod:'sin firmar')); });
+            var firmas=[], evs=[]; g.forEach(function(d,j){ var R=ssoGet(c,t,d,u.per), h=R.hdr||{}, Fe=(R.firmas||{}).evaluador; ssoItemsDe(t).forEach(function(it){ if(h[it[0]]) v[it[0]+'='+h[it[0]]+'@'+(j+1)]=true; }); firmas.push('Día '+(j+1)+': '+(R.firma?ssoFirmaTxt(R.firma)+' · '+R.firma.cod:'sin firmar')); evs.push('Día '+(j+1)+': '+(Fe?ssoFirmaTxt(Fe)+' · '+Fe.cod:'sin firmar')); });
+            delete v.evaluador_firma; if(evs.some(function(x){ return x.indexOf('sin firmar')<0; })) v.evaluador_firma='Firmado electrónicamente\n'+(v.evaluador||'')+'\n'+evs.join('\n');
             v.firma=firmas.some(function(x){ return x.indexOf('sin firmar')<0; })?'Firmado electrónicamente\n'+u.per+'\n'+firmas.join('\n'):'BORRADOR · sin firmar'; hojas.push(v); }); }
         else hojas.push(ssoValores(c,t,f,ssoGet(c,t,f)));
         var c2=Promise.resolve(); hojas.forEach(function(v){ c2=c2.then(function(){ return out.copyPages(tpl,tpl.getPageIndices()).then(function(pp){ var base=out.getPageCount(); pp.forEach(function(p){ out.addPage(p); }); dibujarSSO(PL,out,fs[0],fs[1],SSO_LAY[t],v,base); }); }); });
@@ -2209,16 +2270,17 @@ function renderDetalle(){
       '<div><div class="dk">Cliente</div><div class="dv">'+esc(pr.cliente||'—')+'</div></div>'+
       '<div><div class="dk">Comuna</div><div class="dv">'+esc(pr.comuna||pr.region||'—')+'</div></div>'+
       '<div><div class="dk">Fechas</div><div class="dv">'+fmtD(c.ini)+(c.fin!==c.ini?' al '+fmtD(c.fin):'')+'</div></div>'+
-      '<div class="dwide"><div class="dk">Equipo</div><div class="dv">'+eq+'</div></div>'+
+      (c.tramos&&c.tramos.length?'<div class="dwide"><div class="dk">Partes del muestreo</div><div class="dv">'+htmlPartes(c)+'</div></div>':'<div class="dwide"><div class="dk">Equipo</div><div class="dv">'+eq+(esCoord()&&c.estadoAdm!=='Cerrada'?' <button type="button" class="lnk" data-partes="'+esc(c.id)+'">Programar por partes</button>':'')+'</div></div>')+
     '</div></div></div>'+
     '<div class="dprogs">'+prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'</div>'+
     '<div class="cfoot">'+chipB('sinMarcar',p.sinMarcar,'sin marcar','p-gris')+chipB('noReal',p.noReal,p.noReal===1?'no realizada':'no realizadas','p-rojo')+chipB('parcial',p.parcial,p.parcial===1?'parcial':'parciales','p-amber')+chipB('sinMotivo',p.sinMotivo,'sin motivo','p-rojo')+chipB('dPend',p.dPend,'docs. pendientes','p-amber')+chipB('dSinRuta',p.dSinRuta,'sin ruta','p-amber')+'</div>'+
     (S.chip?panelChip(c,S.chip):'')+accionesCamp(c,p)+'</div>';
-  h+='<div class="subnav" role="tablist">'+[['muestreo','Checklist · '+p.pm+'%'],['calendario','Estaciones por día'],['documentos','Documentos · '+p.pd+'%'],['sso','Registros SSO'],['registro','Registro']].map(function(x){return '<button data-sub="'+x[0]+'" aria-selected="'+(S.sub===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
+  h+='<div class="subnav" role="tablist">'+[['muestreo','Checklist · '+p.pm+'%'],['calendario','Estaciones por día'],['documentos','Documentos · '+p.pd+'%']].concat(ssoTramos(c).length?[['sso','Registros SSO']]:[]).concat([['registro','Registro']]).map(function(x){return '<button data-sub="'+x[0]+'" aria-selected="'+(S.sub===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
   if(S.sub==='calendario') h+=renderGrilla(c);
   else if(S.sub==='muestreo') h+=renderChecklist(c);
   else if(S.sub==='registro') h+=renderRegistro(c);
-  else if(S.sub==='sso') h+='<div class="sso" id="sso-box">'+htmlSSO(c)+'</div>';
+  else if(S.sub==='sso'&&ssoTramos(c).length) h+='<div class="sso" id="sso-box">'+htmlSSO(c)+'</div>';
+  else if(S.sub==='sso'){ S.sub='muestreo'; h+=renderChecklist(c); }
   else {
     var dro=!puedeMarcar(c), dis=dro?' disabled':'';
     if(dro) h+='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.</div>';
@@ -2262,7 +2324,7 @@ function diasEntre(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'
 function renderEquipo(){
   var Y=HOY_S.slice(0,4);
   var filas=PERSONAL.map(function(n){
-    var mias=CAMP.filter(function(c){return c.equipo.indexOf(n)>=0||c.jefe===n;});
+    var mias=[]; CAMP.forEach(function(c){ if(c.tramos&&c.tramos.length) c.tramos.forEach(function(t){ if(genteTramo(c,t).indexOf(n)>=0){ var o=Object.create(c); o.ini=t.ini; o.fin=t.fin; mias.push(o); } }); else if(c.equipo.indexOf(n)>=0||c.jefe===n) mias.push(c); });
     var act=mias.filter(function(c){return c.ini<=HOY_S&&c.fin>=HOY_S;}).sort(function(a,b){return a.ini<b.ini?-1:1;})[0];
     var prox=mias.filter(function(c){return c.ini>HOY_S;}).sort(function(a,b){return a.ini<b.ini?-1:1;});
     var ult=mias.filter(function(c){return c.fin<HOY_S;}).sort(function(a,b){return a.fin<b.fin?1:-1;})[0];
@@ -2307,28 +2369,57 @@ function perPorDefecto(p,y){ var mh=HOY.getMonth()+1;
 function abrirNueva(pid,per,anio){
   pid=pid||Object.keys(MATRIZ)[0]; if(!pid){ toast('La matriz no tiene proyectos'); return; }
   var p=MATRIZ[pid], y=anio||(S.vista==='anio'?S.anio:HOY.getFullYear()); per=per||perPorDefecto(p,y);
-  var d1=fechaSugerida(per,y), jefe=PERSONAL.indexOf(p.responsable)>=0?p.responsable:PERSONAL[0];
-  draft={proyecto:pid,anio:y,periodo:per,ini:d1,fin:d1,jefe:jefe,equipo:[jefe]};
+  draft={modo:'nueva',proyecto:pid,anio:y,periodo:per}; draftReset(); S.spReset=true;
   renderNueva(); document.getElementById('sp').classList.add('on'); document.getElementById('ov').classList.add('on');
 }
+function draftReset(){ var p=MATRIZ[draft.proyecto], d1=fechaSugerida(draft.periodo,draft.anio), jefe=PERSONAL.indexOf(p.responsable)>=0?p.responsable:PERSONAL[0];
+  draft.tramos=[{ini:d1,fin:d1,mons:monsDe(draft.proyecto,draft.periodo).map(function(m){return m.cod;}),jefe:jefe}]; draft.resp={}; }
+// Programar (o reprogramar) las partes de una campaña ya creada.
+function abrirPartes(cid){ var c=getC(cid); if(!c) return;
+  draft={modo:'editar',cid:c.id,proyecto:c.proyecto,anio:c.anio,periodo:c.periodo,tramos:JSON.parse(JSON.stringify(c.tramos&&c.tramos.length?c.tramos:tramosDe(c))),resp:JSON.parse(JSON.stringify(c.monResp||{}))};
+  S.spReset=true; renderNueva(); document.getElementById('sp').classList.add('on'); document.getElementById('ov').classList.add('on'); }
 function cerrarNueva(){ document.getElementById('sp').classList.remove('on'); document.getElementById('ov').classList.remove('on'); }
 function renderNueva(){
-  var p=MATRIZ[draft.proyecto], ms=monsDe(draft.proyecto,draft.periodo), nT=0, nM=0;
+  var stp=S.spReset?0:((document.querySelector('#sp .spb')||{}).scrollTop||0); S.spReset=false;
+  var ed=draft.modo==='editar', p=MATRIZ[draft.proyecto], ms=monsDe(draft.proyecto,draft.periodo), nT=0, nM=0;
+  if(ed){ var cE=getC(draft.cid); ms=monsCamp(cE); }
   ms.forEach(function(m){ nT+=m.estaciones.length; nM+=m.estaciones.length*m.total; });
+  var asig={}; draft.tramos.forEach(function(t,i){ t.mons.forEach(function(k){ asig[k]=i; }); });
+  var libres=ms.filter(function(m){ return asig[m.cod]==null; });
   var per=p.periodos.map(function(s){return '<option'+(draft.periodo===s?' selected':'')+'>'+esc(s)+'</option>';}).join('');
-  var existe=getC(nuevaCampana(draft.proyecto,draft.anio,draft.periodo,draft.ini,draft.fin,draft.jefe,draft.equipo).id);
-  document.getElementById('sp').innerHTML='<div class="sph"><div class="spt">Programar campaña</div><div class="sub">Elige el proyecto y el periodo de la matriz maestra, las fechas y el equipo</div></div>'+
+  var existe=!ed&&getC(nuevaCampana(draft.proyecto,draft.anio,draft.periodo,'','','',[]).id), dis=ed?' disabled':'';
+  var partes=draft.tramos.map(function(t,i){
+    return '<div class="tramo"><div class="tramo-h"><b>Parte '+(i+1)+'</b>'+(draft.tramos.length>1?'<button type="button" class="lnk" data-tr-quitar="'+i+'">Quitar parte</button>':'')+'</div>'+
+      '<div class="f2"><label class="fl">Inicio<input class="inp" type="date" data-tr="'+i+'" data-k="ini" value="'+esc(t.ini)+'"></label><label class="fl">Término<input class="inp" type="date" data-tr="'+i+'" data-k="fin" value="'+esc(t.fin)+'"></label></div>'+
+      '<label class="fl">Jefe de terreno<select class="sel" data-tr="'+i+'" data-k="jefe"><option value="">— elegir —</option>'+PERSONAL.map(function(n){return '<option'+(n===t.jefe?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>'+
+      '<div class="fl">Monitoreos de esta parte<div class="tr-mons">'+ms.map(function(m){ var en=asig[m.cod], on=en===i, otro=en!=null&&en!==i;
+        return '<label class="'+(otro?'tr-otro':'')+'"><input type="checkbox" class="chk" data-tr="'+i+'" data-mon="'+esc(m.cod)+'"'+(on?' checked':'')+(otro?' disabled':'')+'>'+esc(m.nombre)+(otro?' <small>(parte '+(en+1)+')</small>':'')+'</label>'; }).join('')+'</div></div>'+
+      (t.mons.length>1?'<div class="tr-resp tr-todos"><div class="tr-rt">Asignar a todos los monitoreos de esta parte <span class="sub">(luego puedes ajustar cada uno)</span></div><div class="tr-chips">'+PERSONAL.map(function(n){ var on=t.mons.every(function(k){ return (draft.resp[k]||[]).indexOf(n)>=0; }); return '<button type="button" class="chip" aria-pressed="'+on+'" data-tr-todos="'+i+'|'+esc(n)+'">'+esc(n)+'</button>'; }).join('')+'</div></div>':'')+
+      t.mons.map(function(k){ var m=ms.filter(function(x){ return x.cod===k; })[0]||{nombre:k}, sel=draft.resp[k]||[];
+        return '<div class="tr-resp"><div class="tr-rt">'+esc(m.nombre)+' · <span class="'+(sel.length?'sub':'falta')+'">'+(sel.length?sel.length+' persona'+(sel.length>1?'s':''):'elige 1 o más personas')+'</span></div><div class="tr-chips">'+
+          PERSONAL.map(function(n){ var on=sel.indexOf(n)>=0; return '<button type="button" class="chip" aria-pressed="'+on+'" data-tr-resp="'+esc(k)+'|'+esc(n)+'">'+esc(n)+'</button>'; }).join('')+'</div></div>'; }).join('')+'</div>'; }).join('');
+  document.getElementById('sp').innerHTML='<div class="sph"><div class="spt">'+(ed?'Partes del muestreo':'Programar campaña')+'</div><div class="sub">'+(ed?esc(p.nombre)+' · '+esc(draft.periodo)+' '+draft.anio+'. Agrega o ajusta las partes: fechas, monitoreos, jefe de terreno y personas por monitoreo.':'Elige el proyecto y el periodo de la matriz. El muestreo puede hacerse por partes: cada una con sus fechas, monitoreos, jefe de terreno y personas por monitoreo.')+'</div></div>'+
     '<form class="spb" id="f-nueva">'+
-    '<label class="fl">Proyecto<select class="sel" id="n-proy">'+Object.keys(MATRIZ).map(function(k){return '<option value="'+k+'"'+(k===draft.proyecto?' selected':'')+'>'+esc(MATRIZ[k].nombre)+'</option>';}).join('')+'</select></label>'+
-    '<div class="f2"><label class="fl">Año<input class="inp" id="n-anio" type="number" value="'+draft.anio+'"></label><label class="fl">Periodo<select class="sel" id="n-per">'+per+'</select></label></div>'+
-    '<div class="f2"><label class="fl">Fecha de inicio<input class="inp" id="n-ini" type="date" value="'+draft.ini+'"></label><label class="fl">Fecha de término<input class="inp" id="n-fin" type="date" value="'+draft.fin+'"></label></div>'+
-    '<label class="fl">Jefe de terreno<select class="sel" id="n-jefe">'+PERSONAL.map(function(n){return '<option'+(n===draft.jefe?' selected':'')+'>'+esc(n)+'</option>';}).join('')+'</select></label>'+
-    '<div class="fl">Equipo<div class="team">'+PERSONAL.map(function(n,i){return '<label><input class="chk" type="checkbox" id="n-eq-'+i+'" data-eq="'+esc(n)+'"'+(draft.equipo.indexOf(n)>=0?' checked':'')+'>'+esc(n)+'</label>';}).join('')+'</div></div>'+
-    '<div class="prev"><b>Monitoreos de '+esc(draft.periodo)+' según la matriz:</b><ul>'+ms.map(function(m){return '<li><b>'+esc(m.nombre)+'</b>'+(m.anual?' <span class="tag-anual">Anual · una vez al año</span>':'')+': '+(m.estaciones[0]==='GENERAL'?'sin estaciones (área general)':m.estaciones.length+' estaciones')+' · '+esc(resumenMon(m))+'</li>';}).join('')+'</ul>'+
+    '<label class="fl">Proyecto<select class="sel" id="n-proy"'+dis+'>'+Object.keys(MATRIZ).map(function(k){return '<option value="'+k+'"'+(k===draft.proyecto?' selected':'')+'>'+esc(MATRIZ[k].nombre)+'</option>';}).join('')+'</select></label>'+
+    '<div class="f2"><label class="fl">Año<input class="inp" id="n-anio" type="number" value="'+draft.anio+'"'+dis+'></label><label class="fl">Periodo<select class="sel" id="n-per"'+dis+'>'+per+'</select></label></div>'+
+    '<div class="tr-cab"><b>Partes del muestreo</b></div>'+partes+
+    (libres.length?'<div class="tr-libres"><b>Sin programar aún:</b> '+libres.map(function(m){ return esc(m.nombre); }).join(', ')+'. Agrégalos a una parte ahora o prográmalos después desde la campaña.</div>':'')+
+    (libres.length?'<button type="button" class="btn-s btn-sm" id="tr-agregar">+ Agregar otra parte</button>':'')+
+    (ed?'':'<div class="prev"><b>Monitoreos de '+esc(draft.periodo)+' según la matriz:</b><ul>'+ms.map(function(m){return '<li><b>'+esc(m.nombre)+'</b>'+(m.anual?' <span class="tag-anual">Anual · una vez al año</span>':'')+': '+(m.estaciones[0]==='GENERAL'?'sin estaciones (área general)':m.estaciones.length+' estaciones')+' · '+esc(resumenMon(m))+'</li>';}).join('')+'</ul>'+
       '<div><b>'+nT+'</b> estaciones a marcar (monitoreo × estación), <b>'+nM+'</b> muestras y mediciones en total, y <b>'+DOCS.length+'</b> documentos.</div>'+
-      (existe?'<div class="warnline">Ya existe la campaña de '+esc(draft.periodo)+' '+draft.anio+' para este proyecto.</div>':'')+'</div>'+
-    '</form><div class="spf"><button class="btn-p" id="n-crear">Programar campaña</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>';
+      (existe?'<div class="warnline">Ya existe la campaña de '+esc(draft.periodo)+' '+draft.anio+' para este proyecto: para agregar partes ábrela y usa «Partes del muestreo».</div>':'')+'</div>')+
+    '</form><div class="spf"><button class="btn-p" id="n-crear">'+(ed?'Guardar partes':'Programar campaña')+'</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>';
+  var nb=document.querySelector('#sp .spb'); if(nb) nb.scrollTop=stp;
 }
+function validarPartes(){ var ts=draft.tramos;
+  if(!ts.length) return 'Agrega al menos una parte';
+  for(var i=0;i<ts.length;i++){ var t=ts[i], n='La parte '+(i+1);
+    if(!t.mons.length) return n+' no tiene monitoreos';
+    if(!t.ini||!t.fin) return n+' no tiene fechas';
+    if(t.fin<t.ini) return n+': la fecha de término es anterior a la de inicio';
+    if(!t.jefe) return n+' no tiene jefe de terreno';
+    for(var j=0;j<t.mons.length;j++){ if(!(draft.resp[t.mons[j]]||[]).length){ var m=monsDe(draft.proyecto,draft.periodo).filter(function(x){ return x.cod===t.mons[j]; })[0]; return n+': elige al menos una persona para '+(m?m.nombre:t.mons[j]); } } }
+  return ''; }
 
 // ─── NAVEGACIÓN Y RENDER ─────────────────────────────────
 function irTab(tab){
@@ -2350,6 +2441,23 @@ function pintarNota(){
 function abrir(id,sub,foco){ if(S.tab!=='detalle') S.prevTab=S.tab; S.cid=id; S.sub=sub||'muestreo'; S.open={}; S.dataOpen=null; S.foco=null; S.ficha=null; S.verPend=false; S.mon=null; S.lote=null; S.confirmTodas=null; S.chip=null; S.fechaTrabajo=fechaTrabajoDef(getC(id)); if(foco){ var t=getC(id).tareas.filter(function(x){return x.id===foco;})[0]; if(t){ S.mon=t.mon; S.ficha=t.id; } } irTab('detalle'); if(!foco) window.scrollTo(0,0); }
 var tt; function toast(m){ var el=document.getElementById('toast'); el.textContent=m; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(function(){el.classList.remove('on');},m.length>80?6500:2600); }
 function respMon(c,cod){ return (c.monResp&&c.monResp[cod])||[]; }
+// ─── PARTES DEL MUESTREO (tramos) ────────────────────────
+// Una campaña puede programarse por partes: cada parte tiene sus fechas, sus monitoreos, su jefe de terreno y 1+ personas por monitoreo.
+function tramosDe(c){ return (c.tramos&&c.tramos.length)?c.tramos:[{ini:c.ini,fin:c.fin,mons:(c.mons||[]).slice(),jefe:c.jefe}]; }
+function tramoDeMon(c,cod){ return tramosDe(c).filter(function(t){ return t.mons.indexOf(cod)>=0; })[0]||null; }
+function genteTramo(c,t,soloMons){ var o=[]; function add(n){ if(n&&o.indexOf(n)<0) o.push(n); } add(t.jefe); t.mons.forEach(function(k){ if(!soloMons||soloMons.indexOf(k)>=0) respMon(c,k).forEach(add); }); return o; }
+function diasRango(a,b){ var out=[]; if(!a) return out; var d=new Date(a+'T00:00:00'), f=new Date((b||a)+'T00:00:00'); while(d<=f){ out.push(iso(d)); d.setDate(d.getDate()+1); } return out; }
+function sinProgramar(c){ var asig=[]; (c.tramos||[]).forEach(function(t){ asig=asig.concat(t.mons); }); return (c.tramos&&c.tramos.length)?(c.mons||[]).filter(function(k){ return asig.indexOf(k)<0; }):[]; }
+// Fechas, jefe y equipo de la campaña salen de sus partes (el equipo da los permisos para marcar).
+function recalcCamp(c){ if(!c.tramos||!c.tramos.length) return; var ts=c.tramos, eq=[];
+  c.ini=ts.map(function(t){return t.ini;}).sort()[0]; c.fin=ts.map(function(t){return t.fin;}).sort().slice(-1)[0]; c.jefe=ts.slice().sort(function(a,b){ return a.ini<b.ini?-1:1; })[0].jefe;
+  ts.forEach(function(t){ genteTramo(c,t).forEach(function(n){ if(eq.indexOf(n)<0) eq.push(n); }); }); c.equipo=eq; }
+function htmlPartes(c){ var mn=function(k){ var m=mOf(c,k); return m?m.nombre:k; };
+  return '<div class="partes">'+c.tramos.map(function(t,i){ return '<div class="parte"><b>Parte '+(i+1)+'</b> · '+rangoTxt(t.ini,t.fin)+' · jefe de terreno <b>'+esc(t.jefe)+'</b><div class="parte-m">'+t.mons.map(function(k){ var r=respMon(c,k); return '<span><b>'+esc(mn(k))+'</b>'+(r.length?': '+r.map(esc).join(', '):' <em class="falta">sin personas</em>')+'</span>'; }).join('')+'</div></div>'; }).join('')+
+    (sinProgramar(c).length?'<div class="parte parte-libre"><b>Sin programar aún:</b> '+sinProgramar(c).map(function(k){ return esc(mn(k)); }).join(', ')+'</div>':'')+
+    (esCoord()&&c.estadoAdm!=='Cerrada'?'<button type="button" class="btn-s btn-sm" data-partes="'+esc(c.id)+'">'+(sinProgramar(c).length?'Programar otra parte':'Editar partes')+'</button>':'')+'</div>'; }
+function rangoTxt(a,b){ return a===b?fmtD(a):fmtD(a)+' al '+fmtD(b); }
+
 function fechaTrabajoDef(c){ return HOY_S<c.ini?c.ini:HOY_S>c.fin?c.fin:HOY_S; }
 function sello(t,c){ if(!t.fecha){ var n=new Date(); t.fecha=S.fechaTrabajo||iso(n); t.hora=pad(n.getHours())+':'+pad(n.getMinutes()); } }
 function ahoraTxt(){ var n=new Date(); return iso(n)+' '+pad(n.getHours())+':'+pad(n.getMinutes()); }
@@ -2506,20 +2614,31 @@ var SP=document.getElementById('sp');
 document.getElementById('ov').addEventListener('click',cerrarNueva);
 SP.addEventListener('submit',function(e){ e.preventDefault(); });
 SP.addEventListener('change',function(e){ var el=e.target;
-  if(el.id==='n-proy'){ draft.proyecto=el.value; draft.periodo=perPorDefecto(MATRIZ[el.value],draft.anio); draft.ini=draft.fin=fechaSugerida(draft.periodo,draft.anio); }
-  if(el.id==='n-per'){ draft.periodo=el.value; draft.ini=draft.fin=fechaSugerida(el.value,draft.anio); } if(el.id==='n-anio') draft.anio=+el.value; if(el.id==='n-ini'){ draft.ini=el.value; if(draft.fin<el.value) draft.fin=el.value; } if(el.id==='n-fin') draft.fin=el.value;
-  if(el.id==='n-jefe'){ draft.jefe=el.value; if(draft.equipo.indexOf(el.value)<0) draft.equipo.push(el.value); }
-  if(el.dataset.eq){ var n=el.dataset.eq; draft.equipo=el.checked?draft.equipo.concat(draft.equipo.indexOf(n)<0?[n]:[]):draft.equipo.filter(function(x){return x!==n;}); }
+  if(el.id==='n-proy'){ draft.proyecto=el.value; draft.periodo=perPorDefecto(MATRIZ[el.value],draft.anio); draftReset(); }
+  if(el.id==='n-per'){ draft.periodo=el.value; draftReset(); } if(el.id==='n-anio'){ draft.anio=+el.value; draftReset(); }
+  if(el.dataset.tr!=null&&el.dataset.k){ var t=draft.tramos[+el.dataset.tr]; t[el.dataset.k]=el.value; if(el.dataset.k==='ini'&&(!t.fin||t.fin<el.value)) t.fin=el.value; }
+  if(el.dataset.tr!=null&&el.dataset.mon){ var t2=draft.tramos[+el.dataset.tr], k=el.dataset.mon; t2.mons=t2.mons.filter(function(x){ return x!==k; }); if(el.checked) t2.mons.push(k);
+    var orden=monsDe(draft.proyecto,draft.periodo).map(function(m){ return m.cod; }); t2.mons.sort(function(a,b){ return orden.indexOf(a)-orden.indexOf(b); }); }
   renderNueva(); });
 SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return;
   if(b.id==='n-cancelar'){ cerrarNueva(); return; }
+  if(b.dataset.trResp){ var q=b.dataset.trResp.split('|'), l=(draft.resp[q[0]]||[]).slice(), i=l.indexOf(q[1]); if(i>=0) l.splice(i,1); else l.push(q[1]); draft.resp[q[0]]=l; var st0=SP.querySelector('.spb').scrollTop; renderNueva(); SP.querySelector('.spb').scrollTop=st0; return; }
+  if(b.dataset.trTodos){ var q2=b.dataset.trTodos.split('|'), t3=draft.tramos[+q2[0]], todos=t3.mons.every(function(k){ return (draft.resp[k]||[]).indexOf(q2[1])>=0; });
+    t3.mons.forEach(function(k){ var l2=(draft.resp[k]||[]).filter(function(x){ return x!==q2[1]; }); if(!todos) l2.push(q2[1]); draft.resp[k]=l2; }); var st=SP.querySelector('.spb').scrollTop; renderNueva(); SP.querySelector('.spb').scrollTop=st; return; }
+  if(b.id==='tr-agregar'){ var u=draft.tramos[draft.tramos.length-1], d=new Date((u.fin||u.ini)+'T12:00:00'); d.setDate(d.getDate()+1); draft.tramos.push({ini:iso(d),fin:iso(d),mons:[],jefe:u.jefe}); renderNueva(); SP.querySelector('.spb').scrollTop=1e5; return; }
+  if(b.dataset.trQuitar!=null){ draft.tramos.splice(+b.dataset.trQuitar,1); renderNueva(); return; }
   if(b.id==='n-crear'){
-    if(!draft.equipo.length){ toast('Elige al menos una persona para el equipo'); return; }
     if(!draft.periodo){ toast('Este proyecto no tiene periodos en la matriz'); return; }
-    if(draft.fin<draft.ini){ toast('La fecha de término es anterior a la de inicio'); return; }
-    var c=nuevaCampana(draft.proyecto,draft.anio,draft.periodo,draft.ini,draft.fin,draft.jefe,draft.equipo);
-    if(getC(c.id)){ toast('Ya existe la campaña '+c.id); return; }
-    c.estadoAdm='Abierta'; c.creadaPor=usuario; c.creadaEl=ahoraTxt(); CAMP_ALL.push(c); vista(); enviar('crearCampana',{id:c.id,proyecto:c.proyecto,nombreProyecto:MATRIZ[c.proyecto].nombre,anio:c.anio,periodo:c.periodo,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,
+    var err=validarPartes(); if(err){ toast(err); return; }
+    var tr=JSON.parse(JSON.stringify(draft.tramos)), asig=[]; tr.forEach(function(t){ asig=asig.concat(t.mons); });
+    if(draft.modo==='editar'){ var c=getC(draft.cid), antes=JSON.parse(JSON.stringify(c.monResp||{}));
+      c.tramos=tr; c.monResp=c.monResp||{}; asig.forEach(function(k){ c.monResp[k]=(draft.resp[k]||[]).slice(); }); recalcCamp(c);
+      asig.forEach(function(k){ if(JSON.stringify(antes[k]||[])!==JSON.stringify(c.monResp[k])) enviar('responsables',{campana:c.id,monitoreo:k,responsables:c.monResp[k].join(', ')}); });
+      enviar('editarCampana',{campana:c.id,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,tramos:c.tramos}); vista(); cerrarNueva(); renderDetalle(); toast('Partes guardadas: '+tr.length+' parte'+(tr.length>1?'s':'')); return; }
+    var c=nuevaCampana(draft.proyecto,draft.anio,draft.periodo,'','','',[]);
+    if(getC(c.id)){ toast('Ya existe la campaña '+c.id+'. Ábrela para agregar partes.'); return; }
+    c.tramos=tr; c.monResp={}; asig.forEach(function(k){ c.monResp[k]=(draft.resp[k]||[]).slice(); }); recalcCamp(c);
+    c.estadoAdm='Abierta'; c.creadaPor=usuario; c.creadaEl=ahoraTxt(); CAMP_ALL.push(c); vista(); enviar('crearCampana',{id:c.id,proyecto:c.proyecto,nombreProyecto:MATRIZ[c.proyecto].nombre,anio:c.anio,periodo:c.periodo,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,tramos:c.tramos,resp:c.monResp,
       tareas:c.tareas.map(function(t){return {id:t.id,mon:t.mon,est:t.est};}),docs:c.docs.map(function(d){return {n:d.n,t:d.t};})});
     cerrarNueva(); abrir(c.id,'muestreo'); toast('Campaña programada: '+c.tareas.length+' tareas y '+c.docs.length+' documentos'); } });
 
