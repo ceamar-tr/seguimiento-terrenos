@@ -1722,12 +1722,63 @@ function cargarScript(src){ return new Promise(function(ok,mal){ var s=document.
 function libPDF(){ if(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable) return Promise.resolve(); return cargarScript('lib/jspdf.umd.min.js').then(function(){ return cargarScript('lib/jspdf.plugin.autotable.min.js'); }); }
 function imgData(src){ return new Promise(function(ok){ if(!src) return ok(null); fetch(src).then(function(r){ if(!r.ok) throw 0; return r.blob(); }).then(function(b){ var fr=new FileReader(); fr.onload=function(){ var im=new Image(); im.onload=function(){ ok({d:fr.result,w:im.naturalWidth,h:im.naturalHeight,f:/png/i.test(b.type)?'PNG':'JPEG'}); }; im.onerror=function(){ ok(null); }; im.src=fr.result; }; fr.readAsDataURL(b); }).catch(function(){ ok(null); }); }); }
 function pdfTxt(v){ return String(v==null?'':v).replace(/³/g,'3').replace(/²/g,'^2').replace(/[−–]/g,'-').replace(/π/g,'pi').replace(/×/g,'x').replace(/[«»]/g,'"'); }
+// Ficha de observación de fauna (QB2 · PS-14) con el mismo formato que la ficha en papel (OMA_01_20).
+function pdfFauna(c,mon,P,h,LOGO){
+  var J=window.jspdf.jsPDF, doc=new J({orientation:'portrait',unit:'mm',format:'letter'}), W=doc.internal.pageSize.getWidth(), M=14, X0=27, X1=W-27;
+  var LUG=['Islote Patache','Navegación','Islote Patillos'], fecha=fmtD(S.fechaTrabajo||c.ini), obsv=pdfTxt(h.observador||respMon(c,mon).join(', ')||'');
+  P.rows.forEach(function(r){ if(r.lugar&&LUG.indexOf(r.lugar)<0) LUG.push(r.lugar); });
+  var negro=[0,0,0], line={lineColor:negro,lineWidth:.25};
+  function cabecera(){ var y=6, hh=18; doc.setDrawColor(0); doc.setLineWidth(.3);
+    doc.rect(M,y,W-2*M,hh); doc.line(M+42,y,M+42,y+hh); doc.line(W-M-48,y,W-M-48,y+hh);
+    if(LOGO){ var r=Math.min(36/LOGO.w,14/LOGO.h); doc.addImage(LOGO.d,LOGO.f,M+3,y+(hh-LOGO.h*r)/2,LOGO.w*r,LOGO.h*r); }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(0); var cx=(M+42+W-M-48)/2;
+    doc.text('Evaluación de la conformidad – Inspección',cx,y+5,{align:'center'}); doc.text('Formulario',cx,y+9,{align:'center'}); doc.text('Ficha Observación mamiferos marinos y aves',cx,y+13.5,{align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.8); var xx=W-M-46.5;
+    doc.text('Código: OMA_01_20',xx,y+3.6); doc.text('Versión: 1.0',xx,y+7); doc.text('Fecha : 22.05.19 Reemplaza a: -',xx,y+10.4); }
+  function titulo(y){ doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('FICHA OBSERVACIÓN MAMIFEROS MARINOS Y AVES',W/2,y,{align:'center'}); }
+  function info(y,biota,ini,fin){ doc.autoTable({startY:y,margin:{left:X0,right:W-X1},theme:'plain',tableLineColor:negro,tableLineWidth:.25,
+      body:[['Proyecto: TQB2','Observador: '+obsv],['Fecha: '+fecha,'Biota: '+biota],['Inicio:   '+(ini||'')+'                    fin:   '+(fin||''),'']],
+      styles:Object.assign({fontSize:8,cellPadding:{top:.6,bottom:.6,left:1.2,right:1.2},textColor:negro,font:'helvetica'},line),columnStyles:{0:{cellWidth:(X1-X0)*.51}}});
+    return doc.lastAutoTable.finalY; }
+  function tabla(y,especies,alto,cabEsp){ var body=[], tipos=[];
+    especies.forEach(function(esp,ei){ var filas=esp.filas;
+      if(!(cabEsp&&ei===0)){ body.push([esp.n,ei===0?'':'Individuos',ei===0?'':'Observación']); tipos.push('esp'); }
+      LUG.forEach(function(l){ var r=filas.filter(function(z){ return (z.lugar||'')===l; })[0]||{}; body.push([pdfTxt(l),r.ind!=null?String(r.ind):'',pdfTxt(r.obs||'')]); tipos.push('lug'); }); });
+    doc.autoTable({startY:y,margin:{left:X0+4,right:W-X1+4},theme:'plain',tableLineColor:negro,tableLineWidth:.25,
+      head:[[cabEsp?especies[0].n:'Lugar','Individuos','Observación']],body:body,
+      styles:Object.assign({fontSize:8,halign:'center',valign:'middle',textColor:negro,cellPadding:.8},line),
+      headStyles:{fontStyle:'normal',fillColor:false,textColor:negro},
+      didParseCell0:null,
+      columnStyles:{0:{cellWidth:(X1-X0-8)*.27},1:{cellWidth:(X1-X0-8)*.42}},
+      didParseCell:function(dc){ if(dc.section==='head'){ if(cabEsp&&dc.column.index===0) dc.cell.styles.fontStyle='bold'; return; } if(dc.section!=='body') return; var t=tipos[dc.row.index]; if(t==='esp'){ if(dc.column.index===0) dc.cell.styles.fontStyle='bold'; }
+        else dc.cell.styles.minCellHeight=alto; }});
+    return doc.lastAutoTable.finalY; }
+  var de=function(n){ return {n:n,filas:P.rows.filter(function(r){ return r.esp===n; })}; };
+  // Página 1: lobos marinos y pingüinos
+  cabecera(); titulo(36);
+  var y=info(41,'Lobos marinos y pingüinos',h.iniLP,h.finLP);
+  y=tabla(y+8,[de('Lobo común'),de('Lobo dos pelos'),de('Pingüino')],14.5);
+  // Página 2: chungungos (un bloque por recorrido; si hay filas repetidas de chungungo en un lugar, cada repetición es otro recorrido)
+  var ch=P.rows.filter(function(r){ return r.esp==='Chungungo'; }), nRec=1;
+  LUG.forEach(function(l){ nRec=Math.max(nRec,ch.filter(function(r){ return (r.lugar||'')===l; }).length); });
+  doc.addPage(); cabecera(); y=30;
+  for(var k=0;k<nRec;k++){
+    var filasK=[]; LUG.forEach(function(l){ var x=ch.filter(function(r){ return (r.lugar||'')===l; })[k]; if(x) filasK.push(x); });
+    if(y>200){ doc.addPage(); cabecera(); y=30; }
+    y=info(y,'chungungos',k===0?h.iniCh:'',k===0?h.finCh:'');
+    y=tabla(y+8,[{n:'Chungungo',filas:filasK}],10,true)+12;
+  }
+  var n=doc.getNumberOfPages();
+  for(var i=1;i<=n;i++){ doc.setPage(i); doc.setTextColor(0); doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.text('Página '+i+' de '+n,W-M-46.5,6+13.8); }
+  doc.save('Ficha_observacion_mamiferos_'+c.id+'.pdf');
+}
 function pdfPlanilla(c,mon,pk){
   var P=getPlan(c,mon,pk,true), h=P.hdr||{}, m=mOf(c,mon), d=defPlan(pk,h,m), pr=MATRIZ[c.proyecto];
   var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
   ordenarGrupo(P,d);
   var filas=P.rows.filter(function(r){ return orden.some(function(x){ return (x.ty==='num'||x.ty==='txt'||x.ty==='hora')&&r[x.k]!=null&&r[x.k]!==''; }); });
   if(!filas.length){ toast('La planilla aún no tiene datos'); return; }
+  if(pk==='fauna'){ toast('Preparando PDF…'); Promise.all([libPDF(),imgData('logos/CEAMAR.jpg')]).then(function(res){ pdfFauna(c,mon,P,h,res[1]); }).catch(function(e){ toast('No se pudo crear el PDF: '+e.message); }); return; }
   if(d.flujo) orden=orden.filter(function(x){ return x.k==='est'||x.k==='mu'||x.ty==='calc'; });
   toast('Preparando PDF…');
   var cfg=CLIENTES[pr.cliente]||{};
