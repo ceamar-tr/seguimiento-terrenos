@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seguimiento de Terrenos CEAMAR</title>
 <link rel="icon" type="image/png" href="logos/ceamar-favicon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1a5c2e">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Terrenos CEAMAR">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* VOICE: herramienta de terreno de CEAMAR; colores de la página de informes, estructura propia de muestreo.
@@ -1006,7 +1011,7 @@ function flush(){
   if(!SESION||S.enviando) return;
   var it=S.cola[0]; S.enviando=true;
   api(it.accion,it.datos).then(function(r){ S.enviando=false;
-    S.gdFallo=false; if(r.ok){ S.cola.shift(); guardarCola(); pintarNet(); if(S.cola.length) flush(); return; }
+    S.gdFallo=false; if(r.ok){ S.cola.shift(); guardarCola(); pintarNet(); if(S.cola.length) flush(); else if(S.mezcla){ S.mezcla=false; setTimeout(recargar,800); } return; }
     if(r.error==='sesion'){ pintarNet(); pedirLogin(r.mensaje); return; }
     S.cola.shift(); guardarCola(); S.gdError=r.mensaje||r.error||'error del servidor'; pintarNet(); toast(r.mensaje||r.error||'No se pudo guardar el cambio'); recargar();
   }).catch(function(){ S.enviando=false; S.gdFallo=true; pintarNet(); setTimeout(flush,15000); });
@@ -1016,12 +1021,19 @@ function api(accion,datos,extra){
   return fetch(CONFIG.APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)}).then(function(r){ return r.json(); });
 }
 // ─── SESIÓN (Google) ─────────────────────────────────────
+// Campañas con cambios aún en la cola (sin señal): se conserva la versión del equipo hasta que se envíen.
+function pendientesCola(){ var s={}; (S.cola||[]).forEach(function(it){ var d=it.datos||{}, id=d.campana||(it.accion==='crearCampana'?d.id:''); if(id) s[id]=(s[id]==='eliminarCampana')?s[id]:it.accion; }); return s; }
 function aplicarDatos(r){
+  var pend=pendientesCola(), viejo={}; (CAMP_ALL||[]).forEach(function(c){ viejo[c.id]=c; });
   fijarUsuario(r.usuario); if(r.personal&&r.personal.length) PERSONAL=r.personal;
   CAMP_ALL=(r.campanas||[]).filter(function(c){ return MATRIZ[c.proyecto]; }).map(function(c){
     var cods=[]; c.tareas.forEach(function(t){ if(cods.indexOf(t.mon)<0) cods.push(t.mon); t.datos=t.datos||{}; t.est0=t.estado||''; });
     c.mons=MATRIZ[c.proyecto].monitoreos.map(function(m){return m.cod;}).filter(function(k){return cods.indexOf(k)>=0;});
     c.monResp=c.monResp||{}; c.monRedes=c.monRedes||{}; c.monClima=c.monClima||{}; c.planillas=c.planillas||{}; Object.keys(c.monRedes).forEach(function(k){ if(typeof c.monRedes[k]==='string') c.monRedes[k]=redesLeer(c.monRedes[k]); }); c.estadoAdm=c.estadoAdm||'Abierta'; return c; });
+  Object.keys(pend).forEach(function(id){ var i=-1; CAMP_ALL.forEach(function(c,k){ if(c.id===id) i=k; });
+    if(pend[id]==='eliminarCampana'){ if(i>=0) CAMP_ALL.splice(i,1); return; }
+    if(viejo[id]){ if(i>=0) CAMP_ALL[i]=viejo[id]; else CAMP_ALL.push(viejo[id]); } });
+  S.mezcla=Object.keys(pend).length>0;
   vista(); if(S.cid&&!getC(S.cid)){ S.cid=null; if(S.tab==='detalle') S.tab='calendario'; }
   guardarCopia(); pintarUsuario(); render();
 }
@@ -2200,6 +2212,8 @@ SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b
 aplicarZoom(); pintarTema();
 function altoTop(){ var t=document.querySelector('.top'); if(t) document.documentElement.style.setProperty('--top-h',t.offsetHeight+'px'); }
 altoTop(); window.addEventListener('resize',altoTop);
+// La página queda guardada en el equipo (sw.js) para abrirla aunque no haya señal.
+if('serviceWorker' in navigator&&location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(function(){});
 // En celular, al bajar se esconde la fila del logo y quedan solo las pestañas (más espacio para trabajar).
 (function(){ var t=document.querySelector('.top'), mq=window.matchMedia('(max-width:760px)'), mini=false;
   function rev(){ var m=mq.matches&&window.scrollY>60; if(m!==mini){ mini=m; t.classList.toggle('mini',m); altoTop(); } }
