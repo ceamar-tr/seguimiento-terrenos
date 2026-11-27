@@ -179,6 +179,22 @@
   .lote-btn{flex-basis:100%;margin:6px 0 18px;}
   .logo-txt{font-size:11px;font-weight:800;color:var(--azul);text-align:center;line-height:1.15;padding:4px;word-break:break-word;}
   /* Registros SSO */
+  .sso-sec{font-size:15px;margin:16px 0 8px;}
+  .sso-sec .sub{font-weight:600;}
+  .sso-firmar{margin-top:14px;padding:12px 14px;border:2px solid var(--verde);border-radius:12px;background:var(--verde-s,#eef6ef);}
+  .sso-firmar.off{border-style:dashed;border-color:var(--borde);background:transparent;}
+  .sso-firmar p{margin:6px 0;}
+  .sso-pin{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:8px;}
+  .sso-pin label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--suave);}
+  .sso-pin input{width:130px;font-size:20px;letter-spacing:6px;text-align:center;}
+  .sso-firmado{padding:10px 14px;border-radius:12px;background:var(--verde-s,#eef6ef);border:1px solid var(--verde);margin-bottom:12px;display:flex;flex-direction:column;gap:4px;}
+  .sso-firmado code{font-weight:800;letter-spacing:1px;}
+  .sso-firmado span{font-size:12px;color:var(--suave);}
+  .sso-anular{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+  .sso-anular .inp{flex:1;min-width:220px;}
+  .btn-p.sso-rojo{background:#b3261e;border-color:#b3261e;}
+  .sso-anulada{margin:4px 0;}
+  .eqc-pin{margin-top:6px;font-size:12px;}
   .sso-dias{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;}
   .sso-dias button{flex:0 0 auto;border:1px solid var(--borde);background:var(--card-bg);border-radius:12px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;color:var(--texto);cursor:pointer;display:flex;flex-direction:column;align-items:center;line-height:1.2;}
   .sso-dias button small{font-size:11px;font-weight:600;color:var(--suave);}
@@ -1037,7 +1053,7 @@ var S={tab:'calendario',vista:'estacion',est:[HOY.getFullYear(),Math.floor(HOY.g
 try{ S.cola=JSON.parse(localStorage.getItem('ceamar_terreno_cola')||'[]'); }catch(e){ S.cola=[]; }
 var USUARIO=null, usuario='', SESION='';
 try{ SESION=localStorage.getItem('ceamar_terreno_sesion')||''; }catch(e){}
-function fijarUsuario(u){ USUARIO=u; usuario=u?u.nombre:''; vista(); }
+function fijarUsuario(u){ USUARIO=u; usuario=u?u.nombre:''; S.pinTiene=undefined; vista(); }
 function rol(){ return USUARIO?USUARIO.rol:''; }
 function esAdmin(){ return rol()==='Administrador'; }
 function esCoord(){ return rol()==='Administrador'||rol()==='Coordinación'; }
@@ -1462,10 +1478,10 @@ function renderChecklist(c){
   // Consulta: al abrir un monitoreo con planillas llenas, mostrar directo los datos de terreno.
   if(ro&&nDat&&S.monVisto!==c.id+'|'+m.cod){ S.vistaMon='datos'; } S.monVisto=c.id+'|'+m.cod;
   if(ro&&pks.length&&S.vistaMon!=='datos') antes=antes.replace(/<\/div>$/,' <button type="button" class="lnk" data-vmon="datos">Ver y descargar los datos de terreno ›</button></div>');
-  var nSSO=ssoContar(c,m), vistaT='<div class="ck-vista" role="tablist"><button type="button" role="tab" data-vmon="check" aria-selected="'+(S.vistaMon!=='datos'&&S.vistaMon!=='sso')+'">Checklist</button>'+((pks.length||esZoo(m))?'<button type="button" role="tab" data-vmon="datos" aria-selected="'+(S.vistaMon==='datos')+'">Datos de terreno'+(nDat?' <span class="pl-n">'+nDat+'</span>':'')+'</button>':'')+'<button type="button" role="tab" data-vmon="sso" aria-selected="'+(S.vistaMon==='sso')+'">Registros SSO <span class="pl-n" id="sso-n">'+nSSO+'</span></button></div>';
+  var vistaT=(pks.length||esZoo(m))?'<div class="ck-vista" role="tablist"><button type="button" role="tab" data-vmon="check" aria-selected="'+(S.vistaMon!=='datos')+'">Checklist</button><button type="button" role="tab" data-vmon="datos" aria-selected="'+(S.vistaMon==='datos')+'">Datos de terreno'+(nDat?' <span class="pl-n">'+nDat+'</span>':'')+'</button></div>':'';
   var main='<section class="ck-main"><div class="ck-head"><div><div class="ck-tit">'+esc(m.nombre)+tagAnual(m)+' <span class="ck-cnt">'+a.dn+'/'+a.ts.length+'</span></div><div class="sub">'+esc(resumenMon(m))+'</div></div>'+
-    (S.vistaMon==='datos'||S.vistaMon==='sso'?'':'<div class="seg"><button data-verpend="0" aria-pressed="'+!S.verPend+'">Todas</button><button data-verpend="1" aria-pressed="'+!!S.verPend+'">Pendientes ('+a.falta.length+')</button></div>')+'</div>'+vistaT+
-    (S.vistaMon==='sso'?'<div class="sso" id="sso-box">'+htmlSSO(c,m,!ssoPuede(c,m))+'</div>':S.vistaMon==='datos'?'<div class="pl">'+renderPlanillas(c,m,ro)+'</div>':
+    (S.vistaMon==='datos'?'':'<div class="seg"><button data-verpend="0" aria-pressed="'+!S.verPend+'">Todas</button><button data-verpend="1" aria-pressed="'+!!S.verPend+'">Pendientes ('+a.falta.length+')</button></div>')+'</div>'+vistaT+
+    (S.vistaMon==='datos'?'<div class="pl">'+renderPlanillas(c,m,ro)+'</div>':
     antes+'<div class="ck-list">'+filas+'</div>'+(ro?'':'<p class="sub" style="margin-top:8px">Elige la fecha y quién hizo el monitoreo, luego toca ✓ en cada estación terminada. Toca el nombre de la estación para cambiar su fecha, anotar un motivo o marcar réplicas.</p>'))+'</section>';
   var ficha='';
   if(S.ficha){ var tf=c.tareas.filter(function(t){return t.id===S.ficha;})[0];
@@ -1536,8 +1552,9 @@ function cargarBit(forzar){ if(DEMO){ if(!S.bit){ try{ S.bit=JSON.parse(localSto
   if(S.bitCargando||(!forzar&&S.bitT&&Date.now()-S.bitT<60000)) return; S.bitCargando=true;
   api('historial').then(function(r){ S.bitCargando=false; if(r.ok){ S.bit=r.cambios||[]; S.bitT=Date.now(); S.bitErr=''; } else S.bitErr=r.mensaje||r.error||'error'; if(S.tab==='historial') renderHistorial(); })
     .catch(function(){ S.bitCargando=false; S.bitErr='sin conexión'; if(S.tab==='historial') renderHistorial(); }); }
-var BIT_ACC={'crear campaña':'programó la campaña','editar campaña':'editó la campaña','eliminar campaña':'eliminó la campaña','cerrar campaña':'cerró la campaña','reabrir campaña':'reabrió la campaña','planilla':'editó la planilla','documento':'actualizó un documento','redes':'registró las redes','responsables':'asignó responsables','condiciones':'registró las condiciones del día','marcar estación':'marcó una estación','marcar varias':'marcó varias estaciones'};
-function bitDetalle(e,c){ if(e.accion==='planilla'&&/\|sso-/.test(String(e.detalle))){ var y=String(e.detalle).split('|'), q=y[1].split('-'), my=c?mOf(c,y[0]):null; return 'Registro SSO: '+((SSO_DEF[q[1]]||{}).t||q[1])+' del '+fmtD(q.slice(2).join('-'))+(my?' · '+my.nombre:''); }
+var BIT_ACC={'firmar registro':'firmó','anular firma':'anuló la firma de','código de firma':'creó su código de firma','reiniciar código':'reinició el código de firma de','crear campaña':'programó la campaña','editar campaña':'editó la campaña','eliminar campaña':'eliminó la campaña','cerrar campaña':'cerró la campaña','reabrir campaña':'reabrió la campaña','planilla':'editó la planilla','documento':'actualizó un documento','redes':'registró las redes','responsables':'asignó responsables','condiciones':'registró las condiciones del día','marcar estación':'marcó una estación','marcar varias':'marcó varias estaciones'};
+function ssoBitTxt(cl){ var m=String(cl).match(/sso-([a-z]+)-(\d{4}-\d{2}-\d{2})(?:-([a-z0-9_]+))?/); if(!m) return String(cl); return ((SSO_DEF[m[1]]||{}).t||m[1])+' del '+fmtD(m[2])+(m[3]?' · '+m[3].split('_').map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1); }).join(' '):''); }
+function bitDetalle(e,c){ if(/sso-/.test(String(e.detalle))&&(e.accion==='planilla'||e.accion==='firmar registro'||e.accion==='anular firma')){ var dt=String(e.detalle), extra=dt.indexOf(' · ')>0?dt.slice(dt.indexOf(' · ')):''; return 'Registro SSO: '+ssoBitTxt(dt.split(' · ')[0])+extra; }
   if(e.accion==='planilla'){ var x=String(e.detalle).split('|'), m=c?mOf(c,x[0]):null, d=x[1]?defPlan(x[1],{},m):null; return (d?d.t:x[1]||'')+(m?' · '+m.nombre:''); }
   if(/^(redes|responsables|condiciones)$/.test(e.accion)){ var i=String(e.detalle).indexOf(':'), m2=c&&i>0?mOf(c,e.detalle.slice(0,i)):null; return m2?m2.nombre+e.detalle.slice(i):e.detalle; }
   return e.detalle; }
@@ -1818,9 +1835,10 @@ function refrescarPlan(c,pk){ var P=getPlan(c,S.mon,pk), h=P.hdr||{}, d=defPlan(
 }
 // PDF de la planilla (jsPDF + autotable, en lib/; se cargan solo al pedir el PDF)
 function cargarScript(src){ return new Promise(function(ok,mal){ var s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=function(){ mal(new Error('No se pudo cargar '+src)); }; document.head.appendChild(s); }); }
-// ─── REGISTROS SSO (por monitoreo y día) ────────────────
-// Cada registro lo llena la persona asignada al monitoreo, uno por día de muestreo. Se guarda en c.planillas con clave
-// MON|sso-<tipo>-<fecha> y se descarga en el formato oficial (plantilla PDF + datos encima).
+// ─── REGISTROS SSO (por campaña y día) ────────────────
+// Por día de campaña: fatiga 1 por persona; charla, ART, vehículo y embarcación 1 para el equipo. Se guardan en c.planillas
+// (clave SSO|sso-<tipo>-<fecha>[-<persona>]), se firman con el código de 6 dígitos de cada usuario y firmados quedan bloqueados.
+// Se descargan en el formato oficial (plantilla PDF + datos encima).
 var SSO_TIPOS=['fatiga','charla','art','vehiculo','embarcacion'];
 function ssoItems(pref,txt){ return txt.map(function(t,i){ return [pref+(i+1),t]; }); }
 var SSO_DEF={
@@ -1858,39 +1876,49 @@ var SSO_DEF={
     grupos:[{t:'Previo al zarpe verificar',ops:['SI','NO','NA'],items:ssoItems('e',['Matrícula de embarcación y permiso de zarpe','Pintura interior y del casco','Nombre y número de matrícula pintados en el casco','Remos','Bengalas de emergencia','Extintor','Espejo para señales','Cabos de amarre de 30 m c/u (x2)','Achicador o balde','Bichero','Chaleco salvavidas para cada tripulante (marcados)','Linterna con pilas de repuesto','Anclote con 30 m de cabo','Salvavidas circular marcado','Motor fuera de borda con bisón de combustible sin filtración, set de bujías nuevas, lija fina para metal, herramientas','Botiquín de primeros auxilios con todos sus elementos','Pabellón Nacional'])}]}
 };
 var SSO_OPL={SI:'Sí',NO:'No',NA:'N/A',B:'B',M:'M'};
-function ssoClave(t,f){ return 'sso-'+t+'-'+f; }
-function ssoGet(c,mon,t,f){ return (c.planillas||{})[mon+'|'+ssoClave(t,f)]; }
-function ssoPuede(c,m){ if(!puedeMarcar(c)) return false; if(esCoord()) return true; var r=respMon(c,m.cod); return !r.length||r.indexOf(usuario)>=0; }
+var SSO_EQ=['charla','art','vehiculo','embarcacion'];
+function ssoSlug(n){ return String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+function ssoClave(t,f,per){ return 'SSO|sso-'+t+'-'+f+(per?'-'+ssoSlug(per):''); }
+function ssoGet(c,t,f,per){ return (c.planillas||{})[ssoClave(t,f,per)]; }
+function ssoPersonas(c){ var o=[]; [c.jefe].concat(c.equipo||[]).forEach(function(n){ if(n&&o.indexOf(n)<0) o.push(n); }); var i=o.indexOf(usuario); if(i>0){ o.splice(i,1); o.unshift(usuario); } return o; }
+function ssoUnidades(c){ return SSO_EQ.map(function(t){ return {t:t}; }).concat(ssoPersonas(c).map(function(n){ return {t:'fatiga',per:n}; })); }
+function ssoId(u){ return u.t+(u.per?':'+u.per:''); }
+function ssoDeId(id){ var i=id.indexOf(':'); return i<0?{t:id}:{t:id.slice(0,i),per:id.slice(i+1)}; }
 function ssoItemsDe(t){ var o=[]; (SSO_DEF[t].grupos||[]).forEach(function(g){ g.items.forEach(function(it){ o.push(it); }); }); return o; }
-// Estado: na (no aplica) · ok (completo) · parcial · vacio
-function ssoEstado(R,t){ if(!R) return {e:'vacio',falta:0}; if(R.na) return {e:'na',falta:0}; var h=R.hdr||{}, d=SSO_DEF[t], falta=0;
+// Estado: firmado · na (no aplica) · ok (completo, falta firmar) · parcial · vacio
+function ssoEstado(R,t){ if(!R) return {e:'vacio',falta:0}; if(R.firma) return {e:'firmado',falta:0}; if(R.na) return {e:'na',falta:0}; var h=R.hdr||{}, d=SSO_DEF[t], falta=0;
   ssoItemsDe(t).forEach(function(it){ if(!h[it[0]]) falta++; }); (d.req||[]).forEach(function(k){ if(!String(h[k]||'').trim()) falta++; });
   if(t==='charla'&&!String(h.a1_nombre||'').trim()) falta++;
   var algo=Object.keys(h).some(function(k){ return String(h[k]||'').trim(); });
   return {e:falta?(algo?'parcial':'vacio'):'ok',falta:falta}; }
-function ssoDias(c,m){ return diasCampana(c); }
-// Valores sugeridos al empezar un registro: lo último que se usó (vehículo, embarcación, RUT) y datos de la campaña.
-function ssoUltimo(t,k){ var best=null; (CAMP||[]).forEach(function(o){ Object.keys(o.planillas||{}).forEach(function(key){ if(key.indexOf('|sso-'+t+'-')<0) return; var R=o.planillas[key]; if(R&&R.hdr&&R.hdr[k]&&(!best||String(R.el||'')>best.el)) best={v:R.hdr[k],el:String(R.el||'')}; }); }); return best?best.v:''; }
-function ssoRut(nombre){ if(!nombre) return ''; var r=''; (CAMP||[]).forEach(function(o){ Object.keys(o.planillas||{}).forEach(function(key){ if(key.indexOf('|sso-art-')<0) return; var h=(o.planillas[key]||{}).hdr||{}; for(var i=1;i<=7;i++) if(h['i'+i+'_nombre']===nombre&&h['i'+i+'_rut']) r=h['i'+i+'_rut']; }); }); return r; }
-function ssoNuevo(c,m,t,f){ var pr=MATRIZ[c.proyecto], h={}, resp=respMon(c,m.cod), gente=resp.length?resp.slice():[usuario];
-  if(t==='fatiga'){ h.nombre=usuario; h.tarea=m.nombre+' / '+pr.nombre; h.lugar=pr.comuna||''; h.evaluador=c.jefe&&c.jefe!==usuario?c.jefe:''; }
-  if(t==='charla'){ h.rel_nombre=c.jefe||usuario; gente.forEach(function(n,i){ if(i<5) h['a'+(i+1)+'_nombre']=n; }); h.tema='Charla previa: '+m.nombre; }
-  if(t==='art'){ h.actividad=m.nombre; h.proyecto=pr.nombre; h.ejecutado=usuario; h.area=pr.comuna||''; gente.forEach(function(n,i){ if(i<7){ h['i'+(i+1)+'_nombre']=n; h['i'+(i+1)+'_rut']=ssoRut(n); } }); }
+function ssoListo(R,t){ var e=ssoEstado(R,t).e; return e==='firmado'||e==='na'; }
+function ssoPuedeEditar(c,u,R){ if(R&&R.firma) return false; if(!puedeMarcar(c)) return false; return u.t!=='fatiga'||u.per===usuario||esCoord(); }
+function ssoPuedeFirmar(c,u,R){ if(!R||R.firma||R.na||!puedeMarcar(c)||ssoEstado(R,u.t).e!=='ok') return false; return u.t!=='fatiga'||u.per===usuario; }
+function ssoUltimo(t,k){ var best=null; (CAMP||[]).forEach(function(o){ Object.keys(o.planillas||{}).forEach(function(key){ if(key.indexOf('SSO|sso-'+t+'-')!==0) return; var R=o.planillas[key]; if(R&&R.hdr&&R.hdr[k]&&(!best||String(R.el||'')>best.el)) best={v:R.hdr[k],el:String(R.el||'')}; }); }); return best?best.v:''; }
+function ssoRut(nombre){ if(!nombre) return ''; var r=''; (CAMP||[]).forEach(function(o){ Object.keys(o.planillas||{}).forEach(function(key){ if(key.indexOf('SSO|sso-art-')!==0) return; var h=(o.planillas[key]||{}).hdr||{}; for(var i=1;i<=7;i++) if(h['i'+i+'_nombre']===nombre&&h['i'+i+'_rut']) r=h['i'+i+'_rut']; }); }); return r; }
+function ssoNuevo(c,u,f){ var pr=MATRIZ[c.proyecto], h={}, gente=ssoPersonas(c), t=u.t;
+  if(t==='fatiga'){ h.nombre=u.per; h.tarea='Monitoreo '+pr.nombre; h.lugar=pr.comuna||''; h.evaluador=c.jefe&&c.jefe!==u.per?c.jefe:''; }
+  if(t==='charla'){ h.rel_nombre=c.jefe||usuario; gente.forEach(function(n,i){ if(i<5) h['a'+(i+1)+'_nombre']=n; }); }
+  if(t==='art'){ h.actividad='Monitoreo '+pr.nombre; h.proyecto=pr.nombre; h.ejecutado=usuario; h.area=pr.comuna||''; gente.forEach(function(n,i){ if(i<7){ h['i'+(i+1)+'_nombre']=n; h['i'+(i+1)+'_rut']=ssoRut(n); } }); }
   if(t==='vehiculo'){ h.vehiculo=ssoUltimo(t,'vehiculo')||'Camioneta'; h.marca=ssoUltimo(t,'marca')||'Mitsubishi L200'; h.patente=ssoUltimo(t,'patente')||'TKHL-78'; h.conductor=ssoUltimo(t,'conductor')||usuario; h.licencia=ssoUltimo(t,'licencia')||'B'; }
   if(t==='embarcacion'){ h.embarcacion=ssoUltimo(t,'embarcacion'); h.patron_nombre=ssoUltimo(t,'patron_nombre'); h.supervisor_nombre=c.jefe||''; }
   return {hdr:h}; }
-function ssoGuardar(c,mon,t,f,R,ya){ c.planillas=c.planillas||{}; c.planillas[mon+'|'+ssoClave(t,f)]=R; R.por=usuario; R.el=ahoraTxt();
-  var j=JSON.stringify([R.hdr,R.na||false]), key=c.id+'|'+mon+'|'+ssoClave(t,f); S.plUlt=S.plUlt||{}; if(S.plUlt[key]===j) return; S.plUlt[key]=j;
-  enviar('planilla',{campana:c.id,clave:mon+'|'+ssoClave(t,f),datos:JSON.stringify(R)}); }
-// Otro monitoreo de la misma campaña con el mismo registro ya llenado ese día (para copiar).
-function ssoOtro(c,m,t,f){ var o=null; (c.mons||[]).forEach(function(k){ if(k===m.cod||o) return; var R=ssoGet(c,k,t,f); if(R&&!R.na&&ssoEstado(R,t).e!=='vacio') o={mon:k,R:R}; }); return o; }
+function ssoGuardar(c,u,f,R){ if(R.firma) return; var key=ssoClave(u.t,f,u.per); c.planillas=c.planillas||{}; c.planillas[key]=R; R.por=usuario; R.el=ahoraTxt();
+  var j=JSON.stringify([R.hdr,R.na||false]), dk=c.id+'|'+key; S.plUlt=S.plUlt||{}; if(S.plUlt[dk]===j) return; S.plUlt[dk]=j;
+  enviar('planilla',{campana:c.id,clave:key,datos:JSON.stringify(R)}); }
+// Día anterior de la campaña con el mismo registro llenado (para copiar lo que se repite: vehículo, embarcación, secuencia del ART…).
+function ssoPrevio(c,u,f){ var ds=diasCampana(c), i=ds.indexOf(f); for(var j=i-1;j>=0;j--){ var R=ssoGet(c,u.t,ds[j],u.per); if(R&&!R.na&&ssoEstado(R,u.t).e!=='vacio') return {f:ds[j],R:R}; } return null; }
 
 function ssoCampo(k,x,h,dis){ var v=h[k]==null?'':h[k], at=' data-sso-c="'+k+'"'+dis;
   if(x.ty==='area') return '<label class="'+(x.ancho?'sso-ancho':'')+'">'+esc(x.l)+'<textarea class="inp" rows="3"'+at+'>'+esc(v)+'</textarea></label>';
-  if(x.ty==='hora') return '<label>'+esc(x.l)+'<span class="pl-hora"><input class="inp" type="time" value="'+esc(v)+'"'+at+'><button type="button" class="lnk" data-sso-ahora="'+k+'"'+dis+'>Ahora</button></span></label>';
+  if(x.ty==='hora') return '<label>'+esc(x.l)+'<span class="pl-hora"><input class="inp" type="time" value="'+esc(v)+'"'+at+'>'+(dis?'':'<button type="button" class="lnk" data-sso-ahora="'+k+'">Ahora</button>')+'</span></label>';
   return '<label class="'+(x.ancho?'sso-ancho':'')+'">'+esc(x.l)+'<input class="inp" type="text"'+(x.num?' inputmode="numeric"':'')+' value="'+esc(v)+'"'+at+'></label>'; }
-function ssoForm(c,m,t,f,R,ro){ var d=SSO_DEF[t], h=R.hdr||{}, dis=ro?' disabled':'', out='';
-  if(!ro){ var ot=ssoOtro(c,m,t,f); if(ot&&ssoEstado(R,t).e==='vacio') out+='<div class="lote">Ya está llenado en '+esc((mOf(c,ot.mon)||{}).nombre||ot.mon)+' para este día. <button type="button" class="btn-p btn-sm" data-sso-copiar="'+esc(ot.mon)+'">Copiar ese registro</button></div>'; }
+function ssoFirmaTxt(F){ return fmtD(String(F.el).slice(0,10))+' '+String(F.el).slice(11,16); }
+function ssoForm(c,u,f,R,ro,nuevo){ var t=u.t, d=SSO_DEF[t], h=R.hdr||{}, dis=ro?' disabled':'', out='';
+  if(R.firma) out+='<div class="sso-firmado"><b>✓ Firmado por '+esc(R.firma.por)+'</b> el '+ssoFirmaTxt(R.firma)+' · código de verificación <code>'+esc(R.firma.cod)+'</code><span>Este registro ya no se puede modificar.</span>'+
+    (rol()==='Administrador'?(S.ssoAnular?'<div class="sso-anular"><input class="inp" id="sso-motivo" placeholder="Motivo de la anulación (obligatorio)"><button type="button" class="btn-p btn-sm sso-rojo" data-sso-anular="2">Anular firma</button><button type="button" class="lnk" data-sso-anular="0">Cancelar</button></div>':'<button type="button" class="lnk" data-sso-anular="1">Anular firma (Administrador)</button>'):'')+'</div>';
+  (R.anulaciones||[]).forEach(function(a){ out+='<div class="sub sso-anulada">Firma de '+esc(a.firma&&a.firma.por||'')+' anulada por '+esc(a.por)+' el '+ssoFirmaTxt(a)+' · motivo: '+esc(a.motivo)+'</div>'; });
+  if(!ro&&(nuevo||ssoEstado(R,t).e==='vacio')){ var pv=ssoPrevio(c,u,f); if(pv) out+='<div class="lote">Hay un registro del '+fmtD(pv.f)+'. <button type="button" class="btn-p btn-sm" data-sso-copiar="'+pv.f+'">Copiar del '+fmtD(pv.f)+'</button></div>'; }
   out+='<div class="pl-hf sso-hf">'+(d.campos||[]).map(function(x){ return ssoCampo(x.k,x,h,dis); }).join('')+'</div>';
   (d.grupos||[]).forEach(function(g,gi){
     out+='<div class="sso-g"><div class="sso-gt"><b>'+esc(g.t)+'</b>'+(g.ops&&!ro?'<span class="sso-todo">Marcar todo: '+g.ops.map(function(o){ return '<button type="button" class="lnk" data-sso-todo="'+gi+'|'+o+'">'+SSO_OPL[o]+'</button>'; }).join(' · ')+'</span>':'')+'</div>';
@@ -1906,74 +1934,123 @@ function ssoForm(c,m,t,f,R,ro){ var d=SSO_DEF[t], h=R.hdr||{}, dis=ro?' disabled
     out+='</div>'+(!ro&&vis<n?'<button type="button" class="lnk" data-sso-fila="'+tb.pref+'">+ Agregar fila</button>':'')+'</div>'; });
   if(d.pie) out+='<div class="pl-hf sso-hf">'+d.pie.map(function(x){ return ssoCampo(x.k,x,h,dis); }).join('')+'</div>';
   out+='<datalist id="sso-gente">'+PERSONAL.map(function(n){ return '<option value="'+esc(n)+'">'; }).join('')+'</datalist>';
-  out+='<p class="sub sso-firmas">Las firmas se hacen en el PDF impreso.</p>';
+  if(!R.firma) out+=ssoBloqueFirma(c,u,R);
   return out; }
-function ssoPill(st){ return st.e==='ok'?'<span class="badge e-comp">Completo</span>':st.e==='na'?'<span class="badge sso-na">No aplica</span>':st.e==='parcial'?'<span class="badge e-pend">Falta'+(st.falta?' '+st.falta:'')+'</span>':'<span class="badge sso-vacio">Sin llenar</span>'; }
-function htmlSSO(c,m,ro){
-  var dias=ssoDias(c,m); if(!S.ssoDia||dias.indexOf(S.ssoDia)<0) S.ssoDia=dias.indexOf(S.fechaTrabajo)>=0?S.fechaTrabajo:(dias.indexOf(HOY_S)>=0?HOY_S:dias[0]);
-  var f=S.ssoDia, out='<div class="sso-dias" role="tablist">'+dias.map(function(d){ var ok=SSO_TIPOS.filter(function(t){ var e=ssoEstado(ssoGet(c,m.cod,t,d),t).e; return e==='ok'||e==='na'; }).length;
-    return '<button type="button" role="tab" aria-selected="'+(d===f)+'" data-sso-dia="'+d+'">'+esc(DIAS[(new Date(d+'T12:00:00').getDay()+6)%7])+' '+d.slice(8,10)+'-'+d.slice(5,7)+'<small>'+ok+'/5</small></button>'; }).join('')+'</div>';
-  out+='<div class="sso-cab"><span class="sub">'+(ro?'Registros de este día.':'Cada registro se guarda solo mientras escribes. '+(respMon(c,m.cod).length?'Lo llena: '+esc(respMon(c,m.cod).join(', '))+'.':''))+'</span><button type="button" class="btn-s btn-sm" data-sso-pdfdia="1">Descargar los del día (PDF)</button></div>';
-  out+=SSO_TIPOS.map(function(t){ var d=SSO_DEF[t], R=ssoGet(c,m.cod,t,f), st=ssoEstado(R,t), ab=S.ssoAb===t;
-    return '<div class="sso-c'+(ab?' abierto':'')+'"><div class="sso-ch"><button type="button" class="sso-tit" data-sso-ab="'+t+'" aria-expanded="'+ab+'"><b>'+esc(d.t)+'</b><small>'+esc(d.cod)+'</small></button>'+ssoPill(st)+
-      '<span class="sso-acc">'+(st.e!=='vacio'&&st.e!=='na'?'<button type="button" class="btn-s btn-sm" data-sso-pdf="'+t+'">PDF</button>':'')+
-      (ro?'':(st.e==='na'?'<button type="button" class="lnk" data-sso-na="'+t+'">Sí aplica</button>':st.e==='vacio'?'<button type="button" class="lnk" data-sso-na="'+t+'">No aplica</button>':''))+
-      '<button type="button" class="btn-p btn-sm" data-sso-ab="'+t+'">'+(ab?'Cerrar':ro?'Ver':st.e==='vacio'?'Llenar':'Abrir')+'</button></span></div>'+
-      (ab&&!(R&&R.na)?'<div class="sso-b" data-sso-tipo="'+t+'">'+(ro&&!R?'<p class="sub">Aún no se llena.</p>':ssoForm(c,m,t,f,R||ssoNuevo(c,m,t,f),ro))+'</div>':'')+'</div>'; }).join('');
+// Firma: el usuario confirma con su código personal de 6 dígitos; firmado, el registro queda bloqueado (también en el servidor).
+function ssoBloqueFirma(c,u,R){ var st=ssoEstado(R,u.t);
+  if(!puedeMarcar(c)) return '';
+  if(u.t==='fatiga'&&u.per!==usuario) return '<div class="sso-firmar"><b>Firma</b><p class="sub">Esta ficha la firma '+esc(u.per)+' con su propio código.</p></div>';
+  if(st.e!=='ok') return '<div class="sso-firmar off"><b>Firma</b><p class="sub">Cuando esté todo completo podrás firmar'+(st.falta?' (faltan '+st.falta+')':'')+'.</p></div>';
+  if(S.pinTiene===undefined){ ssoPinEstado(); return '<div class="sso-firmar"><b>Firma</b><p class="sub">Revisando tu código de firma…</p></div>'; }
+  var nuevo=S.pinTiene===false;
+  return '<div class="sso-firmar"><b>Firmar registro</b><p>Al firmar confirmas que los datos ingresados son correctos. <b>Después no se podrán modificar.</b></p>'+
+    (nuevo?'<p class="sub">Aún no tienes código de firma. Crea uno de 6 números: es personal, no lo compartas.</p>':'')+
+    '<div class="sso-pin"><label>'+(nuevo?'Crea tu código':'Tu código de firma')+'<input class="inp" id="sso-pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></label>'+
+    (nuevo?'<label>Repítelo<input class="inp" id="sso-pin2" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••••"></label>':'')+
+    '<button type="button" class="btn-p" data-sso-firmar="1">Confirmar y firmar</button></div>'+(nuevo?'':'<p class="sub">¿Olvidaste tu código? Pídele al Administrador que lo reinicie.</p>')+'</div>'; }
+function ssoPinEstado(){ if(S.pinPidiendo) return; S.pinPidiendo=true; apiS('pinEstado').then(function(r){ S.pinPidiendo=false; if(r&&r.ok){ S.pinTiene=!!r.tiene; ssoPintar(); } }).catch(function(){ S.pinPidiendo=false; }); }
+// En la prueba local (sin servidor) se simulan las acciones de firma.
+function apiS(accion,datos){ if(!DEMO) return api(accion,datos);
+  var pins={}; try{ pins=JSON.parse(localStorage.getItem('demo_pins')||'{}'); }catch(e){}
+  var hsh=function(s){ var x=5381; for(var i=0;i<s.length;i++) x=((x*33)^s.charCodeAt(i))>>>0; return ('00000000'+x.toString(16)).slice(-8).toUpperCase(); };
+  var r={ok:true};
+  if(accion==='pinEstado') r.tiene=!!pins[usuario];
+  else if(accion==='crearPin'){ if(pins[usuario]) r={ok:false,mensaje:'Ya tienes un código.'}; else { pins[usuario]=hsh('s'+datos.pin); localStorage.setItem('demo_pins',JSON.stringify(pins)); } }
+  else if(accion==='reiniciarPin'){ delete pins[datos.nombre]; localStorage.setItem('demo_pins',JSON.stringify(pins)); }
+  else if(accion==='firmar'){ if(pins[usuario]!==hsh('s'+datos.pin)) r={ok:false,mensaje:'Código incorrecto.'}; else { var R=JSON.parse(datos.datos); R.firma={por:usuario,el:new Date().toISOString().slice(0,10)+' '+ahoraTxt().slice(-5),cod:hsh(JSON.stringify(R.hdr||{}))+'AB'}; r.R=R; } }
+  else if(accion==='anularFirma'){ var c=getC(datos.campana), R2=JSON.parse(JSON.stringify(c.planillas[datos.clave])); R2.anulaciones=(R2.anulaciones||[]).concat([{firma:R2.firma,por:usuario,el:R2.firma.el,motivo:datos.motivo}]); delete R2.firma; r.R=R2; }
+  bitLocal(accion,datos||{}); return Promise.resolve(r); }
+function ssoFirmar(c,u,f){ var pin=(document.getElementById('sso-pin')||{}).value||'', p2=(document.getElementById('sso-pin2')||{}).value||'', nuevo=S.pinTiene===false;
+  if(!/^\d{6}$/.test(pin)){ toast('El código debe tener 6 números'); return; }
+  if(nuevo&&pin!==p2){ toast('Los dos códigos no coinciden'); return; }
+  if(!DEMO&&!hayRed()){ toast('Para firmar necesitas señal. Los datos quedan guardados; firma cuando tengas conexión.'); return; }
+  var key=ssoClave(u.t,f,u.per), R=c.planillas[key]; R.por=usuario; R.el=ahoraTxt();
+  // Los cambios aún en cola de este registro van incluidos en la firma.
+  S.cola=(S.cola||[]).filter(function(it){ return !(it.accion==='planilla'&&it.datos&&it.datos.campana===c.id&&it.datos.clave===key); }); guardarCola();
+  toast('Firmando…');
+  (nuevo?apiS('crearPin',{pin:pin}):Promise.resolve({ok:true})).then(function(r){ if(!r.ok) throw r; S.pinTiene=true; return apiS('firmar',{campana:c.id,clave:key,pin:pin,datos:JSON.stringify(R)}); })
+  .then(function(r){ if(!r.ok) throw r; c.planillas[key]=r.R; guardarCamp(); toast('Registro firmado ✓ Código de verificación '+r.R.firma.cod); ssoPintar(); })
+  .catch(function(e){ toast((e&&e.mensaje)||'No se pudo firmar. Revisa la señal e inténtalo de nuevo.'); }); }
+function ssoAnular(c,u,f){ var mot=((document.getElementById('sso-motivo')||{}).value||'').trim(); if(mot.length<5){ toast('Escribe el motivo de la anulación'); return; }
+  var key=ssoClave(u.t,f,u.per); apiS('anularFirma',{campana:c.id,clave:key,motivo:mot}).then(function(r){ if(!r.ok) throw r; c.planillas[key]=r.R; S.ssoAnular=false; guardarCamp(); toast('Firma anulada. Queda registrado en Actividad.'); ssoPintar(); })
+  .catch(function(e){ toast((e&&e.mensaje)||'No se pudo anular la firma'); }); }
+
+function ssoPill(st){ return st.e==='firmado'?'<span class="badge e-comp">✓ Firmado</span>':st.e==='ok'?'<span class="badge e-pend">Falta firmar</span>':st.e==='na'?'<span class="badge sso-na">No aplica</span>':st.e==='parcial'?'<span class="badge e-pend">Falta'+(st.falta?' '+st.falta:'')+'</span>':'<span class="badge sso-vacio">Sin llenar</span>'; }
+function ssoCard(c,u,f){ var d=SSO_DEF[u.t], R=ssoGet(c,u.t,f,u.per), st=ssoEstado(R,u.t), id=ssoId(u), ab=S.ssoAb===id, ro=!ssoPuedeEditar(c,u,R), puede=puedeMarcar(c)&&(u.t!=='fatiga'||u.per===usuario||esCoord());
+  return '<div class="sso-c'+(ab?' abierto':'')+'"><div class="sso-ch"><button type="button" class="sso-tit" data-sso-ab="'+esc(id)+'" aria-expanded="'+ab+'"><b>'+esc(u.per?u.per+(u.per===usuario?' (tú)':''):d.t)+'</b><small>'+esc(u.per?d.cod:d.cod)+'</small></button>'+ssoPill(st)+
+    '<span class="sso-acc">'+(st.e!=='vacio'&&st.e!=='na'?'<button type="button" class="btn-s btn-sm" data-sso-pdf="'+esc(id)+'">PDF</button>':'')+
+    (puede&&!(R&&R.firma)?(st.e==='na'?'<button type="button" class="lnk" data-sso-na="'+esc(id)+'">Sí aplica</button>':st.e==='vacio'&&u.t!=='fatiga'&&u.t!=='charla'&&u.t!=='art'?'<button type="button" class="lnk" data-sso-na="'+esc(id)+'">No aplica</button>':''):'')+
+    '<button type="button" class="btn-p btn-sm" data-sso-ab="'+esc(id)+'">'+(ab?'Cerrar':ro?'Ver':st.e==='vacio'?'Llenar':st.e==='ok'?'Firmar':'Abrir')+'</button></span></div>'+
+    (ab&&!(R&&R.na)?'<div class="sso-b">'+(ro&&!R?'<p class="sub">Aún no se llena.</p>':ssoForm(c,u,f,R||ssoNuevo(c,u,f),ro,!R))+'</div>':'')+'</div>'; }
+function htmlSSO(c){
+  var dias=diasCampana(c); if(!S.ssoDia||dias.indexOf(S.ssoDia)<0) S.ssoDia=dias.indexOf(S.fechaTrabajo)>=0?S.fechaTrabajo:(dias.indexOf(HOY_S)>=0?HOY_S:dias[0]);
+  var f=S.ssoDia, U=ssoUnidades(c), out='<div class="sso-dias" role="tablist">'+dias.map(function(d){ var ok=U.filter(function(u){ return ssoListo(ssoGet(c,u.t,d,u.per),u.t); }).length;
+    return '<button type="button" role="tab" aria-selected="'+(d===f)+'" data-sso-dia="'+d+'">'+esc(DIAS[(new Date(d+'T12:00:00').getDay()+6)%7])+' '+d.slice(8,10)+'-'+d.slice(5,7)+'<small>'+ok+'/'+U.length+'</small></button>'; }).join('')+'</div>';
+  if(!puedeMarcar(c)) out+='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.</div>';
+  out+='<div class="sso-cab"><span class="sub">Se guardan solos mientras escribes. Al terminar, cada registro se firma con el código personal y queda bloqueado.</span><button type="button" class="btn-s btn-sm" data-sso-pdfdia="1">Descargar los del día (PDF)</button></div>';
+  out+='<h3 class="sso-sec">Del equipo <span class="sub">· 1 por día</span></h3>'+SSO_EQ.map(function(t){ return ssoCard(c,{t:t},f); }).join('');
+  out+='<h3 class="sso-sec">'+esc(SSO_DEF.fatiga.t)+' <span class="sub">· 1 por persona al día</span></h3>'+ssoPersonas(c).map(function(n){ return ssoCard(c,{t:'fatiga',per:n},f); }).join('');
   return out; }
-function ssoPintar(){ var c=getC(S.cid), m=c&&mOf(c,S.mon), el=document.getElementById('sso-box'); if(!el||!m) return; el.innerHTML=htmlSSO(c,m,!ssoPuede(c,m)); var n=document.getElementById('sso-n'); if(n) n.textContent=ssoContar(c,m); }
-function ssoContar(c,m){ var n=0; ssoDias(c,m).forEach(function(d){ SSO_TIPOS.forEach(function(t){ var e=ssoEstado(ssoGet(c,m.cod,t,d),t).e; if(e==='ok') n++; }); }); return n; }
-function ssoActual(crear){ var c=getC(S.cid), m=c&&mOf(c,S.mon), t=S.ssoAb, f=S.ssoDia; if(!m||!t||!f) return null; var R=ssoGet(c,m.cod,t,f); if(!R&&crear){ R=ssoNuevo(c,m,t,f); c.planillas=c.planillas||{}; c.planillas[m.cod+'|'+ssoClave(t,f)]=R; } return R?{c:c,m:m,t:t,f:f,R:R}:null; }
-document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-sso-dia],[data-sso-ab],[data-sso-r],[data-sso-todo],[data-sso-na],[data-sso-pdf],[data-sso-pdfdia],[data-sso-fila],[data-sso-copiar],[data-sso-ahora]'); if(!b) return;
-  var c=getC(S.cid), m=c&&mOf(c,S.mon); if(!m) return; var ds=b.dataset, ro=!ssoPuede(c,m);
-  if(ds.ssoDia){ S.ssoDia=ds.ssoDia; ssoPintar(); return; }
-  if(ds.ssoAb){ S.ssoAb=S.ssoAb===ds.ssoAb?null:ds.ssoAb; ssoPintar(); var cc=document.querySelector('.sso-c.abierto'); if(cc&&S.ssoAb) cc.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
-  if(ds.ssoPdf){ pdfSSO(c,m,[ds.ssoPdf],S.ssoDia); return; }
-  if(ds.ssoPdfdia){ var ts=SSO_TIPOS.filter(function(t){ var e=ssoEstado(ssoGet(c,m.cod,t,S.ssoDia),t).e; return e!=='vacio'&&e!=='na'; }); if(!ts.length){ toast('Aún no hay registros llenados este día'); return; } pdfSSO(c,m,ts,S.ssoDia); return; }
-  if(ro) return;
-  if(ds.ssoNa){ var t=ds.ssoNa, R=ssoGet(c,m.cod,t,S.ssoDia)||ssoNuevo(c,m,t,S.ssoDia); R.na=!R.na; if(R.na&&S.ssoAb===t) S.ssoAb=null; ssoGuardar(c,m.cod,t,S.ssoDia,R); ssoPintar(); return; }
-  var A=ssoActual(true); if(!A) return; var h=A.R.hdr=A.R.hdr||{};
+function ssoPintar(){ var c=getC(S.cid), el=document.getElementById('sso-box'); if(!el||!c) return; el.innerHTML=htmlSSO(c); }
+function ssoActual(crear){ var c=getC(S.cid), f=S.ssoDia; if(!c||!S.ssoAb||!f) return null; var u=ssoDeId(S.ssoAb), key=ssoClave(u.t,f,u.per), R=(c.planillas||{})[key];
+  if(!R&&crear){ R=ssoNuevo(c,u,f); c.planillas=c.planillas||{}; c.planillas[key]=R; } return R?{c:c,u:u,f:f,R:R}:null; }
+document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-sso-dia],[data-sso-ab],[data-sso-r],[data-sso-todo],[data-sso-na],[data-sso-pdf],[data-sso-pdfdia],[data-sso-fila],[data-sso-copiar],[data-sso-ahora],[data-sso-firmar],[data-sso-anular],[data-pinreset]'); if(!b) return;
+  var ds=b.dataset;
+  if(ds.pinreset){ apiS('reiniciarPin',{nombre:ds.pinreset}).then(function(r){ toast(r.ok?'Código de firma de '+ds.pinreset+' reiniciado: creará uno nuevo al firmar.':(r.mensaje||'No se pudo reiniciar')); }); return; }
+  var c=getC(S.cid); if(!c) return;
+  if(ds.ssoDia){ S.ssoDia=ds.ssoDia; S.ssoAnular=false; ssoPintar(); return; }
+  if(ds.ssoAb){ S.ssoAb=S.ssoAb===ds.ssoAb?null:ds.ssoAb; S.ssoAnular=false; ssoPintar(); var cc=document.querySelector('.sso-c.abierto'); if(cc&&S.ssoAb) cc.scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+  if(ds.ssoPdf){ pdfSSO(c,[ssoDeId(ds.ssoPdf)],S.ssoDia); return; }
+  if(ds.ssoPdfdia){ var us=ssoUnidades(c).filter(function(u){ var e=ssoEstado(ssoGet(c,u.t,S.ssoDia,u.per),u.t).e; return e!=='vacio'&&e!=='na'; }); if(!us.length){ toast('Aún no hay registros llenados este día'); return; } pdfSSO(c,us,S.ssoDia); return; }
+  if(ds.ssoNa){ var u0=ssoDeId(ds.ssoNa), R0=ssoGet(c,u0.t,S.ssoDia,u0.per)||ssoNuevo(c,u0,S.ssoDia); if(!ssoPuedeEditar(c,u0,R0)) return; R0.na=!R0.na; if(R0.na&&S.ssoAb===ds.ssoNa) S.ssoAb=null; ssoGuardar(c,u0,S.ssoDia,R0); ssoPintar(); return; }
+  var A=ssoActual(true); if(!A) return;
+  if(ds.ssoFirmar){ ssoFirmar(A.c,A.u,A.f); return; }
+  if(ds.ssoAnular){ if(ds.ssoAnular==='2') ssoAnular(A.c,A.u,A.f); else { S.ssoAnular=ds.ssoAnular==='1'; ssoPintar(); } return; }
+  if(!ssoPuedeEditar(c,A.u,A.R)) return; var h=A.R.hdr=A.R.hdr||{};
   if(ds.ssoR){ var p=ds.ssoR.split('|'); h[p[0]]=h[p[0]]===p[1]?'':p[1]; }
-  else if(ds.ssoTodo){ var q=ds.ssoTodo.split('|'), g=SSO_DEF[A.t].grupos[+q[0]]; g.items.forEach(function(it){ h[it[0]]=q[1]; }); }
+  else if(ds.ssoTodo){ var q=ds.ssoTodo.split('|'), g=SSO_DEF[A.u.t].grupos[+q[0]]; g.items.forEach(function(it){ h[it[0]]=q[1]; }); }
   else if(ds.ssoAhora){ var d=new Date(); h[ds.ssoAhora]=pad(d.getHours())+':'+pad(d.getMinutes()); }
-  else if(ds.ssoFila){ var tb=SSO_DEF[A.t].tablas.filter(function(x){ return x.pref===ds.ssoFila; })[0], i=1; while(i<tb.n&&tb.cols.some(function(cc){ return h[tb.pref+i+'_'+cc[0]]!=null; })) i++; h[tb.pref+i+'_'+tb.cols[0][0]]=''; ssoPintar(); var ins=document.querySelectorAll('[data-sso-c="'+tb.pref+i+'_'+tb.cols[0][0]+'"]'); if(ins[0]) ins[0].focus(); return; }
-  else if(ds.ssoCopiar){ var O=ssoGet(c,ds.ssoCopiar,A.t,A.f); if(O){ A.R.hdr=JSON.parse(JSON.stringify(O.hdr||{})); if(A.t==='art'){ A.R.hdr.actividad=m.nombre; } if(A.t==='fatiga'){ A.R.hdr.tarea=m.nombre+' / '+MATRIZ[c.proyecto].nombre; } toast('Copiado. Revisa y ajusta lo que cambie.'); } }
-  ssoGuardar(c,m.cod,A.t,A.f,A.R); ssoPintar(); });
-document.addEventListener('input',function(e){ var el=e.target, k=el.dataset&&el.dataset.ssoC; if(!k) return; var A=ssoActual(true); if(!A) return; A.R.hdr[k]=el.value;
-  if(k.slice(-7)==='_nombre'&&/^i\d+_nombre$/.test(k)){ var r=ssoRut(el.value), rk=k.replace('_nombre','_rut'); if(r&&!A.R.hdr[rk]){ A.R.hdr[rk]=r; var ri=document.querySelector('[data-sso-c="'+rk+'"]'); if(ri) ri.value=r; } }
-  clearTimeout(S.ssoT); S.ssoT=setTimeout(function(){ ssoGuardar(A.c,A.m.cod,A.t,A.f,A.R); var cab=document.querySelector('.sso-c.abierto .badge'); if(cab) cab.outerHTML=ssoPill(ssoEstado(A.R,A.t)); },900); });
-document.addEventListener('change',function(e){ var el=e.target; if(!(el.dataset&&el.dataset.ssoC)) return; var A=ssoActual(true); if(!A) return; A.R.hdr[el.dataset.ssoC]=el.value; clearTimeout(S.ssoT); ssoGuardar(A.c,A.m.cod,A.t,A.f,A.R); var cab=document.querySelector('.sso-c.abierto .badge'); if(cab) cab.outerHTML=ssoPill(ssoEstado(A.R,A.t)); });  // sin repintar: no perder el clic que provocó el cambio
+  else if(ds.ssoFila){ var tb=SSO_DEF[A.u.t].tablas.filter(function(x){ return x.pref===ds.ssoFila; })[0], i=1; while(i<tb.n&&tb.cols.some(function(cc){ return h[tb.pref+i+'_'+cc[0]]!=null; })) i++; h[tb.pref+i+'_'+tb.cols[0][0]]=''; ssoPintar(); var ins=document.querySelectorAll('[data-sso-c="'+tb.pref+i+'_'+tb.cols[0][0]+'"]'); if(ins[0]) ins[0].focus(); return; }
+  else if(ds.ssoCopiar){ var O=ssoGet(c,A.u.t,ds.ssoCopiar,A.u.per); if(O){ A.R.hdr=JSON.parse(JSON.stringify(O.hdr||{})); ['hora','hini','hfin','km'].forEach(function(k){ delete A.R.hdr[k]; }); toast('Copiado del '+fmtD(ds.ssoCopiar)+'. Revisa y ajusta lo que cambió.'); } }
+  ssoGuardar(c,A.u,A.f,A.R); ssoPintar(); });
+document.addEventListener('input',function(e){ var el=e.target, k=el.dataset&&el.dataset.ssoC; if(!k) return; var A=ssoActual(true); if(!A||!ssoPuedeEditar(A.c,A.u,A.R)) return; A.R.hdr[k]=el.value;
+  if(/^i\d+_nombre$/.test(k)){ var r=ssoRut(el.value), rk=k.replace('_nombre','_rut'); if(r&&!A.R.hdr[rk]){ A.R.hdr[rk]=r; var ri=document.querySelector('[data-sso-c="'+rk+'"]'); if(ri) ri.value=r; } }
+  clearTimeout(S.ssoT); S.ssoT=setTimeout(function(){ ssoGuardar(A.c,A.u,A.f,A.R); ssoPill2(A); },900); });
+document.addEventListener('change',function(e){ var el=e.target; if(!(el.dataset&&el.dataset.ssoC)) return; var A=ssoActual(true); if(!A||!ssoPuedeEditar(A.c,A.u,A.R)) return; A.R.hdr[el.dataset.ssoC]=el.value; clearTimeout(S.ssoT); ssoGuardar(A.c,A.u,A.f,A.R); ssoPill2(A); });  // sin repintar: no perder el clic que provocó el cambio
+function ssoPill2(A){ var cab=document.querySelector('.sso-c.abierto .badge'); if(cab) cab.outerHTML=ssoPill(ssoEstado(A.R,A.u.t)); var st=ssoEstado(A.R,A.u.t), fb=document.querySelector('.sso-c.abierto .sso-firmar'); if(fb&&((st.e==='ok')!==!fb.classList.contains('off'))) ssoPintar(); }
 
 // PDF en el formato oficial: la plantilla (lib/sso/<tipo>.pdf) con los datos dibujados encima.
 function libPDFLib(){ return window.PDFLib?Promise.resolve():cargarScript('lib/pdf-lib.min.js'); }
 var SSO_LAY=null;
-function ssoValores(c,m,t,f,R){ var h=R.hdr||{}, v={}, pr=MATRIZ[c.proyecto];
+function ssoTxtFirma(F){ return 'Firmado electrónicamente\n'+F.por+'\n'+ssoFirmaTxt(F)+' · Verif. '+F.cod; }
+function ssoValores(c,t,f,R){ var h=R.hdr||{}, v={}, pr=MATRIZ[c.proyecto];
   Object.keys(h).forEach(function(k){ v[k]=h[k]; }); ssoItemsDe(t).forEach(function(it){ if(h[it[0]]) v[it[0]+'='+h[it[0]]]=true; });
   if(t==='charla') v.fecha=fmtD(f);
   if(t==='art'){ v.fecha_hora=fmtD(f)+(h.hora?' '+h.hora:''); }
   if(t==='vehiculo'){ v.proyecto=pr.nombre; v.fecha=fmtD(f); }
   if(t==='embarcacion'){ v.proyecto=pr.nombre; v.fecha=fmtD(f); v.patron_fecha=h.patron_nombre?fmtD(f):''; v.supervisor_fecha=h.supervisor_nombre?fmtD(f):'';
     var ob=String(h.obs||'').replace(/\s*\n\s*/g,' · '), corte=ob.length>105?ob.lastIndexOf(' ',105):-1; v.obs1=corte>0?ob.slice(0,corte):ob; v.obs2=corte>0?ob.slice(corte+1):''; }
+  var kf=t==='embarcacion'?'patron_firma':'firma'; v[kf]=R.firma?ssoTxtFirma(R.firma):'BORRADOR · sin firmar';
   return v; }
-function pdfSSO(c,m,tipos,f){
+function pdfSSO(c,unidades,f){
   toast('Preparando PDF…');
   Promise.all([libPDFLib(), SSO_LAY?Promise.resolve(SSO_LAY):fetch('lib/sso/layout.json').then(function(r){ return r.json(); })]).then(function(x){ SSO_LAY=x[1]; var PL=window.PDFLib;
     return PL.PDFDocument.create().then(function(out){ return Promise.all([out.embedFont(PL.StandardFonts.Helvetica),out.embedFont(PL.StandardFonts.HelveticaBold)]).then(function(fs){
-      var cadena=Promise.resolve();
-      tipos.forEach(function(t){ cadena=cadena.then(function(){ return fetch('lib/sso/'+t+'.pdf').then(function(r){ return r.arrayBuffer(); }).then(function(buf){ return PL.PDFDocument.load(buf); }).then(function(tpl){
+      var cadena=Promise.resolve(), tpls={};
+      unidades.forEach(function(u){ var t=u.t; cadena=cadena.then(function(){ return (tpls[t]||fetch('lib/sso/'+t+'.pdf').then(function(r){ return r.arrayBuffer(); }).then(function(buf){ return PL.PDFDocument.load(buf); })).then(function(tpl){ tpls[t]=Promise.resolve(tpl);
         var hojas=[];
-        if(t==='fatiga'){ // una hoja por cada 4 días de muestreo (Día 1 … Día 4)
-          var ds=ssoDias(c,m).filter(function(d){ var R=ssoGet(c,m.cod,t,d); return R&&!R.na&&ssoEstado(R,t).e!=='vacio'; }); var i0=Math.floor(Math.max(0,ds.indexOf(f))/4)*4, grupos=[];
-          if(tipos.length>1){ grupos=[ds.slice(i0,i0+4)]; } else for(var i=0;i<ds.length;i+=4) grupos.push(ds.slice(i,i+4));
-          grupos.forEach(function(g){ var R0=ssoGet(c,m.cod,t,g[0]), v=ssoValores(c,m,t,g[0],R0); v.fini=fmtD(g[0]); v.ffin=fmtD(g[g.length-1]);
+        if(t==='fatiga'){ // una hoja por cada 4 días (Día 1 … Día 4) de esa persona
+          var ds=diasCampana(c).filter(function(d){ var R=ssoGet(c,t,d,u.per); return R&&!R.na&&ssoEstado(R,t).e!=='vacio'; }), i0=Math.floor(Math.max(0,ds.indexOf(f))/4)*4, grupos=[];
+          if(unidades.length>1) grupos=[ds.slice(i0,i0+4)]; else for(var i=0;i<ds.length;i+=4) grupos.push(ds.slice(i,i+4));
+          grupos.forEach(function(g){ if(!g.length) return; var v=ssoValores(c,t,g[0],ssoGet(c,t,g[0],u.per)); v.fini=fmtD(g[0]); v.ffin=fmtD(g[g.length-1]);
             Object.keys(v).forEach(function(k){ if(/=/.test(k)) delete v[k]; });
-            g.forEach(function(d,j){ var h=(ssoGet(c,m.cod,t,d).hdr)||{}; ssoItemsDe(t).forEach(function(it){ if(h[it[0]]) v[it[0]+'='+h[it[0]]+'@'+(j+1)]=true; }); });
-            hojas.push(v); }); }
-        else hojas.push(ssoValores(c,m,t,f,ssoGet(c,m.cod,t,f)));
+            var firmas=[]; g.forEach(function(d,j){ var R=ssoGet(c,t,d,u.per), h=R.hdr||{}; ssoItemsDe(t).forEach(function(it){ if(h[it[0]]) v[it[0]+'='+h[it[0]]+'@'+(j+1)]=true; }); firmas.push('Día '+(j+1)+': '+(R.firma?ssoFirmaTxt(R.firma)+' · '+R.firma.cod:'sin firmar')); });
+            v.firma=firmas.some(function(x){ return x.indexOf('sin firmar')<0; })?'Firmado electrónicamente\n'+u.per+'\n'+firmas.join('\n'):'BORRADOR · sin firmar'; hojas.push(v); }); }
+        else hojas.push(ssoValores(c,t,f,ssoGet(c,t,f)));
         var c2=Promise.resolve(); hojas.forEach(function(v){ c2=c2.then(function(){ return out.copyPages(tpl,tpl.getPageIndices()).then(function(pp){ var base=out.getPageCount(); pp.forEach(function(p){ out.addPage(p); }); dibujarSSO(PL,out,fs[0],fs[1],SSO_LAY[t],v,base); }); }); });
         return c2; }); }); });
       return cadena.then(function(){ return out.save(); }); }); });
-  }).then(function(bytes){ var nom=(tipos.length>1?'Registros_SSO':SSO_DEF[tipos[0]].cod)+'_'+m.cod+'_'+(tipos.length===1&&tipos[0]==='fatiga'?c.id:f)+'.pdf';
+  }).then(function(bytes){ var u=unidades[0], nom=(unidades.length>1?'Registros_SSO_'+c.id+'_'+f:SSO_DEF[u.t].cod+'_'+(u.per?ssoSlug(u.per)+'_'+c.id:c.id+'_'+f))+'.pdf';
     var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})); a.download=nom; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1500); toast('PDF listo: '+nom); })
   .catch(function(err){ toast('No se pudo crear el PDF'+(navigator.onLine?'':' (sin señal: ábrelo una vez con señal para guardar los formatos)')+'.'); console.error(err); });
 }
@@ -1984,6 +2061,8 @@ function dibujarSSO(PDFLib, doc, fuente, negrita, lay, val, pagOff){
   Object.keys(lay).forEach(function(k){
     var d=lay[k], v=val[k]; if(v==null||v===''||v===false) return;
     var pg=doc.getPage(d.p+pagOff), H=pg.getHeight(), b=d.b, x0=b[0], x1=b[1], t=b[2], bo=b[3], w=x1-x0-6, h=bo-t;
+    if(d.t==='firma'){ var ls=String(v).split('\n'), fs=Math.max(5,Math.min(7.5,(h-2)/(ls.length*1.2))), azul=PDFLib.rgb(0.05,0.2,0.5), y0=H-t-fs-1;
+      ls.forEach(function(l,i){ var tx=limpio(l); while(tx&&(i===0?negrita:fuente).widthOfTextAtSize(tx,fs)>w) tx=tx.slice(0,-1); pg.drawText(tx,{x:x0+3,y:y0-i*fs*1.2,size:fs,font:i===0?negrita:fuente,color:azul}); }); return; }
     if(d.t==='x'){ var s=Math.min(10,h-2); pg.drawText('X',{x:(x0+x1)/2-negrita.widthOfTextAtSize('X',s)/2,y:H-(t+bo)/2-s*0.35,size:s,font:negrita}); return; }
     var txt=limpio(v);
     if(d.t==='multi'){
@@ -2135,10 +2214,11 @@ function renderDetalle(){
     '<div class="dprogs">'+prow('Muestreo',p.pm)+prow('Documentos',p.pd,1)+'</div>'+
     '<div class="cfoot">'+chipB('sinMarcar',p.sinMarcar,'sin marcar','p-gris')+chipB('noReal',p.noReal,p.noReal===1?'no realizada':'no realizadas','p-rojo')+chipB('parcial',p.parcial,p.parcial===1?'parcial':'parciales','p-amber')+chipB('sinMotivo',p.sinMotivo,'sin motivo','p-rojo')+chipB('dPend',p.dPend,'docs. pendientes','p-amber')+chipB('dSinRuta',p.dSinRuta,'sin ruta','p-amber')+'</div>'+
     (S.chip?panelChip(c,S.chip):'')+accionesCamp(c,p)+'</div>';
-  h+='<div class="subnav" role="tablist">'+[['muestreo','Checklist · '+p.pm+'%'],['calendario','Estaciones por día'],['documentos','Documentos · '+p.pd+'%'],['registro','Registro']].map(function(x){return '<button data-sub="'+x[0]+'" aria-selected="'+(S.sub===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
+  h+='<div class="subnav" role="tablist">'+[['muestreo','Checklist · '+p.pm+'%'],['calendario','Estaciones por día'],['documentos','Documentos · '+p.pd+'%'],['sso','Registros SSO'],['registro','Registro']].map(function(x){return '<button data-sub="'+x[0]+'" aria-selected="'+(S.sub===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
   if(S.sub==='calendario') h+=renderGrilla(c);
   else if(S.sub==='muestreo') h+=renderChecklist(c);
   else if(S.sub==='registro') h+=renderRegistro(c);
+  else if(S.sub==='sso') h+='<div class="sso" id="sso-box">'+htmlSSO(c)+'</div>';
   else {
     var dro=!puedeMarcar(c), dis=dro?' disabled':'';
     if(dro) h+='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.</div>';
@@ -2201,7 +2281,7 @@ function renderEquipo(){
   var cards=vis.map(function(x){ var s=ST[x.st];
     return '<div class="eqc '+s[1]+'"><div class="eqc-h"><span class="eqc-av">'+esc(ini(x.n))+'</span><div><b>'+esc(x.n)+'</b><span class="eqc-st">'+s[0]+'</span></div></div>'+
       (x.act?bloque(x.act,'act'):'')+(x.prox[0]&&(!x.act||x.prox[0])?bloque(x.prox[0],'prox'):'')+(!x.act&&!x.prox[0]?'<div class="eqc-vacio">Sin terrenos programados</div>':'')+
-      '<div class="eqc-f"><span><b>'+x.nAnio+'</b> campaña'+(x.nAnio===1?'':'s')+' en '+Y+'</span><span><b>'+x.dias+'</b> día'+(x.dias===1?'':'s')+' de terreno</span>'+(x.ult?'<span>Último: '+esc(MATRIZ[x.ult.proyecto].nombre)+' · '+fmtD(x.ult.fin)+'</span>':'')+'</div></div>'; }).join('');
+      '<div class="eqc-f"><span><b>'+x.nAnio+'</b> campaña'+(x.nAnio===1?'':'s')+' en '+Y+'</span><span><b>'+x.dias+'</b> día'+(x.dias===1?'':'s')+' de terreno</span>'+(x.ult?'<span>Último: '+esc(MATRIZ[x.ult.proyecto].nombre)+' · '+fmtD(x.ult.fin)+'</span>':'')+'</div>'+(rol()==='Administrador'?'<button type="button" class="lnk eqc-pin" data-pinreset="'+esc(x.n)+'">Reiniciar código de firma</button>':'')+'</div>'; }).join('');
   // Plan de las próximas 4 semanas
   var D=28, dias=[], d0=new Date(HOY); for(var k=0;k<D;k++){ var dd=new Date(d0); dd.setDate(d0.getDate()+k); dias.push(iso(dd)); }
   var cab='<div class="gt-row gt-cab"><div class="gt-n"></div><div class="gt-d">'+dias.map(function(ds,k){ var dt=new Date(ds+'T00:00:00'), w=dt.getDay(); return '<span class="'+(w===0||w===6?'we':'')+(k===0?' hoy':'')+'">'+(k===0||dt.getDate()===1||w===1?'<b>'+dt.getDate()+'</b>':dt.getDate())+'</span>'; }).join('')+'</div></div>';
