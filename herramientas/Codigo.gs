@@ -95,7 +95,7 @@ function datos_(u) {
     resp.filter(function (r) { return r.id_campana === id; }).forEach(function (r) { monResp[r.monitoreo] = lista_(r.responsables); if (r.redes) monRedes[r.monitoreo] = String(r.redes); });
     return {
       id: id, proyecto: c.id_proyecto, anio: Number(c.anio), periodo: String(c.periodo), ini: fecha_(c.inicio), fin: fecha_(c.termino),
-      jefe: c.jefe, equipo: lista_(c.equipo), estadoAdm: c.estado || 'Abierta', cerradaPor: c.cerrada_por || '', cerradaEl: texto_(c.cerrada_el), creadaPor: quien(c.creada_por), creadaEl: texto_(c.creada_el),
+      jefe: c.jefe, equipo: lista_(c.equipo), tramos: tramosLeer_(c.tramos), estadoAdm: c.estado || 'Abierta', cerradaPor: c.cerrada_por || '', cerradaEl: texto_(c.cerrada_el), creadaPor: quien(c.creada_por), creadaEl: texto_(c.creada_el),
       monResp: monResp, monRedes: monRedes, monClima: climaDe_(conds, id), planillas: planillasDe_(plans, id),
       tareas: tareas.filter(function (t) { return t.id_campana === id; }).map(function (t) {
         var dat = {}; try { dat = t.datos ? JSON.parse(t.datos) : {}; } catch (e) {}
@@ -116,8 +116,11 @@ function cambiar_(u, accion, d) {
     case 'crearCampana':
       if (!esCoord) return negado_();
       if (buscarFila_('Campañas', 'id_campana', d.id)) return { ok: false, error: 'Ya existe la campaña ' + d.id };
+      asegurarColumna_('Campañas', 'tramos');
       agregar_('Campañas', { id_campana: d.id, id_proyecto: d.proyecto, proyecto: d.nombreProyecto || '', anio: d.anio, periodo: d.periodo, inicio: d.inicio, termino: d.termino,
-        jefe: d.jefe, equipo: (d.equipo || []).join(', '), estado: 'Abierta', creada_por: u.correo, creada_el: ahora_(), actualizado_el: ahora_() });
+        jefe: d.jefe, equipo: (d.equipo || []).join(', '), tramos: JSON.stringify(d.tramos || []), estado: 'Abierta', creada_por: u.correo, creada_el: ahora_(), actualizado_el: ahora_() });
+      // Personas por monitoreo (cada parte del muestreo asigna 1 o más por monitoreo).
+      var rs = d.resp || {}; Object.keys(rs).forEach(function (k) { if ((rs[k] || []).length) agregar_('Responsables', { id_campana: d.id, monitoreo: k, responsables: rs[k].join(', '), actualizado_por: u.correo, actualizado_el: ahora_() }); });
       agregarVarias_('Checklist', (d.tareas || []).map(function (t) {
         return { id_tarea: t.id, id_campana: d.id, monitoreo: t.mon, estacion: t.est, estado: '', actualizado_el: ahora_() };
       }));
@@ -128,8 +131,10 @@ function cambiar_(u, accion, d) {
     case 'editarCampana':
       c = campana_(d.campana); if (!c) return noExiste_();
       if (!(esCoord || (u.rol === 'Muestreador' && c.jefe === u.nombre && c.estado !== 'Cerrada'))) return negado_();
-      actualizar_('Campañas', 'id_campana', d.campana, { inicio: d.inicio, termino: d.termino, jefe: d.jefe, equipo: (d.equipo || []).join(', '), actualizado_el: ahora_() });
-      registrar_(u, 'editar campaña', d.campana, d.inicio + ' a ' + d.termino + ' · equipo: ' + (d.equipo || []).join(', '));
+      var ve = { inicio: d.inicio, termino: d.termino, jefe: d.jefe, equipo: (d.equipo || []).join(', '), actualizado_el: ahora_() };
+      if (d.tramos) { asegurarColumna_('Campañas', 'tramos'); ve.tramos = JSON.stringify(d.tramos); }
+      actualizar_('Campañas', 'id_campana', d.campana, ve);
+      registrar_(u, 'editar campaña', d.campana, d.inicio + ' a ' + d.termino + (d.tramos ? ' · ' + d.tramos.length + ' parte(s): ' + d.tramos.map(function (t) { return t.ini + '→' + t.fin + ' ' + (t.mons || []).join('+') + ' (jefe ' + t.jefe + ')'; }).join(' | ') : '') + ' · equipo: ' + (d.equipo || []).join(', '));
       return { ok: true };
 
     case 'tarea':
@@ -223,14 +228,34 @@ function cambiar_(u, accion, d) {
       registrar_(u, 'firmar registro', d.campana, d.clave + ' · verificación ' + R.firma.cod);
       return { ok: true, R: R };
 
+    // Firma de un participante (asistente de la charla, integrante del ART, evaluador de fatiga) con SU código, sobre el registro ya firmado.
+    case 'firmarParte':
+      c = campana_(d.campana); if (!c) return noExiste_();
+      if (!puedeMarcar_(u, c)) return negado_();
+      if (!/^(a[1-5]|i[1-7]|evaluador)$/.test(String(d.parte))) return { ok: false, error: 'Parte no válida' };
+      var fq = leer_('Planillas').filter(function (r) { return r.id_campana === d.campana && r.clave === d.clave; })[0];
+      var Rq = fq ? JSON.parse(fq.datos) : null;
+      if (!Rq || !Rq.firma) return { ok: false, error: 'firma', mensaje: 'Primero se firma el registro; después firman los participantes.' };
+      var nom = String(d.parte === 'evaluador' ? (Rq.hdr || {}).evaluador : (Rq.hdr || {})[d.parte + '_nombre'] || '').trim();
+      var fu2 = leer_('Usuarios').filter(function (r) { return String(r.nombre).trim() === nom && String(r.activo).trim() === 'Sí'; })[0];
+      if (!fu2) return { ok: false, error: 'usuario', mensaje: nom + ' no tiene cuenta en la página: debe firmar en papel.' };
+      var up = { correo: String(fu2.correo).trim().toLowerCase(), nombre: nom };
+      var malo2 = pinMalo_(up, d.pin); if (malo2) return malo2;
+      Rq.firmas = Rq.firmas || {};
+      if (Rq.firmas[d.parte]) return { ok: false, error: 'firmado', mensaje: nom + ' ya firmó.' };
+      Rq.firmas[d.parte] = { por: nom, correo: up.correo, el: ahora_(), cod: hex_(JSON.stringify(Rq.hdr || {}) + '|' + d.clave + '|' + up.correo + '|' + d.parte).slice(0, 10).toUpperCase() };
+      actualizarFila_('Planillas', fq._fila, { datos: JSON.stringify(Rq), actualizado_por: u.correo, actualizado_el: ahora_() });
+      registrar_(u, 'firma participante', d.campana, d.clave + ' · ' + nom + ' · verificación ' + Rq.firmas[d.parte].cod);
+      return { ok: true, R: Rq };
+
     case 'anularFirma':
       if (u.rol !== 'Administrador') return negado_();
       if (String(d.motivo || '').trim().length < 5) return { ok: false, error: 'motivo', mensaje: 'Indica el motivo de la anulación.' };
       var fa = leer_('Planillas').filter(function (r) { return r.id_campana === d.campana && r.clave === d.clave; })[0];
       var Ra = fa ? JSON.parse(fa.datos) : null;
       if (!Ra || !Ra.firma) return { ok: false, error: 'Ese registro no está firmado' };
-      Ra.anulaciones = (Ra.anulaciones || []).concat([{ firma: Ra.firma, por: u.nombre, el: ahora_(), motivo: String(d.motivo).trim() }]);
-      delete Ra.firma;
+      Ra.anulaciones = (Ra.anulaciones || []).concat([{ firma: Ra.firma, firmas: Ra.firmas || {}, por: u.nombre, el: ahora_(), motivo: String(d.motivo).trim() }]);
+      delete Ra.firma; delete Ra.firmas;
       actualizarFila_('Planillas', fa._fila, { datos: JSON.stringify(Ra), actualizado_por: u.correo, actualizado_el: ahora_() });
       registrar_(u, 'anular firma', d.campana, d.clave + ' · motivo: ' + String(d.motivo).trim());
       return { ok: true, R: Ra };
@@ -360,7 +385,8 @@ function registrar_(u, accion, campana, detalle, extra) {
 function hex_(s) { return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8).map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join(''); }
 function slug_(n) { return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
 function firmaDe_(datos) { try { return (JSON.parse(datos) || {}).firma || null; } catch (e) { return null; } }
-function sinFirma_(datos) { try { var o = JSON.parse(datos); if (o && o.firma) { delete o.firma; return JSON.stringify(o); } } catch (e) { } return String(datos || ''); }
+function sinFirma_(datos) { try { var o = JSON.parse(datos); if (o && (o.firma || o.firmas)) { delete o.firma; delete o.firmas; return JSON.stringify(o); } } catch (e) { } return String(datos || ''); }
+function tramosLeer_(v) { try { var t = JSON.parse(v || '[]'); return Array.isArray(t) ? t : []; } catch (e) { return []; } }
 // Revisa el código; tras 5 intentos fallidos se bloquea 15 minutos.
 function pinMalo_(u, pin) {
   var raw = PropertiesService.getScriptProperties().getProperty('pin_' + u.correo);
