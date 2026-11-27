@@ -1902,9 +1902,13 @@ var SSO_EQ=['charla','art','vehiculo','embarcacion'];
 function ssoSlug(n){ return String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
 function ssoClave(t,f,per){ return 'SSO|sso-'+t+'-'+f+(per?'-'+ssoSlug(per):''); }
 function ssoGet(c,t,f,per){ return (c.planillas||{})[ssoClave(t,f,per)]; }
-// Los registros SSO aplican solo a parámetros acreditados: columna de agua, sedimentos, corrientes lagrangianas y deriva litoral.
-var SSO_ACRED=/columna de agua|sediment|lagrang|deriva/;
-function esAcred(m){ return !!m&&SSO_ACRED.test(sinTilde(m.nombre)); }
+// Los registros SSO aplican solo a monitoreos con parámetros acreditados (alcance de acreditación de CEAMAR),
+// más corrientes lagrangianas y deriva litoral.
+var ACRED=[{re:/^muestra de agua/,n:'muestreo de agua'},{re:/^ph$/,n:'pH'},{re:/^conductividad/,n:'conductividad'},{re:/^oxigeno disuelto/,n:'oxígeno disuelto'},{re:/^temperatura/,n:'temperatura'},
+  {re:/^cloro libre/,n:'cloro libre'},{re:/^salinidad/,n:'salinidad'},{re:/^muestra de sedimento/,n:'muestreo de sedimentos'},{re:/^potencial redox/,n:'potencial redox'}];
+function acredDe(m){ var o=[]; if(!m) return o; if(/lagrang|deriva/.test(sinTilde(m.nombre))) o.push('todo el monitoreo');
+  (m.items||[]).forEach(function(x){ var p=sinTilde(x.param).trim(); ACRED.forEach(function(a){ if(a.re.test(p)&&o.indexOf(a.n)<0) o.push(a.n); }); }); return o; }
+function esAcred(m){ return acredDe(m).length>0; }
 function ssoTramos(c){ return tramosDe(c).filter(function(t){ return t.mons.some(function(k){ return esAcred(mOf(c,k)); }); }); }
 function ssoDias(c){ var o=[]; ssoTramos(c).forEach(function(t){ diasRango(t.ini,t.fin).forEach(function(d){ if(o.indexOf(d)<0) o.push(d); }); }); return o.sort(); }
 function ssoMonsDia(c,f){ var o=[]; ssoTramos(c).forEach(function(t){ if(t.ini<=f&&f<=t.fin) t.mons.forEach(function(k){ if(esAcred(mOf(c,k))&&o.indexOf(k)<0) o.push(k); }); }); return o; }
@@ -2033,7 +2037,7 @@ function htmlSSO(c){
   var dias=ssoDias(c); if(!S.ssoDia||dias.indexOf(S.ssoDia)<0) S.ssoDia=dias.indexOf(S.fechaTrabajo)>=0?S.fechaTrabajo:(dias.indexOf(HOY_S)>=0?HOY_S:dias[0]);
   var f=S.ssoDia, out='<div class="sso-dias" role="tablist">'+dias.map(function(d){ var U=ssoUnidades(c,d), ok=U.filter(function(u){ return ssoListo(ssoGet(c,u.t,d,u.per),u.t); }).length;
     return '<button type="button" role="tab" aria-selected="'+(d===f)+'" data-sso-dia="'+d+'">'+esc(DIAS[(new Date(d+'T12:00:00').getDay()+6)%7])+' '+d.slice(8,10)+'-'+d.slice(5,7)+'<small>'+ok+'/'+U.length+'</small></button>'; }).join('')+'</div>';
-  out+='<div class="sub sso-acred">Parámetros acreditados este día: <b>'+ssoMonsDia(c,f).map(function(k){ return esc((mOf(c,k)||{}).nombre||k); }).join(', ')+'</b></div>';
+  out+='<div class="sub sso-acred">Parámetros acreditados este día: '+ssoMonsDia(c,f).map(function(k){ var m=mOf(c,k)||{nombre:k}; return '<b>'+esc(m.nombre)+'</b> ('+esc(acredDe(m).join(', '))+')'; }).join(' · ')+'</div>';
   if(!puedeMarcar(c)) out+='<div class="ro-aviso">Solo lectura: '+motivoLectura(c)+'.</div>';
   else if(S.pinTiene===false) out+=ssoCrearPin();
   else if(S.pinTiene===undefined) ssoPinEstado();
