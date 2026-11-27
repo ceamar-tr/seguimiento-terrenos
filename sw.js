@@ -1,7 +1,7 @@
 // Guarda la página en el equipo: abre al tiro con la copia guardada (también sin señal)
 // y por detrás revisa si hay una versión nueva; si la hay, avisa a la página para actualizar.
-var CACHE = 'terrenos-v2';
-var BASE = ['./', 'index.html', 'data/matriz.js', 'logos/CEAMAR.jpg', 'logos/ceamar-favicon.png', 'manifest.webmanifest', 'icons/icon-192.png'];
+var CACHE = 'terrenos-v3';
+var BASE = ['./', 'index.html', 'logos/CEAMAR.jpg', 'logos/ceamar-favicon.png', 'manifest.webmanifest', 'icons/icon-192.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return Promise.all(BASE.map(function (u) { return c.add(u).catch(function () {}); })); }).then(function () { return self.skipWaiting(); }));
 });
@@ -19,7 +19,7 @@ self.addEventListener('fetch', function (e) {
   if (!propio && !fuente) return;
   var clave = req.mode === 'navigate' ? (url.origin + (/\/$/.test(url.pathname) ? url.pathname + 'index.html' : url.pathname)) : req;  // la página se guarda como index.html
   if (req.mode === 'navigate') nueva = false;
-  var vigilar = req.mode === 'navigate' || /\/(index\.html|data\/matriz\.js)$/.test(url.pathname);
+  var vigilar = req.mode === 'navigate' || /\/index\.html$/.test(url.pathname);
   e.respondWith(caches.open(CACHE).then(function (cache) {
     return cache.match(clave, { ignoreSearch: true }).then(function (guardada) {
       var previo = guardada && vigilar ? guardada.clone() : null;  // copia para comparar después (la original se entrega a la página)
