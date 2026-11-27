@@ -211,6 +211,7 @@
     .pl-t td::before{content:attr(data-l);font-size:12px;font-weight:700;color:var(--suave);}
     .pl-t td.pl-acc{display:flex !important;justify-content:flex-end;gap:16px;}.pl-t td.pl-acc .lnk{width:auto;}.pl-t td.pl-acc::before{content:none;}
     .pl-rev{margin-left:0;}
+    .pl-t tr.pl-grp{border:none;background:none;padding:10px 0 2px;margin:6px 0 0;}.pl-t tr.pl-grp td{display:block !important;background:none;border:none;padding:0 !important;}.pl-t tr.pl-grp td::before{content:none;}
   }
   .tag-anual{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;border:1px solid var(--borde);color:var(--suave);font-size:10.5px;font-weight:600;vertical-align:middle;}
   .btn-todas{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:24px;border:none;background:#14532d;color:#fff;font-weight:800;font-size:14px;letter-spacing:.2px;box-shadow:0 3px 10px rgba(20,83,45,.35);cursor:pointer;}
@@ -631,6 +632,10 @@
   .pit.r{background:var(--rojo-s);}.pit.a{background:var(--amber-s);}.pit.g{background:var(--gris);}
   .pit b{color:var(--azul);}
   .pd{display:flex;flex-direction:column;gap:8px;}
+  .pl-grp td{background:var(--gris);padding:9px 12px !important;border-top:2px solid var(--borde);}
+  .pl-grp td{display:table-cell;}.pl-grp .pl-grp-t{display:inline-flex;align-items:center;gap:6px;font-weight:800;color:var(--azul);font-size:14px;margin-right:12px;}
+  .pl-grp svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .pl-grp .lnk{float:right;font-size:12.5px;}
   .hi-lista{display:flex;flex-direction:column;gap:12px;}
   .hi-c{background:var(--card-bg);border-radius:var(--r);box-shadow:var(--sombra);overflow:hidden;}
   .hi-c>summary{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;list-style:none;}
@@ -1584,8 +1589,10 @@ var PLAN_DEF={
   // Ficha de observación de mamíferos marinos y aves (solo Quebrada Blanca II · PS-14), igual a la ficha en papel.
   fauna:{t:'Ficha observación mamíferos marinos y aves',corto:'Ficha de fauna',sinInst:true,
     hdrCampos:[{k:'observador',l:'Observador',ty:'txt'},{k:'iniLP',l:'Inicio · lobos y pingüinos',ty:'time'},{k:'finLP',l:'Fin · lobos y pingüinos',ty:'time'},{k:'iniCh',l:'Inicio · chungungos',ty:'time'},{k:'finCh',l:'Fin · chungungos',ty:'time'}],
-    cols:[{k:'esp',l:'Especie',ty:'sel',ops:['Lobo común','Lobo dos pelos','Pingüino','Chungungo']},{k:'lugar',l:'Lugar',ty:'lug'},{k:'ind',l:'Individuos',ty:'num',min:0},{k:'obs',l:'Observación',ty:'txt'}],
-    filas:(function(){ var o=[]; ['Lobo común','Lobo dos pelos','Pingüino','Chungungo'].forEach(function(e){ ['Islote Patache','Navegación','Islote Patillos'].forEach(function(l){ o.push({esp:e,lugar:l}); }); }); return o; })()}
+    // Ordenada por lugar: en cada lugar se registran todas las especies y luego se pasa al siguiente.
+    grupo:'lugar',ordLugar:['Islote Patache','Navegación','Islote Patillos'],ordEsp:['Lobo común','Lobo dos pelos','Pingüino','Chungungo'],
+    cols:[{k:'lugar',l:'Lugar',ty:'lug'},{k:'esp',l:'Especie',ty:'sel',ops:['Lobo común','Lobo dos pelos','Pingüino','Chungungo']},{k:'ind',l:'Individuos',ty:'num',min:0},{k:'obs',l:'Observación',ty:'txt'}],
+    filas:(function(){ var o=[]; ['Islote Patache','Navegación','Islote Patillos'].forEach(function(l){ ['Lobo común','Lobo dos pelos','Pingüino','Chungungo'].forEach(function(e){ o.push({lugar:l,esp:e}); }); }); return o; })()}
 };
 // Cómo se identifican las muestras, según la matriz: réplicas (A, B…), día/noche si hay muestreo nocturno, y estrato si aplica.
 function muestrasMon(m){ var it=(m&&m.items)||[], n=1, noche=false, es=[];
@@ -1624,6 +1631,11 @@ function armarFilas(c,mon,P){ var pk=P._pk, m=mOf(c,mon), d=defPlan(pk,P.hdr,m);
   P.rows.forEach(function(r){ if(usadas.indexOf(r)<0&&lleno(r)) nuevas.push(r); });
   P.rows=nuevas; }
 function defPlan(pk,h,m){ return pk.indexOf('f-')===0?defFlujo(pk.slice(2),h,m):PLAN_DEF[pk]; }
+// Ordena las filas por lugar (en el orden del recorrido) y especie; los lugares nuevos quedan al final.
+function ordenarGrupo(P,d){ if(!d||!d.grupo||!P) return; var L=d.ordLugar.slice(); P.rows.forEach(function(r){ var l=r.lugar||''; if(L.indexOf(l)<0) L.push(l); });
+  var pos=P.rows.map(function(r,i){ return {r:r,i:i}; });
+  pos.sort(function(a,b){ var la=L.indexOf(a.r.lugar||''), lb=L.indexOf(b.r.lugar||''); if(la!==lb) return la-lb; var ea=d.ordEsp.indexOf(a.r.esp), eb=d.ordEsp.indexOf(b.r.esp); ea=ea<0?99:ea; eb=eb<0?99:eb; return ea!==eb?ea-eb:a.i-b.i; });
+  P.rows=pos.map(function(x){ return x.r; }); }
 function planillasDe(c,m){ if(!m) return []; var n=sinTilde(m.nombre+' '+m.cod).toLowerCase(), out=[];
   if(/columna de agua|(^| )agua( |$)/.test(n)) out.push('ph','hat','secchi');
   if(esZoo(m)) redesMon(c,m.cod).forEach(function(r){ out.push('f-'+r.red); });
@@ -1687,7 +1699,10 @@ function renderPlanillas(c,m,ro){
         '</div>'+(d.bocas?'<p class="sub pl-nota">Bongo: se anota una lectura por arrastre y vale para las dos bocas (A y B).</p>':'')+(d.cfg.pts==='arr'&&!d.cfg.arr.length?'<p class="sub pl-nota falta">Escribe los arrastres para armar la planilla.</p>':''):'')+'</div>';
   var ests=(m.estaciones||[]).filter(function(e){return e!=='GENERAL';});
   var tabla='<datalist id="pl-lug">'+['Islote Patache','Navegación','Islote Patillos'].map(function(e){return '<option value="'+e+'">';}).join('')+'</datalist><datalist id="pl-ests">'+ests.map(function(e){return '<option value="'+esc(e)+'">';}).join('')+'</datalist><div class="pl-wrap"><table class="pl-t"><thead><tr>'+d.cols.map(function(x){return '<th>'+esc(x.l)+'</th>';}).join('')+(ro?'':'<th></th>')+'</tr></thead><tbody>'+
-    P.rows.map(function(r){ return '<tr>'+d.cols.map(function(x){ return celdaPlan(d,x,r,P,pk,dis); }).join('')+(ro?'':'<td class="pl-acc"><button type="button" class="lnk" data-pl-dup="'+esc(pk)+'|'+esc(r.id)+'" title="Duplicar fila">⧉</button><button type="button" class="lnk" data-pl-del="'+esc(pk)+'|'+esc(r.id)+'" title="Quitar fila">✕</button></td>')+'</tr>'; }).join('')+'</tbody></table></div>';
+    (function(){ ordenarGrupo(P,d); return ''; })()+P.rows.map(function(r,ix){ var g='';
+      if(d.grupo&&(ix===0||(P.rows[ix-1].lugar||'')!==(r.lugar||''))){ var lg=r.lugar||'', nInd=P.rows.filter(function(z){ return (z.lugar||'')===lg&&z.ind!=null&&z.ind!==''; }).length;
+        g='<tr class="pl-grp"><td colspan="'+(d.cols.length+(ro?0:1))+'"><span class="pl-grp-t"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'+esc(lg||'Sin lugar')+'</span><span class="sub">'+nInd+' de '+P.rows.filter(function(z){ return (z.lugar||'')===lg; }).length+' especies anotadas</span>'+(ro?'':'<button type="button" class="lnk" data-pl-add="'+esc(pk)+'|'+esc(lg)+'">+ Agregar especie aquí</button>')+'</td></tr>'; }
+      return g+'<tr>'+d.cols.map(function(x){ return celdaPlan(d,x,r,P,pk,dis); }).join('')+(ro?'':'<td class="pl-acc"><button type="button" class="lnk" data-pl-dup="'+esc(pk)+'|'+esc(r.id)+'" title="Duplicar fila">⧉</button><button type="button" class="lnk" data-pl-del="'+esc(pk)+'|'+esc(r.id)+'" title="Quitar fila">✕</button></td>')+'</tr>'; }).join('')+'</tbody></table></div>';
   var pie='<div class="pl-pie">'+(ro?'':'<button type="button" class="btn-s" data-pl-add="'+esc(pk)+'">＋ Agregar fila</button>')+
     '<button type="button" class="btn-p" data-pl-pdf="'+esc(pk)+'">Descargar PDF</button><button type="button" class="lnk" data-pl-csv="'+esc(pk)+'">Excel (CSV)</button>'+
     '<span class="pl-rev">'+(h.rev?'✓ Revisado por <b>'+esc(h.revPor||'')+'</b> · '+esc(cuando(h.revEl))+(esCoord()&&!ro?' <button type="button" class="lnk" data-pl-rev="'+esc(pk)+'">Quitar</button>':''):(esCoord()&&!ro?'<button type="button" class="btn-s" data-pl-rev="'+esc(pk)+'">Marcar revisado (Gerente Técnico)</button>':'<span class="sub">Sin revisión</span>'))+'</span></div>'+
@@ -1710,6 +1725,7 @@ function pdfTxt(v){ return String(v==null?'':v).replace(/³/g,'3').replace(/²/g
 function pdfPlanilla(c,mon,pk){
   var P=getPlan(c,mon,pk,true), h=P.hdr||{}, m=mOf(c,mon), d=defPlan(pk,h,m), pr=MATRIZ[c.proyecto];
   var orden=d.cols.filter(function(x){return x.k==='est';}).concat(d.cols.filter(function(x){return x.k==='mu';}),d.cols.filter(function(x){return x.k!=='est'&&x.k!=='mu';}));
+  ordenarGrupo(P,d);
   var filas=P.rows.filter(function(r){ return orden.some(function(x){ return (x.ty==='num'||x.ty==='txt'||x.ty==='hora')&&r[x.k]!=null&&r[x.k]!==''; }); });
   if(!filas.length){ toast('La planilla aún no tiene datos'); return; }
   if(d.flujo) orden=orden.filter(function(x){ return x.k==='est'||x.k==='mu'||x.ty==='calc'; });
@@ -1972,8 +1988,8 @@ W.addEventListener('click',function(e){
   if(b.dataset.plAdd||b.dataset.plDup||b.dataset.plDel||b.dataset.plRev||b.dataset.plAhora||b.dataset.plCsv){ var cp=getC(S.cid), x=(b.dataset.plAdd||b.dataset.plDup||b.dataset.plDel||b.dataset.plRev||b.dataset.plAhora||b.dataset.plCsv).split('|'), pkk=x[0], rid=x[1];
     if(b.dataset.plCsv){ csvPlanilla(cp,S.mon,pkk); return; }
     var PP=getPlan(cp,S.mon,pkk,true);
-    if(b.dataset.plAdd) PP.rows.push(nuevaFila());
-    if(b.dataset.plDup){ var i0=-1; PP.rows.forEach(function(r,i){ if(r.id===rid) i0=i; }); if(i0>=0){ var src=PP.rows[i0], nf=nuevaFila(); ['est','diam','estr'].forEach(function(k){ if(src[k]) nf[k]=src[k]; }); if(src.mu==='Día') nf.mu='Noche'; else if(src.mu==='A') nf.mu='B'; PP.rows.splice(i0+1,0,nf); } }
+    if(b.dataset.plAdd){ var nfa=nuevaFila(); if(rid) nfa.lugar=rid; PP.rows.push(nfa); }
+    if(b.dataset.plDup){ var i0=-1; PP.rows.forEach(function(r,i){ if(r.id===rid) i0=i; }); if(i0>=0){ var src=PP.rows[i0], nf=nuevaFila(); ['est','diam','estr','lugar','esp'].forEach(function(k){ if(src[k]) nf[k]=src[k]; }); if(src.mu==='Día') nf.mu='Noche'; else if(src.mu==='A') nf.mu='B'; PP.rows.splice(i0+1,0,nf); } }
     if(b.dataset.plDel) PP.rows=PP.rows.filter(function(r){ return r.id!==rid; });
     if(b.dataset.plAhora){ var nn=new Date(); PP.rows.forEach(function(r){ if(r.id===rid) r.hora=pad(nn.getHours())+':'+pad(nn.getMinutes()); }); }
     if(b.dataset.plRev){ PP.hdr=PP.hdr||{}; if(PP.hdr.rev){ PP.hdr.rev=false; PP.hdr.revPor=''; PP.hdr.revEl=''; } else { PP.hdr.rev=true; PP.hdr.revPor=usuario; PP.hdr.revEl=ahoraTxt(); } }
