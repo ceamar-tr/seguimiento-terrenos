@@ -198,6 +198,11 @@
   .pg-fm{display:flex;align-items:center;gap:5px;margin-top:5px;}
   .pg-fm .inp{padding:4px 6px;font-size:12.5px;height:auto;min-width:0;width:100%;}
   .pg-fm span{font-size:12px;color:var(--suave);}
+  .rp-ests{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;}
+  .rp-e{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;border:1px solid var(--borde);border-radius:10px;padding:7px 9px;font-size:13px;}
+  .rp-e small{flex-basis:100%;font-size:11px;color:var(--suave);padding-left:26px;}
+  .st-sal{font-size:11px;font-weight:700;color:#b45309;background:#fff4e5;border-radius:999px;padding:2px 8px;margin-left:6px;white-space:nowrap;}
+  .pg-rep{margin-top:4px;color:#b45309;}
   .pg-pers{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
   .pg-p{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;background:var(--verde-s,#eef6ef);color:var(--verde);border-radius:999px;padding:4px 6px 4px 11px;font-size:12.5px;font-weight:700;}
   .pg-p button{border:none;background:none;color:inherit;cursor:pointer;font-size:11px;padding:2px 4px;opacity:.7;}
@@ -1461,7 +1466,7 @@ function stRow(c,t){
   var m=mOf(c,t.mon), pr=MATRIZ[c.proyecto], x=pr.est[t.est]||{}, falla=t.estado==='No realizado'||t.estado==='Parcial', need=falla&&!t.motivo.trim(), open=S.dataOpen===t.id;
   var got=contar(m,t.datos);
   return '<div class="st'+(need?' need':'')+(S.foco===t.id?' foco':'')+'" data-t="'+esc(t.id)+'" id="st-'+esc(t.id)+'">'+
-    '<div class="st-top"><span class="st-name">'+esc(estNombre(t.est))+'</span><span class="st-coord">'+(x.sector?esc(x.sector)+' · ':'')+esc(coordTxt(pr,t.est))+'</span>'+
+    '<div class="st-top"><span class="st-name">'+esc(estNombre(t.est))+(function(){ var sx=c.tramos&&c.tramos.length?salidaDeEst(c,t.mon,t.est):null; return sx&&sx.est&&sx.est[t.mon]?' <span class="st-sal">Reprogramada · '+esc(salidaTxt(monRango(sx,t.mon)))+'</span>':''; })()+'</span><span class="st-coord">'+(x.sector?esc(x.sector)+' · ':'')+esc(coordTxt(pr,t.est))+'</span>'+
       '<span class="estado" role="group" aria-label="Estado de '+esc(t.est)+'">'+OPC.map(function(o){return '<button type="button" data-act="estado" data-v="'+o+'" aria-pressed="'+(t.estado===o)+'" title="'+o+'">'+LAB[o]+'</button>';}).join('')+'</span></div>'+
     '<div class="st-meta">'+
       (t.estado?'<label>Fecha <input class="inp inp-f" type="date" data-f="fecha" id="fe-'+esc(t.id)+'" value="'+(t.fecha||'')+'"></label>':'<span class="num">sin registrar</span>')+'<button type="button" class="lnk" data-act="datos">'+(open?'Ocultar muestras':'Muestras '+got+'/'+m.total+' ▸')+'</button></div>'+
@@ -1507,7 +1512,7 @@ function renderChecklist(c){
   var vis=S.verPend?ts.filter(function(t){return t.estado!=='Realizado'&&t.estado!=='No aplica';}):ts;
   var filas=vis.map(function(t){ var x=pr.est[t.est]||{}, falla=(t.estado==='No realizado'||t.estado==='Parcial')&&!t.motivo.trim(), got=contar(m,t.datos);
     return '<div class="ck-row e-'+(t.estado?t.estado.replace(' ','-').toLowerCase():'vacio')+'" data-t="'+esc(t.id)+'">'+
-      '<button class="ck-info" data-act="ficha"><span class="ck-dot">'+(ICO[t.estado]||'')+'</span><span class="ck-est"><b>'+esc(estNombre(t.est))+'</b><small>'+(x.sector?esc(x.sector)+' · ':'')+esc(coordTxt(pr,t.est))+'</small></span>'+
+      '<button class="ck-info" data-act="ficha"><span class="ck-dot">'+(ICO[t.estado]||'')+'</span><span class="ck-est"><b>'+esc(estNombre(t.est))+(function(){ var sx=c.tramos&&c.tramos.length?salidaDeEst(c,t.mon,t.est):null; return sx&&sx.est&&sx.est[t.mon]?' <span class="st-sal">'+esc(salidaTxt(monRango(sx,t.mon)))+'</span>':''; })()+'</b><small>'+(x.sector?esc(x.sector)+' · ':'')+esc(coordTxt(pr,t.est))+'</small></span>'+
         '<span class="ck-meta">'+(t.estado?fmtD(t.fecha):'')+(falla?'<em>falta motivo</em>':'')+(got&&got<m.total?'<em class="az">'+got+'/'+m.total+' muestras</em>':'')+'</span></button>'+
       '<span class="estado ck-seg" role="group" aria-label="Estado de '+esc(t.est)+'">'+OPC.map(function(o){return '<button type="button" data-act="estado" data-v="'+o+'" aria-pressed="'+(t.estado===o)+'" title="'+o+'"'+dis+'>'+LAB[o]+'</button>';}).join('')+'</span>'+
       '<button class="ck-mas" data-act="ficha" aria-label="Detalle de '+esc(t.est)+'">›</button></div>'; }).join('');
@@ -1534,6 +1539,7 @@ function renderChecklist(c){
   if(ro&&pks.length&&S.vistaMon!=='datos') antes=antes.replace(/<\/div>$/,' <button type="button" class="lnk" data-vmon="datos">Ver y descargar los datos de terreno ›</button></div>');
   var vistaT=(pks.length||esZoo(m))?'<div class="ck-vista" role="tablist"><button type="button" role="tab" data-vmon="check" aria-selected="'+(S.vistaMon!=='datos')+'">Checklist</button><button type="button" role="tab" data-vmon="datos" aria-selected="'+(S.vistaMon==='datos')+'">Datos de terreno'+(nDat?' <span class="pl-n">'+nDat+'</span>':'')+'</button></div>':'';
   var main='<section class="ck-main"><div class="ck-head"><div><div class="ck-tit">'+esc(m.nombre)+tagAnual(m)+' <span class="ck-cnt">'+a.dn+'/'+a.ts.length+'</span></div><div class="sub">'+esc(resumenMon(m))+'</div></div>'+
+    (S.vistaMon!=='datos'&&!ro&&esCoord()&&c.estadoAdm!=='Cerrada'&&pendientesMon(c,m.cod).length&&pendientesMon(c,m.cod).length<c.tareas.filter(function(x){ return x.mon===m.cod; }).length?'<button type="button" class="btn-s btn-sm" data-repro="'+esc(m.cod)+'">Reprogramar pendientes ('+pendientesMon(c,m.cod).length+')</button>':'')+
     (S.vistaMon==='datos'?'':'<div class="seg"><button data-verpend="0" aria-pressed="'+!S.verPend+'">Todas</button><button data-verpend="1" aria-pressed="'+!!S.verPend+'">Pendientes ('+a.falta.length+')</button></div>')+'</div>'+vistaT+
     (S.vistaMon==='datos'?'<div class="pl">'+renderPlanillas(c,m,ro)+'</div>':
     antes+'<div class="ck-list">'+filas+'</div>'+(ro?'':'<p class="sub" style="margin-top:8px">Elige la fecha y quién hizo el monitoreo, luego toca ✓ en cada estación terminada. Toca el nombre de la estación para cambiar su fecha, anotar un motivo o marcar réplicas.</p>'))+'</section>';
@@ -2360,7 +2366,7 @@ function diasEntre(a,b){ return Math.round((new Date(b+'T00:00:00')-new Date(a+'
 function renderEquipo(){
   var Y=HOY_S.slice(0,4);
   var filas=PERSONAL.map(function(n){
-    var mias=[]; CAMP.forEach(function(c){ if(c.tramos&&c.tramos.length) c.tramos.forEach(function(t){ if(genteTramo(c,t).indexOf(n)>=0){ var o=Object.create(c), rs=t.jefe===n?[{ini:t.ini,fin:t.fin}]:t.mons.filter(function(k){ return respMon(c,k).indexOf(n)>=0; }).map(function(k){ return monRango(t,k); }); o.ini=rs.map(function(r){ return r.ini; }).sort()[0]; o.fin=rs.map(function(r){ return r.fin; }).sort().slice(-1)[0]; mias.push(o); } }); else if(c.equipo.indexOf(n)>=0||c.jefe===n) mias.push(c); });
+    var mias=[]; CAMP.forEach(function(c){ if(c.tramos&&c.tramos.length) c.tramos.forEach(function(t){ if(genteTramo(c,t).indexOf(n)>=0){ var o=Object.create(c), rs=t.jefe===n?[{ini:t.ini,fin:t.fin}]:t.mons.filter(function(k){ return respTramo(c,t,k).indexOf(n)>=0; }).map(function(k){ return monRango(t,k); }); o.ini=rs.map(function(r){ return r.ini; }).sort()[0]; o.fin=rs.map(function(r){ return r.fin; }).sort().slice(-1)[0]; mias.push(o); } }); else if(c.equipo.indexOf(n)>=0||c.jefe===n) mias.push(c); });
     var act=mias.filter(function(c){return c.ini<=HOY_S&&c.fin>=HOY_S;}).sort(function(a,b){return a.ini<b.ini?-1:1;})[0];
     var prox=mias.filter(function(c){return c.ini>HOY_S;}).sort(function(a,b){return a.ini<b.ini?-1:1;});
     var ult=mias.filter(function(c){return c.fin<HOY_S;}).sort(function(a,b){return a.fin<b.fin?1:-1;})[0];
@@ -2418,11 +2424,12 @@ function cerrarNueva(){ document.getElementById('sp').classList.remove('on'); se
 function salidaTxt(t){ if(!t||!t.ini) return 'sin fechas'; var a=t.ini, b=t.fin||t.ini, d=function(x){ return +x.slice(8,10); }, m=function(x){ return MES3[+x.slice(5,7)-1].toLowerCase(); };
   if(a===b) return d(a)+' '+m(a); if(a.slice(0,7)===b.slice(0,7)) return d(a)+'–'+d(b)+' '+m(b); return d(a)+' '+m(a)+' – '+d(b)+' '+m(b); }
 function renderNueva(){
+  if(draft&&draft.modo==='repro') return renderRepro();
   var stp=S.spReset?0:((document.querySelector('#sp .spb')||{}).scrollTop||0); S.spReset=false;
   var ed=draft.modo==='editar', p=MATRIZ[draft.proyecto], ms=ed?monsCamp(getC(draft.cid)):monsDe(draft.proyecto,draft.periodo), nT=0, nM=0;
   ms.forEach(function(m){ nT+=m.estaciones.length; nM+=m.estaciones.length*m.total; });
   var fuera=ed?[]:p.monitoreos.filter(function(m){ return ms.indexOf(m)<0; });
-  var asig={}; draft.tramos.forEach(function(t,i){ t.mons.forEach(function(k){ asig[k]=i; }); });
+  var asig={}; draft.tramos.forEach(function(t,i){ t.mons.forEach(function(k){ if(!(t.est&&t.est[k])) asig[k]=i; }); });
   var per=p.periodos.map(function(s){return '<option'+(draft.periodo===s?' selected':'')+'>'+esc(s)+'</option>';}).join('');
   var existe=!ed&&getC(nuevaCampana(draft.proyecto,draft.anio,draft.periodo,'','','',[]).id), dis=ed?' disabled':'', varias=draft.tramos.length>1;
   var opsPers=function(excl){ return PERSONAL.filter(function(n){ return excl.indexOf(n)<0; }).map(function(n){ return '<option>'+esc(n)+'</option>'; }).join(''); };
@@ -2439,7 +2446,8 @@ function renderNueva(){
   var filas=ms.map(function(m){ var k=m.cod, i=asig[k], sel=draft.resp[k]||[], prog=i!=null;
     return '<div class="pg-row'+(prog?'':' pg-off')+'"><div class="pg-mon"><b>'+esc(m.nombre)+'</b><small>'+(m.estaciones[0]==='GENERAL'?'Área general':m.estaciones.length+' estaciones')+(m.anual?' · anual':'')+'</small></div>'+
       ('<div class="pg-cel"><select class="sel" data-mon-sal="'+esc(k)+'" aria-label="Salida de '+esc(m.nombre)+'"><option value="">Sin programar aún</option>'+draft.tramos.map(function(t,j){ return '<option value="'+j+'"'+(i===j?' selected':'')+'>'+esc(salidaTxt(t))+'</option>'; }).join('')+'</select>'+
-        (prog?(function(){ var t=draft.tramos[i], r=monRango(t,k), mm=' min="'+esc(t.ini)+'" max="'+esc(t.fin)+'"'; return '<div class="pg-fm"><input class="inp" type="date" data-mon-f="'+esc(k)+'|ini" value="'+esc(r.ini)+'"'+mm+' aria-label="Inicio de '+esc(m.nombre)+'"><span>al</span><input class="inp" type="date" data-mon-f="'+esc(k)+'|fin" value="'+esc(r.fin)+'"'+mm+' aria-label="Término de '+esc(m.nombre)+'"></div>'; })():'')+'</div>')+
+        (prog?(function(){ var t=draft.tramos[i], r=monRango(t,k), mm=' min="'+esc(t.ini)+'" max="'+esc(t.fin)+'"'; return '<div class="pg-fm"><input class="inp" type="date" data-mon-f="'+esc(k)+'|ini" value="'+esc(r.ini)+'"'+mm+' aria-label="Inicio de '+esc(m.nombre)+'"><span>al</span><input class="inp" type="date" data-mon-f="'+esc(k)+'|fin" value="'+esc(r.fin)+'"'+mm+' aria-label="Término de '+esc(m.nombre)+'"></div>'; })():'')+
+        draft.tramos.filter(function(t){ return t.est&&t.est[k]; }).map(function(t){ return '<div class="sub pg-rep">+ '+t.est[k].length+' estaci'+(t.est[k].length===1?'ón':'ones')+' reprogramada'+(t.est[k].length===1?'':'s')+' al '+esc(salidaTxt(monRango(t,k)))+'</div>'; }).join('')+'</div>')+
       '<div class="pg-cel pg-pers">'+(prog?sel.map(function(n){ return '<span class="pg-p">'+esc(n)+'<button type="button" data-mon-quitar="'+esc(k)+'|'+esc(n)+'" aria-label="Quitar a '+esc(n)+'">✕</button></span>'; }).join('')+
         (sel.length<PERSONAL.length?'<select class="sel pg-add'+(sel.length?'':' pg-falta')+'" data-mon-add="'+esc(k)+'" aria-label="Agregar persona a '+esc(m.nombre)+'"><option value="">'+(sel.length?'+ Agregar':'Asignar personas…')+'</option>'+opsPers(sel)+'</select>':''):'<span class="sub">Se programa después</span>')+'</div></div>'; }).join('');
   var tabla='<div class="pg-sec"><div class="pg-st"><b>Monitoreos de '+esc(draft.periodo)+' '+draft.anio+'</b><span class="sub">'+'Para cada monitoreo elige la salida, sus fechas (dentro de la salida; pueden coincidir o no con las de otros monitoreos) y quiénes lo realizan. Lo que no se haga ahora puede quedar «Sin programar aún».'+'</span></div>'+
@@ -2496,7 +2504,7 @@ function monActivo(t,k,f){ var r=monRango(t,k); return r.ini<=f&&f<=r.fin; }
 // Ajusta las fechas de cada monitoreo al rango de su salida (si quedan fuera o iguales a la salida, siguen a la salida).
 function ajustarFechas(t){ if(!t.fechas) return; Object.keys(t.fechas).forEach(function(k){ var f=t.fechas[k]; if(t.mons.indexOf(k)<0){ delete t.fechas[k]; return; }
   if(f.ini<t.ini) f.ini=t.ini; if(f.fin>t.fin) f.fin=t.fin; if(f.ini>t.fin||f.fin<t.ini||f.fin<f.ini||(f.ini===t.ini&&f.fin===t.fin)) delete t.fechas[k]; }); }
-function genteTramo(c,t,soloMons){ var o=[]; function add(n){ if(n&&o.indexOf(n)<0) o.push(n); } add(t.jefe); t.mons.forEach(function(k){ if(!soloMons||soloMons.indexOf(k)>=0) respMon(c,k).forEach(add); }); return o; }
+function genteTramo(c,t,soloMons){ var o=[]; function add(n){ if(n&&o.indexOf(n)<0) o.push(n); } add(t.jefe); t.mons.forEach(function(k){ if(!soloMons||soloMons.indexOf(k)>=0) respTramo(c,t,k).forEach(add); }); return o; }
 function diasRango(a,b){ var out=[]; if(!a) return out; var d=new Date(a+'T00:00:00'), f=new Date((b||a)+'T00:00:00'); while(d<=f){ out.push(iso(d)); d.setDate(d.getDate()+1); } return out; }
 function sinProgramar(c){ var asig=[]; (c.tramos||[]).forEach(function(t){ asig=asig.concat(t.mons); }); return (c.tramos&&c.tramos.length)?(c.mons||[]).filter(function(k){ return asig.indexOf(k)<0; }):[]; }
 // Fechas, jefe y equipo de la campaña salen de sus partes (el equipo da los permisos para marcar).
@@ -2504,7 +2512,7 @@ function recalcCamp(c){ if(!c.tramos||!c.tramos.length) return; var ts=c.tramos,
   c.ini=ts.map(function(t){return t.ini;}).sort()[0]; c.fin=ts.map(function(t){return t.fin;}).sort().slice(-1)[0]; c.jefe=ts.slice().sort(function(a,b){ return a.ini<b.ini?-1:1; })[0].jefe;
   ts.forEach(function(t){ genteTramo(c,t).forEach(function(n){ if(eq.indexOf(n)<0) eq.push(n); }); }); c.equipo=eq; }
 function htmlPartes(c){ var mn=function(k){ var m=mOf(c,k); return m?m.nombre:k; };
-  return '<div class="partes">'+c.tramos.map(function(t,i){ return '<div class="parte"><b>'+esc(rangoTxt(t.ini,t.fin))+'</b> · jefe de terreno <b>'+esc(t.jefe)+'</b><div class="parte-m">'+t.mons.map(function(k){ var r=respMon(c,k), fr=monRango(t,k), dif=fr.ini!==t.ini||fr.fin!==t.fin; return '<span><b>'+esc(mn(k))+'</b>'+(dif?' <span class="sub">('+esc(salidaTxt(fr))+')</span>':'')+(r.length?': '+r.map(esc).join(', '):' <em class="falta">sin personas</em>')+'</span>'; }).join('')+'</div></div>'; }).join('')+
+  return '<div class="partes">'+c.tramos.map(function(t,i){ return '<div class="parte"><b>'+esc(rangoTxt(t.ini,t.fin))+'</b> · jefe de terreno <b>'+esc(t.jefe)+'</b><div class="parte-m">'+t.mons.map(function(k){ var r=respTramo(c,t,k), fr=monRango(t,k), dif=fr.ini!==t.ini||fr.fin!==t.fin, ex=t.est&&t.est[k]; return '<span><b>'+esc(mn(k))+'</b>'+(dif?' <span class="sub">('+esc(salidaTxt(fr))+')</span>':'')+(ex?' <span class="sub">· estaciones '+esc(ex.map(estNombre).join(', '))+'</span>':'')+(r.length?': '+r.map(esc).join(', '):' <em class="falta">sin personas</em>')+'</span>'; }).join('')+'</div></div>'; }).join('')+
     (sinProgramar(c).length?'<div class="parte parte-libre"><b>Sin programar aún:</b> '+sinProgramar(c).map(function(k){ return esc(mn(k)); }).join(', ')+'</div>':'')+
     (esCoord()&&c.estadoAdm!=='Cerrada'?'<button type="button" class="btn-s btn-sm" data-partes="'+esc(c.id)+'">'+(sinProgramar(c).length?'Programar lo pendiente':'Editar programación')+'</button>':'')+'</div>'; }
 function rangoTxt(a,b){ return a===b?fmtD(a):fmtD(a)+' al '+fmtD(b); }
@@ -2670,7 +2678,7 @@ SP.addEventListener('change',function(e){ var el=e.target;
   if(el.dataset.tr!=null&&el.dataset.k){ var t=draft.tramos[+el.dataset.tr]; t[el.dataset.k]=el.value; if(el.dataset.k==='ini'&&(!t.fin||t.fin<el.value)) t.fin=el.value; ajustarFechas(t); }
   if(el.dataset.monF){ var qf=el.dataset.monF.split('|'), tf=draft.tramos.filter(function(x){ return x.mons.indexOf(qf[0])>=0; })[0];
     if(tf&&el.value){ var rf=monRango(tf,qf[0]); rf[qf[1]]=el.value; if(qf[1]==='ini'&&rf.fin<rf.ini) rf.fin=rf.ini; if(qf[1]==='fin'&&rf.ini>rf.fin) rf.ini=rf.fin; tf.fechas=tf.fechas||{}; tf.fechas[qf[0]]={ini:rf.ini,fin:rf.fin}; ajustarFechas(tf); } }
-  if(el.dataset.monSal!=null){ var k=el.dataset.monSal; draft.tramos.forEach(function(t){ t.mons=t.mons.filter(function(x){ return x!==k; }); if(t.fechas) delete t.fechas[k]; });
+  if(el.dataset.monSal!=null){ var k=el.dataset.monSal; draft.tramos.forEach(function(t){ if(t.est&&t.est[k]) return; t.mons=t.mons.filter(function(x){ return x!==k; }); if(t.fechas) delete t.fechas[k]; });
     if(el.value!==''){ var t2=draft.tramos[+el.value], orden=monsDe(draft.proyecto,draft.periodo).map(function(m){ return m.cod; }); t2.mons.push(k); t2.mons.sort(function(a,b){ return orden.indexOf(a)-orden.indexOf(b); }); } }
   if(el.dataset.monAdd&&el.value){ var l=(draft.resp[el.dataset.monAdd]||[]).slice(); if(l.indexOf(el.value)<0) l.push(el.value); draft.resp[el.dataset.monAdd]=l; }
   if(el.id==='pg-todos'&&el.value){ var n=el.value; draft.tramos.forEach(function(t){ t.mons.forEach(function(k2){ var l2=(draft.resp[k2]||[]).slice(); if(l2.indexOf(n)<0) l2.push(n); draft.resp[k2]=l2; }); }); }
@@ -2694,6 +2702,58 @@ SP.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b
     c.estadoAdm='Abierta'; c.creadaPor=usuario; c.creadaEl=ahoraTxt(); CAMP_ALL.push(c); vista(); enviar('crearCampana',{id:c.id,proyecto:c.proyecto,nombreProyecto:MATRIZ[c.proyecto].nombre,anio:c.anio,periodo:c.periodo,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,tramos:c.tramos,resp:c.monResp,
       tareas:c.tareas.map(function(t){return {id:t.id,mon:t.mon,est:t.est};}),docs:c.docs.map(function(d){return {n:d.n,t:d.t};})});
     cerrarNueva(); abrir(c.id,'muestreo'); toast('Campaña programada: '+c.tareas.length+' tareas y '+c.docs.length+' documentos'); } });
+
+// ─── REPROGRAMAR ESTACIONES PENDIENTES ───────────────────
+// Un monitoreo puede quedar en más de una salida: la salida "principal" lleva todas sus estaciones salvo las reprogramadas a otra.
+function respTramo(c,t,k){ return (t.resp&&t.resp[k]&&t.resp[k].length)?t.resp[k]:respMon(c,k); }
+function esPrincipal(t,k){ return t.mons.indexOf(k)>=0&&!(t.est&&t.est[k]); }
+function estsEn(c,t,k){ if(t.est&&t.est[k]) return t.est[k]; var otras=[]; tramosDe(c).forEach(function(o){ if(o!==t&&o.est&&o.est[k]) otras=otras.concat(o.est[k]); });
+  return c.tareas.filter(function(x){ return x.mon===k&&otras.indexOf(x.est)<0; }).map(function(x){ return x.est; }); }
+function salidaDeEst(c,k,est){ var ts=tramosDe(c), r=null; ts.forEach(function(t){ if(t.est&&t.est[k]&&t.est[k].indexOf(est)>=0) r=t; }); if(r) return r; return ts.filter(function(t){ return esPrincipal(t,k); })[0]||null; }
+function pendientesMon(c,k){ return c.tareas.filter(function(t){ return t.mon===k&&(!t.estado||t.estado==='No realizado'||t.estado==='Parcial'); }); }
+function abrirRepro(cid,k){ var c=getC(cid), m=mOf(c,k), pend=pendientesMon(c,k), sel={}; pend.forEach(function(t){ sel[t.est]=t.estado!=='Parcial'; });
+  var hoy=HOY_S, ult=tramosDe(c).slice().sort(function(a,b){ return a.fin<b.fin?-1:1; }).slice(-1)[0], d=new Date(((ult&&ult.fin)||hoy)+'T12:00:00'); d.setDate(d.getDate()+1);
+  draft={modo:'repro',cid:cid,mon:k,sel:sel,destino:'nueva',nueva:{ini:iso(d),fin:iso(d),jefe:(ult&&ult.jefe)||c.jefe},fechas:null,resp:respMon(c,k).slice()};
+  S.spReset=true; document.getElementById('sp').classList.add('ancho'); renderNueva(); document.getElementById('sp').classList.add('on'); document.getElementById('ov').classList.add('on'); }
+function reproSalida(){ var c=getC(draft.cid); return draft.destino==='nueva'?draft.nueva:tramosDe(c)[+draft.destino]; }
+function renderRepro(){ var c=getC(draft.cid), k=draft.mon, m=mOf(c,k), pend=pendientesMon(c,k), ts=tramosDe(c), t=reproSalida()||{}, fr=draft.fechas||{ini:t.ini,fin:t.fin};
+  var origen=function(x){ var s=salidaDeEst(c,k,x.est); return s?salidaTxt(monRango(s,k)):''; };
+  var nSel=pend.filter(function(x){ return draft.sel[x.est]; }).length;
+  document.getElementById('sp').innerHTML='<div class="sph"><div class="spt">Reprogramar estaciones pendientes</div><div class="sub">'+esc(m.nombre)+' · '+esc(MATRIZ[c.proyecto].nombre)+' '+esc(periodoLabel(c))+'</div></div><form class="spb">'+
+    '<div class="pg-sec"><div class="pg-st"><b>Estaciones a reprogramar</b><span class="sub">Las que no se alcanzaron a tomar. Las ya realizadas quedan en su fecha.</span></div><div class="rp-ests">'+
+      pend.map(function(x){ return '<label class="rp-e"><input type="checkbox" class="chk" data-rp-est="'+esc(x.est)+'"'+(draft.sel[x.est]?' checked':'')+'><b>'+esc(estNombre(x.est))+'</b><small>'+esc(x.estado||'Sin marcar')+' · '+esc(origen(x))+'</small></label>'; }).join('')+
+    '</div></div>'+
+    '<div class="pg-sec"><div class="pg-st"><b>¿Cuándo se harán?</b></div><label class="fl">Salida<select class="sel" id="rp-dest"><option value="nueva"'+(draft.destino==='nueva'?' selected':'')+'>Nueva salida a terreno</option>'+ts.map(function(o,i){ return '<option value="'+i+'"'+(String(draft.destino)===String(i)?' selected':'')+'>'+esc(salidaTxt(o))+' · '+esc(o.jefe)+'</option>'; }).join('')+'</select></label>'+
+      (draft.destino==='nueva'?'<div class="pg-salr"><label class="fl">Inicio<input class="inp" type="date" id="rp-ini" value="'+esc(draft.nueva.ini)+'"></label><label class="fl">Término<input class="inp" type="date" id="rp-fin" value="'+esc(draft.nueva.fin)+'"></label><label class="fl pg-jefe">Jefe de terreno<select class="sel" id="rp-jefe">'+PERSONAL.map(function(n){ return '<option'+(n===draft.nueva.jefe?' selected':'')+'>'+esc(n)+'</option>'; }).join('')+'</select></label></div>':
+        '<div class="pg-fm"><span>Fechas de '+esc(m.nombre)+':</span><input class="inp" type="date" id="rp-fi" min="'+esc(t.ini)+'" max="'+esc(t.fin)+'" value="'+esc(fr.ini)+'"><span>al</span><input class="inp" type="date" id="rp-ff" min="'+esc(t.ini)+'" max="'+esc(t.fin)+'" value="'+esc(fr.fin)+'"></div>')+'</div>'+
+    '<div class="pg-sec"><div class="pg-st"><b>Personas</b><span class="sub">Quiénes harán estas estaciones.</span></div><div class="pg-pers">'+draft.resp.map(function(n){ return '<span class="pg-p">'+esc(n)+'<button type="button" data-rp-quitar="'+esc(n)+'" aria-label="Quitar a '+esc(n)+'">✕</button></span>'; }).join('')+
+      '<select class="sel pg-add'+(draft.resp.length?'':' pg-falta')+'" id="rp-add"><option value="">'+(draft.resp.length?'+ Agregar':'Asignar personas…')+'</option>'+PERSONAL.filter(function(n){ return draft.resp.indexOf(n)<0; }).map(function(n){ return '<option>'+esc(n)+'</option>'; }).join('')+'</select></div></div>'+
+    '</form><div class="spf"><button class="btn-p" id="rp-guardar">Reprogramar '+nSel+' estaci'+(nSel===1?'ón':'ones')+'</button><button class="btn-s" id="n-cancelar">Cancelar</button></div>'; }
+function guardarRepro(){ var c=getC(draft.cid), k=draft.mon, ests=pendientesMon(c,k).filter(function(x){ return draft.sel[x.est]; }).map(function(x){ return x.est; });
+  if(!ests.length){ toast('Elige al menos una estación'); return; } if(!draft.resp.length){ toast('Asigna al menos una persona'); return; }
+  if(!(c.tramos&&c.tramos.length)) c.tramos=JSON.parse(JSON.stringify(tramosDe(c)));
+  var T; if(draft.destino==='nueva'){ var nv=draft.nueva; if(!nv.ini||!nv.fin||nv.fin<nv.ini){ toast('Revisa las fechas de la nueva salida'); return; } if(!nv.jefe){ toast('Elige el jefe de terreno'); return; } T={ini:nv.ini,fin:nv.fin,mons:[],jefe:nv.jefe}; c.tramos.push(T); }
+  else T=c.tramos[+draft.destino];
+  if(esPrincipal(T,k)){ toast('Esas estaciones ya están en esa salida: elige otra o una nueva'); if(draft.destino==='nueva') c.tramos.pop(); return; }
+  // Sacar las estaciones de otras salidas donde estuvieran reprogramadas antes.
+  c.tramos.forEach(function(o){ if(o!==T&&o.est&&o.est[k]){ o.est[k]=o.est[k].filter(function(e){ return ests.indexOf(e)<0; }); if(!o.est[k].length){ delete o.est[k]; o.mons=o.mons.filter(function(x){ return x!==k; }); if(o.fechas) delete o.fechas[k]; if(o.resp) delete o.resp[k]; } } });
+  if(T.mons.indexOf(k)<0) T.mons.push(k); T.est=T.est||{}; T.est[k]=(T.est[k]||[]).concat(ests.filter(function(e){ return (T.est[k]||[]).indexOf(e)<0; }));
+  if(draft.destino!=='nueva'&&draft.fechas&&(draft.fechas.ini!==T.ini||draft.fechas.fin!==T.fin)){ T.fechas=T.fechas||{}; T.fechas[k]={ini:draft.fechas.ini,fin:draft.fechas.fin}; }
+  if(JSON.stringify(draft.resp)!==JSON.stringify(respMon(c,k))){ T.resp=T.resp||{}; T.resp[k]=draft.resp.slice(); }
+  c.tramos=c.tramos.filter(function(o){ return o.mons.length; }); c.tramos.sort(function(a,b){ return a.ini<b.ini?-1:a.ini>b.ini?1:0; });
+  recalcCamp(c); enviar('editarCampana',{campana:c.id,inicio:c.ini,termino:c.fin,jefe:c.jefe,equipo:c.equipo,tramos:c.tramos}); vista(); cerrarNueva(); renderDetalle();
+  toast(ests.length+' estaci'+(ests.length===1?'ón reprogramada':'ones reprogramadas')+' al '+salidaTxt(monRango(T,k))); }
+document.getElementById('sp').addEventListener('change',function(e){ if(!draft||draft.modo!=='repro') return; var el=e.target, t=reproSalida();
+  if(el.dataset.rpEst) draft.sel[el.dataset.rpEst]=el.checked;
+  if(el.id==='rp-dest'){ draft.destino=el.value; draft.fechas=null; }
+  if(el.id==='rp-ini'){ draft.nueva.ini=el.value; if(draft.nueva.fin<el.value) draft.nueva.fin=el.value; } if(el.id==='rp-fin') draft.nueva.fin=el.value; if(el.id==='rp-jefe') draft.nueva.jefe=el.value;
+  if(el.id==='rp-fi'||el.id==='rp-ff'){ var fr=draft.fechas||{ini:t.ini,fin:t.fin}; fr[el.id==='rp-fi'?'ini':'fin']=el.value; if(fr.fin<fr.ini) fr.fin=fr.ini; if(fr.ini<t.ini) fr.ini=t.ini; if(fr.fin>t.fin) fr.fin=t.fin; draft.fechas=fr; }
+  if(el.id==='rp-add'&&el.value&&draft.resp.indexOf(el.value)<0) draft.resp.push(el.value);
+  renderNueva(); });
+document.getElementById('sp').addEventListener('click',function(e){ if(!draft||draft.modo!=='repro') return; var b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.rpQuitar){ draft.resp=draft.resp.filter(function(n){ return n!==b.dataset.rpQuitar; }); renderNueva(); return; }
+  if(b.id==='rp-guardar') guardarRepro(); });
+document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-repro]'); if(b) abrirRepro(S.cid,b.dataset.repro); });
 
 // ─── INICIO ──────────────────────────────────────────────
 aplicarZoom(); pintarTema();
